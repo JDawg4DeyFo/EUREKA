@@ -29,7 +29,23 @@ esp_err_t I2C_Write(uint8_t Device_Address, uint8_t Register_Address, uint8_t da
 }
 
 esp_err_t I2C_Init(void) {
-    int i2c_master
+    int i2c_master_port = I2C_MASTER_NUM;
+
+    // Configureation typedef passed to HAL function
+    i2c_config_t conf = {
+        .mode = I2C_MODE_MASTER,
+        .sda_io_num = I2C_MASTER_SDA_IO,
+        .scl_io_num = I2C_MASTER_SCL_IO,
+        .sda_pullup_en = GPIO_PULLUP_ENABLE,    // set in menuconfig
+        .scl_pullup_en = GPIO_PULLUP_ENABLE,
+        .master.clk_speed = I2C_MASTER_FREQ_HZ,
+    };
+
+    i2c_param_config(i2c_master_port, &config);
+
+    // NEED TO INVESTIGATE!!!
+    // so many gaps of knowledge to fill in.
+    return i2c_driver_INSTALL(i2c_master_port, conf.mode, I2C_MASTER_RX_BUF_DISABLE, I2C_MASTER_TX_BUF_DISABLE, 0);
 }
 
 
