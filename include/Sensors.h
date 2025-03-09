@@ -15,7 +15,12 @@
 /*******************************************************************************
  * PUBLIC #DEFINES                                                            *
  ******************************************************************************/
-#define SOIL
+#define SOIL_ADDRESS 0x38;      // I2C Bus address
+// NEED TO FIND VALUES FOR DEFINES BELOW
+#define SOIL_REGISTER 0x00;     // find what sensor to read to
+#define WIND_ADDRESS 0x00;
+#define AIR_ADDRESS 0X00;
+#define HUMID_ADDRESS 0x00;
 
 /*******************************************************************************
  * PUBLIC DATATYPES
@@ -40,5 +45,12 @@ typedef enum {
  */
 SensorsIDs_t Sensors_Init(SensorsIDs_t Sensors);
 
-short Soil_Read()
+
+/**
+ * @brief Read from the soil moisture sensor
+ * 
+ * @return short two bytes of data read from the sensor. Could also return
+ *  error, returing actual data by reference.
+ */
+short Soil_Read(void);
 
