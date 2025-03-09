@@ -1,5 +1,5 @@
 /*
- * File: I2C_ESP.h
+ * File: I2C.h
  * Author: Jacob Dennon
  *
  * Version: 0.1
@@ -32,6 +32,13 @@
  * PUBLIC FUNCTIONS                                                           *
  ******************************************************************************/
 /**
+ * @brief Initialize I2C module
+ * 
+ * @return ESP Error type
+ */
+esp_err_t I2C_Init(void);
+
+/**
  * @brief Read from I2C_Register
  * 
  * @param Device_Address I2C address of the device to be read from.
@@ -54,9 +61,6 @@ esp_err_t I2C_Read(uint8_t Device_Address, uint8_t Register_Address, uint8_t *da
  */
 esp_err_t I2C_Write(uint8_t Device_Address, uint8_t Register_Address, uint8_t data);
 
-/**
- * @brief Initialize I2C module
- * 
- * @return ESP Error type
- */
-esp_err_t I2C_Init(void);
+
+// TO design and code: will scan I2C bus for connected devices
+esp_err_t I2C_Scan();
