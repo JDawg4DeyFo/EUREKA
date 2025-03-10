@@ -33,6 +33,15 @@ typedef enum {
     HUMID = 0X8,
 } SensorsIDs_t;
 
+// Possible errors.
+// 1st draft, will need to add or remove as needed
+typedef enum {
+    NO_ERROR = 0,
+    ERROR = 0x1,
+    NO_RESPONSE = 0x2,
+    BUS_COLISION = 0x4,
+} SesnorErrors_t;
+
 /*******************************************************************************
  * PUBLIC FUNCTIONS                                                           *
  ******************************************************************************/
@@ -52,5 +61,5 @@ SensorsIDs_t Sensors_Init(SensorsIDs_t Sensors);
  * @return short two bytes of data read from the sensor. Could also return
  *  error, returing actual data by reference.
  */
-short Soil_Read(void);
+SesnorErrors_t Soil_Read(short *Reading);
 
