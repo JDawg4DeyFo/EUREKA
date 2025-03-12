@@ -44,31 +44,12 @@ SensorsIDs_t Sensors_Init(SenorsIDs_t Sensors) {
 }
 
 
-SesnorErrors_t Soil_Read(short *Reading) {
-    SesnorErrors_t ReturnStatus = 0;
-
-    // I2C HAL CODE
-
-    // data verification code
-
-    return ReturnStatus;
-}
-
-/**
- * @brief 
- * 
- * @param i2c_num 
- * @param addr 
- * @param base_reg 
- * @param func_reg 
- * @return esp_err_t 
- */
-esp_err_t Soil_Write(i2c_port_t i2c_num, uint8_t addr, uint8_t base_reg, uint8_t func_reg) {
+esp_err_t Read_SoilMoisture(uint16_t *Reading) {
     esp_err_t ret;
     int len = 2;
     uint8_t *moisture_data = (uint8_t *)malloc(len);
 
-    ret = write_to_sensor(i2c_num, STEMMA_SENSOR_ADDR, STEMMA_MOISTURE_BASE_REG, STEMMA_MOISTURE_FUNC_REG);
+    ret = write_to_sensor(I2C_MASTER_NUM, STEMMA_SENSOR_ADDR, STEMMA_MOISTURE_BASE_REG, STEMMA_MOISTURE_FUNC_REG);
     if (ret != ESP_OK) 
     {
         ESP_LOGW(TAG, "Write to I2C sensor failed");
@@ -78,10 +59,10 @@ esp_err_t Soil_Write(i2c_port_t i2c_num, uint8_t addr, uint8_t base_reg, uint8_t
 
     delay_ms(50);
 
-    ret = read_from_sensor(i2c_num, STEMMA_SENSOR_ADDR, moisture_data, len);
+    ret = read_from_sensor(I2C_MASTER_NUM, STEMMA_SENSOR_ADDR, moisture_data, len);
     if (ret == ESP_OK)
     {
-        *moisture_value = ((uint16_t)moisture_data[0] << 8) | moisture_data[1];
+        *Reading = ((uint16_t)moisture_data[0] << 8) | moisture_data[1];
     }
     else
     {
@@ -89,5 +70,35 @@ esp_err_t Soil_Write(i2c_port_t i2c_num, uint8_t addr, uint8_t base_reg, uint8_t
     }
 
     free(moisture_data);
+    return ret;
+}
+
+esp_err_t Read_SoilTemperature(float *Reading) {
+    esp_err_t ret;
+    int len = 4;
+    uint8_t *temp_data = (uint8_t *)malloc(len);
+
+    ret = write_to_sensor(I2C_MASTER_NUM, STEMMA_SENSOR_ADDR, STEMMA_TEMP_BASE_REG, STEMMA_TEMP_FUNC_REG);
+    if (ret != ESP_OK)
+    {
+        ESP_LOGW(TAG, "Write to I2C sensor failed");
+        free(temp_data);
+        return ret;
+    }
+
+    delay_ms(50);
+
+    ret = read_from_sensor(I2C_MASTER_NUM, STEMMA_SENSOR_ADDR, temp_data, len);
+    if (ret == ESP_OK)
+    {
+        int32_t raw_temp = ((uint32_t)temp_data[0] << 24) | ((uint32_t)temp_data[1] << 16) | ((uint32_t)temp_data[2] << 8) | temp_data[3];
+        *Reading = (1.0 / (1UL << 16)) * raw_temp;
+    }
+    else
+    {
+        ESP_LOGW(TAG, "Read I2C sensor failed");
+    }
+
+    free(temp_data);
     return ret;
 }

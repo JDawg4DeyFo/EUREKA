@@ -22,6 +22,12 @@
 #define AIR_ADDRESS 0X00;
 #define HUMID_ADDRESS 0x00;
 
+#define STEMMA_SENSOR_ADDR 0x36
+#define STEMMA_MOISTURE_BASE_REG 0x0F
+#define STEMMA_MOISTURE_FUNC_REG 0x10
+#define STEMMA_TEMP_BASE_REG 0x00
+#define STEMMA_TEMP_FUNC_REG 0x04
+
 /*******************************************************************************
  * PUBLIC DATATYPES
  ******************************************************************************/
@@ -58,8 +64,16 @@ SensorsIDs_t Sensors_Init(SensorsIDs_t Sensors);
 /**
  * @brief Read from the soil moisture sensor
  * 
- * @return short two bytes of data read from the sensor. Could also return
- *  error, returing actual data by reference.
+ * @param Reading short to store reading into
+ * @return ESP error type
  */
-SesnorErrors_t Soil_Read(short *Reading);
+esp_err_t Read_SoilMoisture(short *Reading);
+
+/**
+ * @brief Read soil temperature from addafruit sensor
+ * 
+ * @param Reading float to store reading into
+ * @return ESP error type
+ */
+esp_err_t Read_SoilTemperature(float *Reading);
 

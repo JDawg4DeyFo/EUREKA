@@ -32,7 +32,7 @@ esp_err_t I2C_Write(uint8_t Device_Address, uint8_t Base_Register, uint8_t Funct
     i2c_master_start(cmd);
     i2c_master_write_byte(cmd, Device_Address << 1 | WRITE_BIT, ACK_CHECK_EN);
     i2c_master_write_byte(cmd, Base_Register, ACK_CHECK_EN);
-    i2c_master_write_byte(cmd, Function_Regsiter, ACK_CHECK_EN);
+    i2c_master_write_byte(cmd, Function_Register, ACK_CHECK_EN);
     i2c_master_stop(cmd);
     ReturnValue = i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, I2C_MASTER_TIMEOUT_MS / portTICK_PERIOD_MS);
     i2c_cmd_link_delete(cmd);
