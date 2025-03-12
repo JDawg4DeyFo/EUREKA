@@ -10,6 +10,8 @@
 
 #include "../include/I2C.h"
 
+static const char *TAG = "I2C";
+
 esp_err_t I2C_Read(uint8_t Device_Address, uint8_t Base_Register, uint8_t, Function_Register, uint8_t *data, size_t len) {
     i2c_cmd_handle_t cmd = i2c_cmd_link_create();
     i2c_master_start(cmd);

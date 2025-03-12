@@ -77,3 +77,17 @@ esp_err_t Read_SoilMoisture(short *Reading);
  */
 esp_err_t Read_SoilTemperature(float *Reading);
 
+/**
+ * @brief Read air temperature for sht30 humidity and temperature sensor.
+ * 
+ * @return float 
+ */
+esp_err_t Read_AirTemperature(float *Reading);
+
+/**
+ * @brief Read air humidity for sht30 humidity and temperature sensor.
+ * 
+ * @param Reading float to store reading into
+ * @return float 
+ */
+esp_err_t Read_AirHumidity(float *Reading);
