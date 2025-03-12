@@ -8,24 +8,36 @@
  *
  */
 
-#include "../include/I2C_ESP.h"
+#include "../include/I2C.h"
 
-esp_err_t I2C_Read(uint8_t Device_Address, uint8_t Register_Address, uint8_t *data, size_t len) {
-    // NEED TO INVESTIGATE HOW THIS FUNCTION WORKS!!
-    // It's a default function from ESP's HAL, but there's a caveat:
-    // Some sensors will respond to a read request in different ways!
-    return i2c_master_write_read_device(I2C_MASTER_NUM, Device_Address, &Register_Address, 1, data, len, I2C_MASTER_TIMEOUT_MS / portTICK_PERIOD_MS);
+esp_err_t I2C_Read(uint8_t Device_Address, uint8_t Base_Register, uint8_t, Function_Register, uint8_t *data, size_t len) {
+    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
+    i2c_master_start(cmd);
+    i2c_master_write_byte(cmd, Device_Address << 1 | READ_BIT, ACK_CHECK_EN);
+    i2c_master_read(cmd, data, len - 1, ACK_VAL);
+    i2c_master_read_byte(cmd, data + len - 1, NACK_VAL);
+    i2c_master_stop(cmd);
+    esp_err_t ret = i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, I2C_MASTER_TIMEOUT_MS / portTICK_PERIOD_MS);
+    i2c_cmd_link_delete(cmd);
+    return ret;
 }
 
 
-esp_err_t I2C_Write(uint8_t Device_Address, uint8_t Register_Address, uint8_t data) {
-    int ReturnValue;
+esp_err_t I2C_Write(uint8_t Device_Address, uint8_t Base_Register, uint8_t Function_Register, uint8_t data) {
+    esp_err_t ReturnValue;
     uint8_t write_buf[2] = {Register_Address, data}; // investigate how this is used
 
-    // NEED TO INVESTIGATE HOW THIS FUNCTION WORKS!!
-    // It'll probably work fine, but I need to know how the HAL functions
-    // operate in order to proceed with confidence.
-    ReturnValue = i2c_master_write_to_device(I2C_MASTER_NUM, Device_Address, write_buf, sizeof(write_buf), I2C_MASTER_TIMEOUT_MS / portTICK_PERIOD_MS);
+    // Process is outlined 
+    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
+    i2c_master_start(cmd);
+    i2c_master_write_byte(cmd, Device_Address << 1 | WRITE_BIT, ACK_CHECK_EN);
+    i2c_master_write_byte(cmd, Base_Register, ACK_CHECK_EN);
+    i2c_master_write_byte(cmd, Function_Regsiter, ACK_CHECK_EN);
+    i2c_master_stop(cmd);
+    ReturnValue = i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, I2C_MASTER_TIMEOUT_MS / portTICK_PERIOD_MS);
+    i2c_cmd_link_delete(cmd);
+    
+    return ReturnValue;
 }
 
 esp_err_t I2C_Init(void) {
@@ -41,10 +53,8 @@ esp_err_t I2C_Init(void) {
         .master.clk_speed = I2C_MASTER_FREQ_HZ,
     };
 
-    i2c_param_config(i2c_master_port, &config);
+    i2c_param_config(i2c_master_port, &conf);
 
-    // NEED TO INVESTIGATE!!!
-    // so many gaps of knowledge to fill in.
     return i2c_driver_INSTALL(i2c_master_port, conf.mode, I2C_MASTER_RX_BUF_DISABLE, I2C_MASTER_TX_BUF_DISABLE, 0);
 }
 
