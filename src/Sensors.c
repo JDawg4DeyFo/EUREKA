@@ -8,17 +8,44 @@
  * @copyright Copyright (c) 2025
  * 
  */
+
+
+// REFERENCE: https://learn.adafruit.com/adafruit-seesaw-atsamd09-breakout/reading-and-writing-data
+
+// TODO: Replace references to write_to_sensor() and read_from_sensor() with 
+// respective I2C_Write() and I2C_Read() functions.
+
 #include "../include/Sensors.h"
 #include "../include/I2C.h"
 
 static const char *TAG = "Sensors";
 
 SensorsIDs_t Sensors_Init(SenorsIDs_t Sensors) {
+    esp_err_t I2C_Result;
+    uint8_t StatusByte;
+
     SensorsIDs_t ReturnStatus = 0;
 
-    // Check which sensors are to be initialized
     if(Sensors && SOIL) {
-        // initialization code for soil sensor
+        // Poll status register for device ID to determine if sensor and i2c bus
+        // have been properly initialized
+
+        // From reference: A register read is accomplished by first sending the 
+        // standard I2C write header, followed by the two register bytes 
+        // corresponding to the data to be read. Allow a short delay, and then 
+        // send a standard I2C read header (with the R/W bit set to 1) to read 
+        // the data.
+
+        I2C_Result = I2C_Write(I2C_MASTER_NUM, STEMMA_SENSOR_ADDR, STEMMA_STATUS_BASE_REG, STEMMA_STATUS_HWID_REG);
+        IF (I2C_Result != ESP_OK) {
+            ESP_LOGW(TAG, "Write to I2C sensor failed");
+        }
+
+        delay_ms(50); // VERIFY that 50 ms is proper delay for this sensor
+
+        // INVESTIGATE: Might need to replace this read with a standard I2C read
+        // header...
+        I2C_Result = I2C_Read(I2C_MASTER_NUM, STEMMA_SENSOR_ADDR, STEMMA_STATUS_BASE_REG, STEMMA_STATUS_HWID_REG);
         
         ReturnStatus |= SOIL; // indicate soil sensor was correctly initialized
     }

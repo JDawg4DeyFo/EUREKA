@@ -27,6 +27,8 @@
 #define STEMMA_MOISTURE_FUNC_REG 0x10
 #define STEMMA_TEMP_BASE_REG 0x00
 #define STEMMA_TEMP_FUNC_REG 0x04
+#define STEMMA_STATUS_BASE_REG 0x00
+#define STEMMA_STATUS_HWID_REG 0x01
 
 /*******************************************************************************
  * PUBLIC DATATYPES
@@ -54,6 +56,8 @@ typedef enum {
 /**
  * @brief This function intitialzes sensors according to a passed type def.
  * Return value is a bitewise description of sensors that have been initialized.
+ * Most sensors don't require specific intitialization code past proper
+ * configuration of the I2C Bus. I2C_Init() should be called beforehand.
  * 
  * @param Sensors sensors to initialize
  * @return SensorsIDs_t Initialized sensors. 1 = initialized.
