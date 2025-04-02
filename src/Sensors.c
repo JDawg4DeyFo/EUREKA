@@ -9,15 +9,19 @@
  *
  */
 
-// REFERENCE: https://learn.adafruit.com/adafruit-seesaw-atsamd09-breakout/reading-and-writing-data
+// soil sensor REFERENCE: https://learn.adafruit.com/adafruit-seesaw-atsamd09-breakout/reading-and-writing-data
+// sht3x sensor REFERENCE: https://sensirion.com/media/documents/213E6A3B/63A5A569/Datasheet_SHT3x_DIS.pdf
+
 
 // TODO: Replace references to write_to_sensor() and read_from_sensor() with
 // respective I2C_Write() and I2C_Read() functions.
 
 #include "../include/Sensors.h"
-#include "../include/I2C.h"
 
 static const char *TAG = "Sensors";
+
+// Data struct as required by sht3x driver
+sht3x_sensor_t* SoilSensor_DataStruct;
 
 SensorsIDs_t Sensors_Init(SenorsIDs_t Sensors)
 {
@@ -81,17 +85,20 @@ SensorsIDs_t Sensors_Init(SenorsIDs_t Sensors)
 			if ((StatusByte != 0) && (I2C_Result == ESP_OK)) {
 				ReturnStatus |= SOIL; // indicate soil sensor was correctly initialized
 			} else {
+				// error message if read operation failed
 				ESP_LOGW(TAG, "Status read for soil sensor failed");
 			}
 		} else {
+			// error message if control bytes failed
 			ESP_LOGW(TAG, "Status read request for soil sensor failed");
 		}
 	}
 
 	if (Sensors && WIND)
 	{
-		// Initialization code
-
+		// Initialization code:
+		//	1. Initialize ADC Module
+		//  2. Verify connectivity of sensor
 		ReturnStatus |= WIND;
 	}
 
@@ -102,11 +109,17 @@ SensorsIDs_t Sensors_Init(SenorsIDs_t Sensors)
 		ReturnStatus |= AIR;
 	}
 
-	if (Sensors && HUMID)
+	if (Sensors && HUMID_TEMP)
 	{
-		// Initialization code
+		// VERIFY: that i2c_master_num is equivalent to i2c bus number
+		SoilSensor_DataStruct = sht3x_init_sensor(I2C_MASTER_NUM, SHT3x_ADDR_1);
 
-		ReturnStatus |= HUMID;
+		// Check for error in inititalization.
+		if (SoilSensor_DataStruct != NULL) {
+			ReturnStatus |= HUMID_TEMP
+		} else {
+			ESP_LOGW(TAG, "SHT3X Initialization failed");
+		}
 	}
 
 	return ReturnStatus;

@@ -10,18 +10,13 @@
  */
 
 #include "I2C.h"
+#include "SH3X.h"
 
 
 /*******************************************************************************
  * PUBLIC #DEFINES                                                            *
  ******************************************************************************/
-#define SOIL_ADDRESS 0x38;      // I2C Bus address
-// NEED TO FIND VALUES FOR DEFINES BELOW
-#define SOIL_REGISTER 0x00;     // find what sensor to read to
-#define WIND_ADDRESS 0x00;
-#define AIR_ADDRESS 0X00;
-#define HUMID_ADDRESS 0x00;
-
+// Soil Sensor I2C Addresses
 #define STEMMA_SENSOR_ADDR 0x36
 #define STEMMA_MOISTURE_BASE_REG 0x0F
 #define STEMMA_MOISTURE_FUNC_REG 0x10
@@ -29,6 +24,9 @@
 #define STEMMA_TEMP_FUNC_REG 0x04
 #define STEMMA_STATUS_BASE_REG 0x00
 #define STEMMA_STATUS_HWID_REG 0x01
+
+// Outdoor Humidity and temperature I2C Addresses
+#define STEMMA_SENSOR_ADDR 0x44 // note: can be 0x45 if ADDR pin driven high
 
 /*******************************************************************************
  * PUBLIC DATATYPES
@@ -38,7 +36,7 @@ typedef enum {
     SOIL = 0x1,
     WIND = 0x2,
     AIR = 0x4,
-    HUMID = 0X8,
+    HUMID_TEMP = 0X8,
 } SensorsIDs_t;
 
 // Possible errors.
