@@ -26,6 +26,7 @@
 #define STEMMA_STATUS_HWID_REG 0x01
 
 #define SOIL_MOISTURE_DATA_LENGTH 2
+#define SOIL_TEMP_DATA_LENGTH 4
 
 /*******************************************************************************
  * PUBLIC DATATYPES

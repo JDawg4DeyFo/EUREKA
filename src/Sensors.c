@@ -174,34 +174,52 @@ esp_err_t Read_SoilMoisture(uint16_t *Reading)
 
 esp_err_t Read_SoilTemperature(float *Reading)
 {
-	// CRAPPY, UNFINISHED.. 4/1/25
-	esp_err_t ret;
-	// int len = 4;
-	// uint8_t *temp_data = (uint8_t *)malloc(len);
+	esp_err_t I2C_Result;
+	int len = SOIL_TEMP_DATA_LENGTH;
+	uint8_t Temperature[SOIL_TEMP_DATA_LENGTH];
+	
 
-	// ret = write_to_sensor(I2C_MASTER_NUM, STEMMA_SENSOR_ADDR, STEMMA_TEMP_BASE_REG, STEMMA_TEMP_FUNC_REG);
-	// if (ret != ESP_OK)
-	// {
-	// 	ESP_LOGW(TAG, "Write to I2C sensor failed");
-	// 	free(temp_data);
-	// 	return ret;
-	// }
+	// Send out control bytes, indicating soil temperature read request
+	i2c_cmd_handle_t cmd = i2c_cmd_link_create();
+	i2c_master_start(cmd);
+	i2c_master_write_byte(cmd, STEMMA_SENSOR_ADDR << 1 | WRITE_BIT, ACK_CHECK_EN);
+	i2c_master_write_byte(cmd, STEMMA_TEMP_BASE_REG, ACK_CHECK_EN);
+	i2c_master_write_byte(cmd, STEMMA_TEMP_FUNC_REG, ACK_CHECK_EN);
+	i2c_master_stop(cmd);
+	I2C_Result = i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, I2C_MASTER_TIMEOUT_MS / portTICK_PERIOD_MS)
+	i2c_cmd_link_delete(cmd);
 
-	// delay_ms(50);
+	// Check that request passed through
+	if (I2C_Result != ESP_OK) {
+		ESP_LOGW(TAG, "Temperature request failed");
+		return I2C_Result;
+	}
 
-	// ret = read_from_sensor(I2C_MASTER_NUM, STEMMA_SENSOR_ADDR, temp_data, len);
-	// if (ret == ESP_OK)
-	// {
-	// 	int32_t raw_temp = ((uint32_t)temp_data[0] << 24) | ((uint32_t)temp_data[1] << 16) | ((uint32_t)temp_data[2] << 8) | temp_data[3];
-	// 	*Reading = (1.0 / (1UL << 16)) * raw_temp;
-	// }
-	// else
-	// {
-	// 	ESP_LOGW(TAG, "Read I2C sensor failed");
-	// }
+	// small delay as indicated by datasheet
+	delay_ms(50);
 
-	// free(temp_data);
-	return ret;
+	// Begin read operations
+	i2c_cmd_handle_t cmd = i2c_cmd_link_create();
+	i2c_master_start(cmd);
+	i2c_master_write_byte(cmd, STEMMA_SENSOR_ADDR << 1 | READ_BIT, ACK_CHECK_EN);
+	i2c_master_read(cmd, Temperature, len - 1, NACK_VAL);
+	i2c_master_read_byte(cmd, Temperature + len - 1, NACK_VAL);
+	i2c_master_stop(cmd);
+	I2C_Result = i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, I2C_MASTER_TIMEOUT_MS / portTICK_PERIOD_MS);
+	i2c_cmd_link_delete(cmd);
+
+	// check read operation concluded successfully, and store data
+	if (I2C_Result == ESP_OK)
+	{
+		int32_t raw_temp = ((uint32_t)Temperature[0] << 24) | ((uint32_t)Temperature[1] << 16) | ((uint32_t)Temperature[2] << 8) | Temperature[3];
+		*Reading = (1.0 / (1UL << 16)) * raw_temp; // normalize value
+	}
+	else
+	{
+		ESP_LOGW(TAG, "Temperature read failed");
+	}
+
+	return I2C_Result;
 }
 
 #ifdef SENSOR_TEST
