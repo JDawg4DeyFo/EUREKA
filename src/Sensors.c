@@ -64,7 +64,6 @@ SensorsIDs_t Sensors_Init(SenorsIDs_t Sensors)
 		i2c_master_write_byte(cmd, STEMMA_SENSOR_ADDR << 1 | WRITE_BIT, ACK_CHECK_EN);
 		i2c_master_write_byte(cmd, STEMMA_STATUS_BASE_REG, ACK_CHECK_EN);
 		i2c_master_write_byte(cmd, STEMMA_STATUS_HWID_REG, ACK_CHECK_EN);
-		i2c_master_write_byte(cmd, STEMMA_STATUS_BASE_REG, ACK_CHECK_EN);
 		i2c_master_stop(cmd);
 		I2C_Result = i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, I2C_MASTER_TIMEOUT_MS / portTICK_PERIOD_MS)
 		i2c_cmd_link_delete(cmd);
@@ -76,7 +75,7 @@ SensorsIDs_t Sensors_Init(SenorsIDs_t Sensors)
 			i2c_cmd_handle_t cmd = i2c_cmd_link_create();
 			i2c_master_start(cmd);
 			i2c_master_write_byte(cmd, STEMMA_SENSOR_ADDR << 1 | READ_BIT, ACK_CHECK_EN);
-			i2c_master_read_byte(cmd, &StatusByte, NAC_VAL);
+			i2c_master_read_byte(cmd, &StatusByte, NACK_VAL);
 			i2c_master_stop(cmd);
 			I2C_Result = i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, I2C_MASTER_TIMEOUT_MS / portTICK_PERIOD_MS);
 			i2c_cmd_link_delete(cmd);
@@ -127,62 +126,81 @@ SensorsIDs_t Sensors_Init(SenorsIDs_t Sensors)
 
 esp_err_t Read_SoilMoisture(uint16_t *Reading)
 {
-	esp_err_t ret;
-	int len = 2;
-	uint8_t *moisture_data = (uint8_t *)malloc(len);
+	esp_err_t I2C_Result;
+	int len = SOIL_MOISTURE_DATA_LENGTH;
+	uint8_t moisture[SOIL_MOISTURE_DATA_LENGTH];
 
-	ret = write_to_sensor(I2C_MASTER_NUM, STEMMA_SENSOR_ADDR, STEMMA_MOISTURE_BASE_REG, STEMMA_MOISTURE_FUNC_REG);
-	if (ret != ESP_OK)
-	{
-		ESP_LOGW(TAG, "Write to I2C sensor failed");
-		free(moisture_data);
-		return ret;
+	// Send out control bytes, indicating soil moisture read request
+	i2c_cmd_handle_t cmd = i2c_cmd_link_create();
+	i2c_master_start(cmd);
+	i2c_master_write_byte(cmd, STEMMA_SENSOR_ADDR << 1 | WRITE_BIT, ACK_CHECK_EN);
+	i2c_master_write_byte(cmd, STEMMA_MOISTURE_BASE_REG, ACK_CHECK_EN);
+	i2c_master_write_byte(cmd, STEMMA_MOISTURE_FUNC_REG, ACK_CHECK_EN);
+	i2c_master_stop(cmd);
+	I2C_Result = i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, I2C_MASTER_TIMEOUT_MS / portTICK_PERIOD_MS)
+	i2c_cmd_link_delete(cmd);
+
+	// Check that request passed through
+	if (I2C_Result != ESP_OK) {
+		ESP_LOGW(TAG, "Moisture Request failed");
+        return I2C_Result;
 	}
 
+	// short delay as requested by data sheet
 	delay_ms(50);
 
-	ret = read_from_sensor(I2C_MASTER_NUM, STEMMA_SENSOR_ADDR, moisture_data, len);
-	if (ret == ESP_OK)
+	// Here we read the soil moisture
+	i2c_cmd_handle_t cmd = i2c_cmd_link_create();
+	i2c_master_start(cmd);
+	i2c_master_write_byte(cmd, STEMMA_SENSOR_ADDR << 1 | READ_BIT, ACK_CHECK_EN);
+	i2c_master_read(cmd, moisture, len - 1, NACK_VAL);
+	i2c_master_read_byte(cmd, moisture + len - 1, NACK_VAL);
+	i2c_master_stop(cmd);
+	I2C_Result = i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, I2C_MASTER_TIMEOUT_MS / portTICK_PERIOD_MS);
+	i2c_cmd_link_delete(cmd);
+
+	// Check data was read and that I2C operation concluded succesfully.
+	if (I2C_Result != ESP_OK)
 	{
-		*Reading = ((uint16_t)moisture_data[0] << 8) | moisture_data[1];
-	}
-	else
-	{
-		ESP_LOGW(TAG, "Read I2C sensor failed");
+		ESP_LOGW(TAG, "Moisture reading failed");
+		return I2C_Result;
 	}
 
-	free(moisture_data);
-	return ret;
+	// Transfer data into variable passed by reference
+	*Reading = ((uint16_t)moisture[0] << 8) | moisture_data[1];
+
+	return I2C_Result;
 }
 
 esp_err_t Read_SoilTemperature(float *Reading)
 {
+	// CRAPPY, UNFINISHED.. 4/1/25
 	esp_err_t ret;
-	int len = 4;
-	uint8_t *temp_data = (uint8_t *)malloc(len);
+	// int len = 4;
+	// uint8_t *temp_data = (uint8_t *)malloc(len);
 
-	ret = write_to_sensor(I2C_MASTER_NUM, STEMMA_SENSOR_ADDR, STEMMA_TEMP_BASE_REG, STEMMA_TEMP_FUNC_REG);
-	if (ret != ESP_OK)
-	{
-		ESP_LOGW(TAG, "Write to I2C sensor failed");
-		free(temp_data);
-		return ret;
-	}
+	// ret = write_to_sensor(I2C_MASTER_NUM, STEMMA_SENSOR_ADDR, STEMMA_TEMP_BASE_REG, STEMMA_TEMP_FUNC_REG);
+	// if (ret != ESP_OK)
+	// {
+	// 	ESP_LOGW(TAG, "Write to I2C sensor failed");
+	// 	free(temp_data);
+	// 	return ret;
+	// }
 
-	delay_ms(50);
+	// delay_ms(50);
 
-	ret = read_from_sensor(I2C_MASTER_NUM, STEMMA_SENSOR_ADDR, temp_data, len);
-	if (ret == ESP_OK)
-	{
-		int32_t raw_temp = ((uint32_t)temp_data[0] << 24) | ((uint32_t)temp_data[1] << 16) | ((uint32_t)temp_data[2] << 8) | temp_data[3];
-		*Reading = (1.0 / (1UL << 16)) * raw_temp;
-	}
-	else
-	{
-		ESP_LOGW(TAG, "Read I2C sensor failed");
-	}
+	// ret = read_from_sensor(I2C_MASTER_NUM, STEMMA_SENSOR_ADDR, temp_data, len);
+	// if (ret == ESP_OK)
+	// {
+	// 	int32_t raw_temp = ((uint32_t)temp_data[0] << 24) | ((uint32_t)temp_data[1] << 16) | ((uint32_t)temp_data[2] << 8) | temp_data[3];
+	// 	*Reading = (1.0 / (1UL << 16)) * raw_temp;
+	// }
+	// else
+	// {
+	// 	ESP_LOGW(TAG, "Read I2C sensor failed");
+	// }
 
-	free(temp_data);
+	// free(temp_data);
 	return ret;
 }
 

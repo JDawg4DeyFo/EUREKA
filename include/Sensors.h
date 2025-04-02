@@ -25,8 +25,7 @@
 #define STEMMA_STATUS_BASE_REG 0x00
 #define STEMMA_STATUS_HWID_REG 0x01
 
-// Outdoor Humidity and temperature I2C Addresses
-#define STEMMA_SENSOR_ADDR 0x44 // note: can be 0x45 if ADDR pin driven high
+#define SOIL_MOISTURE_DATA_LENGTH 2
 
 /*******************************************************************************
  * PUBLIC DATATYPES
