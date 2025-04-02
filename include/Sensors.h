@@ -28,6 +28,10 @@
 #define SOIL_MOISTURE_DATA_LENGTH 2
 #define SOIL_TEMP_DATA_LENGTH 4
 
+// sht3x defines
+#define SHT3X_REPEATABILITY sht3x_low // both are defined in SH3X.h
+#define SHT3X_PERIOD sht3x_single_shot
+
 /*******************************************************************************
  * PUBLIC DATATYPES
  ******************************************************************************/
@@ -80,16 +84,10 @@ esp_err_t Read_SoilMoisture(short *Reading);
 esp_err_t Read_SoilTemperature(float *Reading);
 
 /**
- * @brief Read air temperature for sht30 humidity and temperature sensor.
- * 
- * @return float 
- */
-esp_err_t Read_AirTemperature(float *Reading);
-
-/**
  * @brief Read air humidity for sht30 humidity and temperature sensor.
  * 
- * @param Reading float to store reading into
- * @return float 
+ * @param Temp_Reading float to store temperature reading into
+ * @param Humid_Reading float to store humidity reading into
+ * @return bool, true success, false for fail 
  */
-esp_err_t Read_AirHumidity(float *Reading);
+bool Read_AirHumidityTemperature(float *Temp_Reading, float *Humid_Reading);

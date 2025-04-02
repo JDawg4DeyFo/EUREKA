@@ -11,6 +11,7 @@
 
 // soil sensor REFERENCE: https://learn.adafruit.com/adafruit-seesaw-atsamd09-breakout/reading-and-writing-data
 // sht3x sensor REFERENCE: https://sensirion.com/media/documents/213E6A3B/63A5A569/Datasheet_SHT3x_DIS.pdf
+// sht3x sensor driver REFERENCE: 
 
 
 // TODO: Replace references to write_to_sensor() and read_from_sensor() with
@@ -20,8 +21,10 @@
 
 static const char *TAG = "Sensors";
 
-// Data struct as required by sht3x driver
-sht3x_sensor_t* SoilSensor_DataStruct;
+// SHT3X Variables
+sht3x_sensor_t* SHT3X_DataStruct;
+sht3x_mode_t SHT3X_Mode = SHT3X_REPEATABILITY;
+sht3x_repeat_t SHT3X_Repeat = SHT3X_PERIOD;
 
 SensorsIDs_t Sensors_Init(SenorsIDs_t Sensors)
 {
@@ -221,6 +224,21 @@ esp_err_t Read_SoilTemperature(float *Reading)
 
 	return I2C_Result;
 }
+
+bool Read_Air_HumidityTemperature(float *Temp_Reading, float *Humid_Reading) {
+	// Start reading
+	if(!sht3x_start_measurement(SHT3X_DataStruct, SHT3X_Mode, SHT3X_Repeat)) {
+		return false;
+	}
+
+	// Get results of (last) reading
+	if(!sht3x_get_results(SHT3X_DataStruct, &SHT3X_Mode, &SHT3X_Repeat)) {
+		return false;
+	}
+
+	return true;
+}
+
 
 #ifdef SENSOR_TEST
 void app_main(void)
