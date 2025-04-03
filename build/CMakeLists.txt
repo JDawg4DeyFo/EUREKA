@@ -6,7 +6,7 @@ project(Eureka)
 
 
 # Define build options
-option(SENSOR_LIB_TEST "Test sensor library"s OFF)
+option(SENSOR_LIB_TEST "Test sensor library" OFF)
 # OPTIONS TO ADD:
 	# main cluster head
 	# main sensor node
