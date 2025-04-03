@@ -240,7 +240,7 @@ bool Read_Air_HumidityTemperature(float *Temp_Reading, float *Humid_Reading) {
 }
 
 
-#ifdef SENSOR_TEST
+#ifdef SENSOR_LIB_TEST
 void app_main(void)
 {
 	esp_err_t ret;
