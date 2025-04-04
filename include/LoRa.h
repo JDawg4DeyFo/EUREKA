@@ -149,46 +149,6 @@
  } sx1262_ramp_time_t;
  
  /**
-  * @brief sx1262 gfsk pulse shape enumeration definition
-  */
- typedef enum
- {
-     SX1262_GFSK_PULSE_SHAPE_NO_FILTER       = 0x00,        /**< no filter applied */
-     SX1262_GFSK_PULSE_SHAPE_GAUSSIAN_BT_0P3 = 0x08,        /**< gaussian bt 0.3 */
-     SX1262_GFSK_PULSE_SHAPE_GAUSSIAN_BT_0P5 = 0x09,        /**< gaussian bt 0.5 */
-     SX1262_GFSK_PULSE_SHAPE_GAUSSIAN_BT_0P7 = 0x0A,        /**< gaussian bt 0.7 */
-     SX1262_GFSK_PULSE_SHAPE_GAUSSIAN_BT_1   = 0x0B,        /**< gaussian bt 1 */
- } sx1262_gfsk_pulse_shape_t;
- 
- /**
-  * @brief sx1262 gfsk bandwidth enumeration definition
-  */
- typedef enum
- {
-     SX1262_GFSK_BANDWIDTH_4P8_KHZ   = 0x1F,        /**< 4.8 kHz */
-     SX1262_GFSK_BANDWIDTH_5P8_KHZ   = 0x17,        /**< 5.8 kHz */
-     SX1262_GFSK_BANDWIDTH_7P3_KHZ   = 0x0F,        /**< 7.3 kHz */
-     SX1262_GFSK_BANDWIDTH_9P7_KHZ   = 0x1E,        /**< 9.7 kHz */
-     SX1262_GFSK_BANDWIDTH_11P7_KHZ  = 0x16,        /**< 11.7 kHz */
-     SX1262_GFSK_BANDWIDTH_14P6_KHZ  = 0x0E,        /**< 14.6 kHz */
-     SX1262_GFSK_BANDWIDTH_19P5_KHZ  = 0x1D,        /**< 19.5 kHz */
-     SX1262_GFSK_BANDWIDTH_23P4_KHZ  = 0x15,        /**< 23.4 kHz */
-     SX1262_GFSK_BANDWIDTH_29P3_KHZ  = 0x0D,        /**< 29.3 kHz */
-     SX1262_GFSK_BANDWIDTH_39_KHZ    = 0x1C,        /**< 39 kHz */
-     SX1262_GFSK_BANDWIDTH_46P9_KHZ  = 0x14,        /**< 46.9 kHz */
-     SX1262_GFSK_BANDWIDTH_58P6_KHZ  = 0x0C,        /**< 58.6 kHz */
-     SX1262_GFSK_BANDWIDTH_78P2_KHZ  = 0x1B,        /**< 78.2 kHz */
-     SX1262_GFSK_BANDWIDTH_93P8_KHZ  = 0x13,        /**< 93.8 kHz */
-     SX1262_GFSK_BANDWIDTH_117P3_KHZ = 0x0B,        /**< 117.3 kHz */
-     SX1262_GFSK_BANDWIDTH_156P2_KHZ = 0x1A,        /**< 156.2 kHz */
-     SX1262_GFSK_BANDWIDTH_187P2_KHZ = 0x12,        /**< 187.2 kHz */
-     SX1262_GFSK_BANDWIDTH_232P3_KHZ = 0x0A,        /**< 232.3 kHz */
-     SX1262_GFSK_BANDWIDTH_312_KHZ   = 0x19,        /**< 312 kHz */
-     SX1262_GFSK_BANDWIDTH_373P6_KHZ = 0x11,        /**< 373.6 kHz */
-     SX1262_GFSK_BANDWIDTH_467_KHZ   = 0x09,        /**< 467 kHz */
- } sx1262_gfsk_bandwidth_t;
- 
- /**
   * @brief sx1262 lora spreading factor enumeration definition
   */
  typedef enum
@@ -230,51 +190,6 @@
      SX1262_LORA_CR_4_7 = 0x03,        /**< cr 4/7 */
      SX1262_LORA_CR_4_8 = 0x04,        /**< cr 4/8 */
  } sx1262_lora_cr_t;
- 
- /**
-  * @brief sx1262 gfsk preamble detector length enumeration definition
-  */
- typedef enum
- {
-     SX1262_GFSK_PREAMBLE_DETECTOR_LENGTH_OFF     = 0x00,        /**< preamble detector length off */
-     SX1262_GFSK_PREAMBLE_DETECTOR_LENGTH_8_BITS  = 0x04,        /**< preamble detector length 8 bits */
-     SX1262_GFSK_PREAMBLE_DETECTOR_LENGTH_16_BITS = 0x05,        /**< preamble detector length 16 bits */
-     SX1262_GFSK_PREAMBLE_DETECTOR_LENGTH_24_BITS = 0x06,        /**< preamble detector length 24 bits */
-     SX1262_GFSK_PREAMBLE_DETECTOR_LENGTH_32_BITS = 0x07,        /**< preamble detector length 32 bits */
- } sx1262_gfsk_preamble_detector_length_t;
- 
- /**
-  * @brief sx1262 gfsk addr filter enumeration definition
-  */
- typedef enum
- {
-     SX1262_GFSK_ADDR_FILTER_DISABLE                       = 0x00,        /**< address filtering disable */
-     SX1262_GFSK_ADDR_FILTER_ACTIVATED_NODE_ADDR           = 0x01,        /**< address filtering activated on node address */
-     SX1262_GFSK_ADDR_FILTER_ACTIVATED_NODE_BROADCAST_ADDR = 0x02,        /**< address filtering activated on node and broadcast addresses */
- } sx1262_gfsk_addr_filter_t;
- 
- /**
-  * @brief sx1262 gfsk packet type enumeration definition
-  */
- typedef enum
- {
-     SX1262_GFSK_PACKET_TYPE_KNOWN_LENGTH  = 0x00,        /**< the packet length is known on both sides, 
-                                                               the size of the payload is not added to the packet */
-     SX1262_GFSK_PACKET_TYPE_VARIABLE_SIZE = 0x01,        /**< the packet is on variable size, the first byte of the payload will be the
-                                                               size of the packet*/
- } sx1262_gfsk_packet_type_t;
- 
- /**
-  * @brief sx1262 gfsk crc type enumeration definition
-  */
- typedef enum
- {
-     SX1262_GFSK_CRC_TYPE_OFF        = 0x01,        /**< no crc */
-     SX1262_GFSK_CRC_TYPE_1_BYTE     = 0x00,        /**< crc computed on 1 byte */
-     SX1262_GFSK_CRC_TYPE_2_BYTE     = 0x02,        /**< crc computed on 2 byte */
-     SX1262_GFSK_CRC_TYPE_1_BYTE_INV = 0x04,        /**< crc computed on 1 byte and inverted */
-     SX1262_GFSK_CRC_TYPE_2_BYTE_INV = 0x06,        /**< crc computed on 2 byte and inverted */
- } sx1262_gfsk_crc_type_t;
  
  /**
   * @brief sx1262 lora header enumeration definition
