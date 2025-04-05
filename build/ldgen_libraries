@@ -81,3 +81,4 @@
 /home/jdawg/Work/EUREKA/build/esp-idf/rt/librt.a
 /home/jdawg/Work/EUREKA/build/esp-idf/spiffs/libspiffs.a
 /home/jdawg/Work/EUREKA/build/esp-idf/wifi_provisioning/libwifi_provisioning.a
+/home/jdawg/Work/EUREKA/build/esp-idf/main/libmain.a

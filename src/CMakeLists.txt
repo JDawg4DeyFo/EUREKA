@@ -1,5 +1,5 @@
 # Define build options
-option(SENSOR_LIB_TEST "Test sensor library"s OFF)
+option(SENSOR_LIB_TEST "Test sensor library" OFF)
 # OPTIONS TO ADD:
 	# main cluster head
 	# main sensor node
@@ -9,6 +9,7 @@ option(SENSOR_LIB_TEST "Test sensor library"s OFF)
 
 # Define source files conditionally
 set(SRC_FILES "")
+message("Here we are!!!!!")
 
 if (SENSOR_LIB_TEST)
 	list(APPEND SRC_FILES "I2C.c" "Sensors.c" "SH3X.c")
@@ -20,4 +21,4 @@ idf_component_register(SRC ${SRC_FILES} INCLUDE_DIRS "../include")
 
 
 #NOTE: To use build options, run idf.py as follows:
-# idf.py -D SENSOR_LIB_TEST=ON build
+# idf.py -DSENSOR_LIB_TEST=ON build
