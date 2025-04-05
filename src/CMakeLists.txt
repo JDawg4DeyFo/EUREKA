@@ -1,10 +1,3 @@
-# Monolithic cmake file for EUREKA project
-# April 3rd, 2025
-cmake_minimum_required(VERSION 3.16)
-include($ENV{IDF_PATH}/tools/cmake/project.cmake)
-project(Eureka)
-
-
 # Define build options
 option(SENSOR_LIB_TEST "Test sensor library" OFF)
 # OPTIONS TO ADD:
@@ -16,9 +9,10 @@ option(SENSOR_LIB_TEST "Test sensor library" OFF)
 
 # Define source files conditionally
 set(SRC_FILES "")
+message("Here we are!!!!!")
 
 if (SENSOR_LIB_TEST)
-	list(APPEND SRC_FILES "../src/I2C.c" "../src/Sesnors.c" "../SH3X.c")
+	list(APPEND SRC_FILES "I2C.c" "Sensors.c" "SH3X.c")
 	add_compile_definitions(SENSOR_LIB_TEST)
 endif()
 
@@ -27,4 +21,4 @@ idf_component_register(SRC ${SRC_FILES} INCLUDE_DIRS "../include")
 
 
 #NOTE: To use build options, run idf.py as follows:
-# idf.py -D SENSOR_LIB_TEST=ON build
+# idf.py -DSENSOR_LIB_TEST=ON build

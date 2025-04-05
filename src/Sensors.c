@@ -68,7 +68,7 @@ SensorsIDs_t Sensors_Init(SenorsIDs_t Sensors)
 		i2c_master_write_byte(cmd, STEMMA_STATUS_BASE_REG, ACK_CHECK_EN);
 		i2c_master_write_byte(cmd, STEMMA_STATUS_HWID_REG, ACK_CHECK_EN);
 		i2c_master_stop(cmd);
-		I2C_Result = i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, I2C_MASTER_TIMEOUT_MS / portTICK_PERIOD_MS)
+		I2C_Result = i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, I2C_MASTER_TIMEOUT_MS / portTICK_PERIOD_MS);
 		i2c_cmd_link_delete(cmd);
 
 		//  Continue with read operation if no problem with control bytes
@@ -118,7 +118,7 @@ SensorsIDs_t Sensors_Init(SenorsIDs_t Sensors)
 
 		// Check for error in inititalization.
 		if (SoilSensor_DataStruct != NULL) {
-			ReturnStatus |= HUMID_TEMP
+			ReturnStatus |= HUMID_TEMP;
 		} else {
 			ESP_LOGW(TAG, "SHT3X Initialization failed");
 		}
@@ -140,7 +140,7 @@ esp_err_t Read_SoilMoisture(uint16_t *Reading)
 	i2c_master_write_byte(cmd, STEMMA_MOISTURE_BASE_REG, ACK_CHECK_EN);
 	i2c_master_write_byte(cmd, STEMMA_MOISTURE_FUNC_REG, ACK_CHECK_EN);
 	i2c_master_stop(cmd);
-	I2C_Result = i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, I2C_MASTER_TIMEOUT_MS / portTICK_PERIOD_MS)
+	I2C_Result = i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, I2C_MASTER_TIMEOUT_MS / portTICK_PERIOD_MS);
 	i2c_cmd_link_delete(cmd);
 
 	// Check that request passed through
@@ -189,7 +189,7 @@ esp_err_t Read_SoilTemperature(float *Reading)
 	i2c_master_write_byte(cmd, STEMMA_TEMP_BASE_REG, ACK_CHECK_EN);
 	i2c_master_write_byte(cmd, STEMMA_TEMP_FUNC_REG, ACK_CHECK_EN);
 	i2c_master_stop(cmd);
-	I2C_Result = i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, I2C_MASTER_TIMEOUT_MS / portTICK_PERIOD_MS)
+	I2C_Result = i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, I2C_MASTER_TIMEOUT_MS / portTICK_PERIOD_MS);
 	i2c_cmd_link_delete(cmd);
 
 	// Check that request passed through
