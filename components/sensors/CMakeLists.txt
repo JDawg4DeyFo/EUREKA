@@ -2,14 +2,14 @@
 ## April 7th, 2025
 
 # Define source files
-set(SRC_FILES "Sensors.c" "SH3X.c")
+set(srcs Sensors.c SH3X.c)
 
 # Declare public dependencies
-set(REQUIRES i2c)
+set(requires i2c)
 
 # No private dependencies to declare
 
 # Register component
-idf_component_register(SRC ${SRC_FILES}
+idf_component_register(SRC "${srcs}"
        	INCLUDE_DIRS "../../include"
-	REQUIRES)
+	REQUIRES "${requires}")

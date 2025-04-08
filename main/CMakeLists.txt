@@ -3,10 +3,10 @@
 # April 7th, 2025
 
 ## BASIC DEFINES
-set(srcs "")
+set(srcs)
 set(include_dirs "../include")
-set(requires "")
-set(priv_requires "")
+set(requires)
+set(priv_requires)
 
 ## CONDITIONAL LOGIC###
 ## CONDITIONAL BUILDS TO BE IMPLEMENTED:
@@ -22,9 +22,9 @@ set(priv_requires "")
 
 # Sensor test harness build
 if(SENSOR_LIB_TEST)
-	append(srcs "sensors_test.c")
+	append(srcs sensors_test.c)
 	append(requires "")
-	append(priv_requires "sensors" "i2c")
+	append(priv_requires sensors i2c)
 endif()
 
 # Register main as the component
