@@ -11,13 +11,15 @@
 
 // soil sensor REFERENCE: https://learn.adafruit.com/adafruit-seesaw-atsamd09-breakout/reading-and-writing-data
 // sht3x sensor REFERENCE: https://sensirion.com/media/documents/213E6A3B/63A5A569/Datasheet_SHT3x_DIS.pdf
-// sht3x sensor driver REFERENCE: 
+// sht3x sensor driver REFERENCE: https://github.com/gschorcht/sht3x-esp-idf/tree/master
 
 
 // TODO: Replace references to write_to_sensor() and read_from_sensor() with
 // respective I2C_Write() and I2C_Read() functions.
 
 #include "../../include/Sensors.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 
 static const char *TAG = "Sensors";
 
@@ -26,7 +28,12 @@ sht3x_sensor_t* SHT3X_DataStruct;
 sht3x_mode_t SHT3X_Mode = SHT3X_REPEATABILITY;
 sht3x_repeat_t SHT3X_Repeat = SHT3X_PERIOD;
 
-SensorsIDs_t Sensors_Init(SenorsIDs_t Sensors)
+static void delay_ms(int ms)
+{
+    vTaskDelay((ms) / portTICK_PERIOD_MS);
+}
+
+SensorsIDs_t Sensors_Init(SensorsIDs_t Sensors)
 {
 	static uint8_t I2C_InitStatus = 0;
 	uint8_t StatusByte;
@@ -114,10 +121,10 @@ SensorsIDs_t Sensors_Init(SenorsIDs_t Sensors)
 	if (Sensors && HUMID_TEMP)
 	{
 		// VERIFY: that i2c_master_num is equivalent to i2c bus number
-		SoilSensor_DataStruct = sht3x_init_sensor(I2C_MASTER_NUM, SHT3x_ADDR_1);
+		SHT3X_DataStruct = sht3x_init_sensor(I2C_MASTER_NUM, SHT3x_ADDR_1);
 
 		// Check for error in inititalization.
-		if (SoilSensor_DataStruct != NULL) {
+		if (SHT3X_DataStruct != NULL) {
 			ReturnStatus |= HUMID_TEMP;
 		} else {
 			ESP_LOGW(TAG, "SHT3X Initialization failed");
@@ -127,7 +134,7 @@ SensorsIDs_t Sensors_Init(SenorsIDs_t Sensors)
 	return ReturnStatus;
 }
 
-esp_err_t Read_SoilMoisture(uint16_t *Reading)
+esp_err_t Read_SoilMoisture(short *Reading)
 {
 	esp_err_t I2C_Result;
 	int len = SOIL_MOISTURE_DATA_LENGTH;
@@ -153,7 +160,7 @@ esp_err_t Read_SoilMoisture(uint16_t *Reading)
 	delay_ms(50);
 
 	// Here we read the soil moisture
-	i2c_cmd_handle_t cmd = i2c_cmd_link_create();
+	cmd = i2c_cmd_link_create();
 	i2c_master_start(cmd);
 	i2c_master_write_byte(cmd, STEMMA_SENSOR_ADDR << 1 | READ_BIT, ACK_CHECK_EN);
 	i2c_master_read(cmd, moisture, len - 1, NACK_VAL);
@@ -170,7 +177,7 @@ esp_err_t Read_SoilMoisture(uint16_t *Reading)
 	}
 
 	// Transfer data into variable passed by reference
-	*Reading = ((uint16_t)moisture[0] << 8) | moisture_data[1];
+	*Reading = ((uint16_t)moisture[0] << 8) | moisture[1];
 
 	return I2C_Result;
 }
@@ -202,7 +209,7 @@ esp_err_t Read_SoilTemperature(float *Reading)
 	delay_ms(50);
 
 	// Begin read operations
-	i2c_cmd_handle_t cmd = i2c_cmd_link_create();
+	cmd = i2c_cmd_link_create();
 	i2c_master_start(cmd);
 	i2c_master_write_byte(cmd, STEMMA_SENSOR_ADDR << 1 | READ_BIT, ACK_CHECK_EN);
 	i2c_master_read(cmd, Temperature, len - 1, NACK_VAL);
@@ -232,7 +239,7 @@ bool Read_Air_HumidityTemperature(float *Temp_Reading, float *Humid_Reading) {
 	}
 
 	// Get results of (last) reading
-	if(!sht3x_get_results(SHT3X_DataStruct, &SHT3X_Mode, &SHT3X_Repeat)) {
+	if(!sht3x_get_results(SHT3X_DataStruct, Temp_Reading, Humid_Reading)) {
 		return false;
 	}
 
