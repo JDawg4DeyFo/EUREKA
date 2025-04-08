@@ -22,9 +22,9 @@ set(priv_requires)
 
 # Sensor test harness build
 if(SENSOR_LIB_TEST)
-	append(srcs sensors_test.c)
-	append(requires)
-	append(priv_requires sensors i2c)
+	list(APPEND srcs SensorLibTest.c)
+	list(APPEND requires)
+	list(APPEND priv_requires sensors i2c)
 endif()
 
 # Register main as the component

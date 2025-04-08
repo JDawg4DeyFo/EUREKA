@@ -10,6 +10,6 @@ set(requires i2c)
 # No private dependencies to declare
 
 # Register component
-idf_component_register(SRC "${srcs}"
+idf_component_register(SRCS "${srcs}"
        	INCLUDE_DIRS "../../include"
 	REQUIRES "${requires}")

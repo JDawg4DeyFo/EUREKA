@@ -58,7 +58,7 @@ esp_err_t I2C_Init(void);
  * likely have different read protocols.
  * 
  */
-esp_err_t I2C_Read(uint8_t Device_Address, uint8_t Register_Address, uint8_t *data, size_t len);
+esp_err_t I2C_Read(uint8_t Device_Address, uint8_t Base_Register, uint8_t Function_Regsiter, uint8_t *data, size_t len);
 
 
 /**
@@ -69,7 +69,7 @@ esp_err_t I2C_Read(uint8_t Device_Address, uint8_t Register_Address, uint8_t *da
  * @param data data to be written
  * @return ESP Error type 
  */
-esp_err_t I2C_Write(uint8_t Device_Address, uint8_t Register_Address, uint8_t data);
+esp_err_t I2C_Write(uint8_t Device_Address, uint8_t Base_Register, uint8_t Function_Regsiter, uint8_t data);
 
 
 // TO design and code: will scan I2C bus for connected devices

@@ -12,7 +12,8 @@
 
 static const char *TAG = "I2C";
 
-esp_err_t I2C_Read(uint8_t Device_Address, uint8_t Base_Register, uint8_t, Function_Register, uint8_t *data, size_t len) {
+// THIS FUNCTION MAY BE IRRELEVANT AND NOT NEEDED
+esp_err_t I2C_Read(uint8_t Device_Address, uint8_t Base_Register, uint8_t Function_Register, uint8_t *data, size_t len) {
     i2c_cmd_handle_t cmd = i2c_cmd_link_create();
     i2c_master_start(cmd);
     i2c_master_write_byte(cmd, Device_Address << 1 | READ_BIT, ACK_CHECK_EN);
@@ -25,9 +26,11 @@ esp_err_t I2C_Read(uint8_t Device_Address, uint8_t Base_Register, uint8_t, Funct
 }
 
 
+// WHOLE FUNCTION MAY BE IRRELEVANT AND NOT NEEDED
 esp_err_t I2C_Write(uint8_t Device_Address, uint8_t Base_Register, uint8_t Function_Register, uint8_t data) {
     esp_err_t ReturnValue;
-    uint8_t write_buf[2] = {Register_Address, data}; // investigate how this is used
+	// Line 31 might be crappy.
+    // uint8_t write_buf[2] = {Register_Address, data}; // investigate how this is used
 
     // Process is outlined 
     i2c_cmd_handle_t cmd = i2c_cmd_link_create();
