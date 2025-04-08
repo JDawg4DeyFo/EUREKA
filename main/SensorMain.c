@@ -9,6 +9,9 @@
  * 
  */
 
-int main(void) {
-    while(1);
+#include "../include/Sensors.h"
+
+void app_main(void)
+{
+	while(1);
 }

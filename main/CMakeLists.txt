@@ -23,7 +23,7 @@ set(priv_requires)
 # Sensor test harness build
 if(SENSOR_LIB_TEST)
 	append(srcs sensors_test.c)
-	append(requires "")
+	append(requires)
 	append(priv_requires sensors i2c)
 endif()
 

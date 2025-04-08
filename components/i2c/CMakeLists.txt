@@ -8,13 +8,10 @@ set(srcs I2C.c)
 set(include_dirs ../../include)
 
 # Declare piblic dependencies
-set(requires)
+set(requires driver)
 
 # Declare private dependencies
 set(priv_requires)
-
-# NOTE: I think that the esspressif i2c drivers need to be listed as
-# dependencies...
 
 idf_component_register(SRCS "${srcs}"
 	INCLUDE_DIRS "${include_dirs}"

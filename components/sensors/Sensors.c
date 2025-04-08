@@ -17,7 +17,7 @@
 // TODO: Replace references to write_to_sensor() and read_from_sensor() with
 // respective I2C_Write() and I2C_Read() functions.
 
-#include "../include/Sensors.h"
+#include "../../include/Sensors.h"
 
 static const char *TAG = "Sensors";
 
@@ -238,49 +238,3 @@ bool Read_Air_HumidityTemperature(float *Temp_Reading, float *Humid_Reading) {
 
 	return true;
 }
-
-
-#ifdef SENSOR_LIB_TEST
-void app_main(void)
-{
-	esp_err_t ret;
-	uint16_t moisture;
-	float temp;
-
-	ret = I2C_Init();
-	if (ret != ESP_OK)
-	{
-		ESP_LOGE(TAG, "I2C initialization failed");
-		return;
-	}
-
-	SensorsIDs_t sensors = SOIL | WIND;
-	SensorsIDs_t initialized = Sensors_Init(sensors);
-
-	if (initialized & SOIL)
-	{
-		ret = Read_SoilMoisture(&moisture);
-		if (ret == ESP_OK)
-		{
-			ESP_LOGI(TAG, "Soil Moisture: %d", moisture);
-		}
-		else
-		{
-			ESP_LOGW(TAG, "Failed to read soil moisture");
-		}
-	}
-
-	if (initialized & WIND)
-	{
-		ret = Read_SoilTemperature(&temp);
-		if (ret == ESP_OK)
-		{
-			ESP_LOGI(TAG, "Soil Temperature: %.2f", temp);
-		}
-		else
-		{
-			ESP_LOGW(TAG, "Failed to read soil temperature");
-		}
-	}
-}
-#endif // SENSOR_TEST

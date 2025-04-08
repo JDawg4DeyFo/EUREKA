@@ -8,7 +8,7 @@
  *
  */
 
-#include "../include/I2C.h"
+#include "../../include/I2C.h"
 
 static const char *TAG = "I2C";
 
