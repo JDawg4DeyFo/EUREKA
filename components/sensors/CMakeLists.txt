@@ -5,7 +5,7 @@
 set(srcs Sensors.c SH3X.c)
 
 # Declare public dependencies
-set(requires i2c)
+set(requires i2c esp8266_wrapper)
 
 # No private dependencies to declare
 

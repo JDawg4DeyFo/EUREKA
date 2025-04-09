@@ -45,6 +45,8 @@
 #include <stdlib.h>
 
 #include "../include/SH3X.h"
+#include "freertos/FreeRTOS.h"
+
 
 #define SHT3x_STATUS_CMD               0xF32D
 #define SHT3x_CLEAR_STATUS_CMD         0x3041

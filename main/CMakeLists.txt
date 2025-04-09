@@ -20,15 +20,17 @@ set(priv_requires)
 # NOTE: Most of these conditional builds are conditionally exclusive, so I
 # think having a elif tree for the conditional logic here makes sense.
 
+message(STATUS "Value of SENSOR_LIB_TEST: ${CONFIG_SENSOR_LIB_TEST}")
+
 # Sensor test harness build
-if(SENSOR_LIB_TEST)
+if(CONFIG_SENSOR_LIB_TEST)
 	list(APPEND srcs SensorLibTest.c)
 	list(APPEND requires)
 	list(APPEND priv_requires sensors i2c)
 endif()
 
 # Register main as the component
-idf_component_register(SRCS "${src}"
+idf_component_register(SRCS "${srcs}"
                        INCLUDE_DIRS "${include_dirs}"
                        REQUIRES "${requires}"
 		       PRIV_REQUIRES "${priv_requires}")

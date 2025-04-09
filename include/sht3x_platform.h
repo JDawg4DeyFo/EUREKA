@@ -50,7 +50,7 @@
 #ifdef ESP_PLATFORM  // ESP32 (ESP-IDF)
 
 // platform specific includes
-// #include "esp8266_wrapper.h" // include this if it starts breaking
+#include "esp8266_wrapper.h" // include this if it starts breaking
 #include <errno.h>
 
 #endif // ESP_PLATFORM
