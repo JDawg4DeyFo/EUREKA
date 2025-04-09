@@ -90,4 +90,4 @@ esp_err_t Read_SoilTemperature(float *Reading);
  * @param Humid_Reading float to store humidity reading into
  * @return bool, true success, false for fail 
  */
-bool Read_AirHumidityTemperature(float *Temp_Reading, float *Humid_Reading);
+bool Read_Air_HumidityTemperature(float *Temp_Reading, float *Humid_Reading);

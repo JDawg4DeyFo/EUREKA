@@ -11,11 +11,15 @@
 
 #include "../include/Sensors.h"
 
+#include "esp_log.h"
+static const char *TAG = "i2c-simple-example";
+
 void app_main(void)
 {
 	esp_err_t ret;
-	uint16_t moisture;
+	short moisture;
 	float temp;
+	float humid;
 
 	ret = I2C_Init();
 	if (ret != ESP_OK)
@@ -24,7 +28,7 @@ void app_main(void)
 		return;
 	}
 
-	SensorsIDs_t sensors = SOIL | WIND;
+	SensorsIDs_t sensors = SOIL | HUMID_TEMP;
 	SensorsIDs_t initialized = Sensors_Init(sensors);
 
 	if (initialized & SOIL)
@@ -38,10 +42,7 @@ void app_main(void)
 		{
 			ESP_LOGW(TAG, "Failed to read soil moisture");
 		}
-	}
 
-	if (initialized & WIND)
-	{
 		ret = Read_SoilTemperature(&temp);
 		if (ret == ESP_OK)
 		{
@@ -51,5 +52,23 @@ void app_main(void)
 		{
 			ESP_LOGW(TAG, "Failed to read soil temperature");
 		}
+	} else 
+	{
+		ESP_LOGW(TAG, "soil sensor not initialized");
+	}
+
+	if (initialized & HUMID_TEMP)
+	{
+		ret = Read_Air_HumidityTemperature(&temp, &humid);
+		if (ret)
+		{
+			ESP_LOGI(TAG, "temperature: %f, humidity: %f", temp, humid);
+		}
+		else
+		{
+			ESP_LOGW(TAG, "Failed to read humidity and temperature");
+		}
+	} else {
+		ESP_LOGW(TAG, "Humidity temp sensor not initialized");
 	}
 }
