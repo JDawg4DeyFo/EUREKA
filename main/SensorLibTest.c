@@ -30,6 +30,8 @@ void app_main(void)
 	float humid;
 	int iteration_count = 0;
 
+	printf("whats good gang");
+
 	ret = I2C_Init();
 	if (ret != ESP_OK)
 	{
@@ -86,8 +88,11 @@ void app_main(void)
 		{
 			ESP_LOGW(TAG, "Humidity temp sensor not initialized");
 		}
-		
+
 		delay_ms(500);
 		ESP_LOGW(TAG, "While loop iteration #: %d", iteration_count);
+		fflush(stdout);
+
 	}
+
 }
