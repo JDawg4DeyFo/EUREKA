@@ -1644,20 +1644,6 @@
   *             - 4 chip is busy
   * @note       none
   */
- uint8_t sx1262_get_pull_down_control(sx1262_handle_t *handle, uint8_t *control);
- 
- /**
-  * @brief     set fhss hopping enable
-  * @param[in] *handle pointer to an sx1262 handle structure
-  * @param[in] enable set params
-  * @return    status code
-  *            - 0 success
-  *            - 1 set fhss hopping enable failed
-  *            - 2 handle is NULL
-  *            - 3 handle is not initialized
-  *            - 4 chip is busy
-  * @note      none
-  */
  
  uint8_t sx1262_write_read_reg(sx1262_handle_t *handle, uint8_t *in_buf, uint32_t in_len,
                                uint8_t *out_buf, uint32_t out_len);

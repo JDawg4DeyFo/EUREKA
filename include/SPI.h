@@ -7,8 +7,8 @@
  * 
  * @copyright Copyright (c) 2025
  * 
- * "I will probably just go with spi_master.h/c files that come with ESP-IDF, will confirm with Jacob tmrw"
- *  - Edouard (4/10/25, 10:05 pm)
+ * NOTE: The SPI Driver for the ESP32-S3 will be spi_master.h for the project.
+ *  
  */
 
  

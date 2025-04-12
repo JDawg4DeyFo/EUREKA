@@ -7,5 +7,6 @@
  * 
  * @copyright Copyright (c) 2025
  * 
+ *  NOTE: The SPI Driver for the ESP32-S3 will be spi_master.c for the project.
  */
 
