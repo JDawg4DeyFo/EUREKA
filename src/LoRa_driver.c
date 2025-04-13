@@ -10,7 +10,7 @@
  * @copyright Copyright (c) 2025
  * 
  */
-#include "LoRa.h"
+#include "LoRa_driver.h"
 #include <math.h>
 
 /**
