@@ -12,7 +12,7 @@
 #include "../include/Sensors.h"
 
 #include "esp_log.h"
-static const char *TAG = "i2c-simple-example";
+static const char *TAG = "Sesnor-library test";
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -41,6 +41,8 @@ void app_main(void)
 
 	SensorsIDs_t sensors = SOIL | HUMID_TEMP;
 	SensorsIDs_t initialized = Sensors_Init(sensors);
+
+	while(1);
 
 	while (1)
 	{
