@@ -33,22 +33,14 @@ uint8_t esp32_SPI_bus_init(void);
 uint8_t esp32_SPI_bus_deinit(void);
 
  /**
- * @brief  Read and write via SPI one transaction at a time
+ * @brief  Read and write via SPI one transaction 
  * @return status code
  *         - 0 success
  *         - 1 spi read and write asynch failed
  * @note   none
  */
-uint8_t esp32_SPI_READ_WRITE_synchronous(void);
+uint8_t esp32_SPI_READ_WRITE_synch(void);
 
- /**
- * @brief  Read and write via SPI multiple times by setting a queue
- * @return status code
- *         - 0 success
- *         - 1 pi read and write asynch failed
- * @note   none
- */
-uint8_t esp32_SPI_READ_WRITE_asynchronous(void);
 
 
 
