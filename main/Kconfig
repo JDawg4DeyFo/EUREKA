@@ -1,0 +1,6 @@
+## CONDITIONAL BUILD FLAGS
+# Sensors test harness
+config SENSOR_LIB_TEST
+	bool "Build sensor test harness"
+	default n
+	

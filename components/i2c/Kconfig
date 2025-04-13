@@ -1,0 +1,45 @@
+## I2C Kconfig file
+# April 8th, 2025
+
+menu "Project I2C configuration"
+
+# Pin configurations
+config I2C_MASTER_SCL
+	int "I2C Master SCL GPIO Pin"
+	default 22
+	help
+		The GPIO pin used by the i2c master serial clock line.
+
+config I2C_MASTER_SDA
+	int "I2C Master SDA GPIO Pin"
+	default 21
+	help
+		The GPIO pin used by the i2c master serial data line.
+
+# bit definitions
+config I2C_MASTER_WRITE
+	int "I2C Master Write Bit"
+	default 0
+	help
+		The value of the 8th bit in a command frame indicating W operations.
+
+config I2C_MASTER_READ
+	int "I2C Master Read Bit"
+	default 1
+	help
+		The value of the 8th bit in a command frame indicating R operations.
+
+# ack/nack definitions
+config I2C_MASTER_ACK
+	int "I2C Master Acknowledge"
+	default 0
+	help
+		The value of a master acknowledge bit
+
+config I2C_MASTER_NACK
+	int "I2C Master No_Acknowledge"
+	default 1
+	help
+		The value of a master no_acknowledge bit
+
+endmenu	

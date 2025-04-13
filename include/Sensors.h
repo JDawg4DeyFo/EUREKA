@@ -10,18 +10,13 @@
  */
 
 #include "I2C.h"
+#include "SH3X.h"
 
 
 /*******************************************************************************
  * PUBLIC #DEFINES                                                            *
  ******************************************************************************/
-#define SOIL_ADDRESS 0x38;      // I2C Bus address
-// NEED TO FIND VALUES FOR DEFINES BELOW
-#define SOIL_REGISTER 0x00;     // find what sensor to read to
-#define WIND_ADDRESS 0x00;
-#define AIR_ADDRESS 0X00;
-#define HUMID_ADDRESS 0x00;
-
+// Soil Sensor I2C Addresses
 #define STEMMA_SENSOR_ADDR 0x36
 #define STEMMA_MOISTURE_BASE_REG 0x0F
 #define STEMMA_MOISTURE_FUNC_REG 0x10
@@ -29,6 +24,13 @@
 #define STEMMA_TEMP_FUNC_REG 0x04
 #define STEMMA_STATUS_BASE_REG 0x00
 #define STEMMA_STATUS_HWID_REG 0x01
+
+#define SOIL_MOISTURE_DATA_LENGTH 2
+#define SOIL_TEMP_DATA_LENGTH 4
+
+// sht3x defines
+#define SHT3X_REPEATABILITY sht3x_low // both are defined in SH3X.h
+#define SHT3X_PERIOD sht3x_single_shot
 
 /*******************************************************************************
  * PUBLIC DATATYPES
@@ -38,7 +40,7 @@ typedef enum {
     SOIL = 0x1,
     WIND = 0x2,
     AIR = 0x4,
-    HUMID = 0X8,
+    HUMID_TEMP = 0X8,
 } SensorsIDs_t;
 
 // Possible errors.
@@ -82,16 +84,10 @@ esp_err_t Read_SoilMoisture(short *Reading);
 esp_err_t Read_SoilTemperature(float *Reading);
 
 /**
- * @brief Read air temperature for sht30 humidity and temperature sensor.
- * 
- * @return float 
- */
-esp_err_t Read_AirTemperature(float *Reading);
-
-/**
  * @brief Read air humidity for sht30 humidity and temperature sensor.
  * 
- * @param Reading float to store reading into
- * @return float 
+ * @param Temp_Reading float to store temperature reading into
+ * @param Humid_Reading float to store humidity reading into
+ * @return bool, true success, false for fail 
  */
-esp_err_t Read_AirHumidity(float *Reading);
+bool Read_Air_HumidityTemperature(float *Temp_Reading, float *Humid_Reading);

@@ -2,8 +2,8 @@
  * File: I2C.h
  * Author: Jacob Dennon
  *
- * Version: 0.1
- * Last Edited: March 6, 2025
+ * Version: 1.0
+ * Last Edited: April 1, 2025
  * Created on March 6, 2025
  *
  */
@@ -46,7 +46,7 @@
 esp_err_t I2C_Init(void);
 
 /**
- * @brief Read from I2C_Register
+ * @brief Read from I2C_Register.
  * 
  * @param Device_Address I2C address of the device to be read from.
  * @param Register_Address Address of the device's register you wish to read from.
@@ -54,19 +54,22 @@ esp_err_t I2C_Init(void);
  * @param len Number of bytes to read.
  * @return ESP Error type
  * 
+ * NOTE: This might be an irrelevant function because different I2C devices will
+ * likely have different read protocols.
+ * 
  */
-esp_err_t I2C_Read(uint8_t Device_Address, uint8_t Register_Address, uint8_t *data, size_t len);
+esp_err_t I2C_Read(uint8_t Device_Address, uint8_t Base_Register, uint8_t Function_Regsiter, uint8_t *data, size_t len);
 
 
 /**
- * @brief Write to an I2C Device
+ * @brief Write to an I2C device, adressing a byte of data to a device's SFR.
  * 
  * @param Device_Address I2C address of the device to be written to
  * @param Register_Address Address of the device to be written to
  * @param data data to be written
  * @return ESP Error type 
  */
-esp_err_t I2C_Write(uint8_t Device_Address, uint8_t Register_Address, uint8_t data);
+esp_err_t I2C_Write(uint8_t Device_Address, uint8_t Base_Register, uint8_t Function_Regsiter, uint8_t data);
 
 
 // TO design and code: will scan I2C bus for connected devices
