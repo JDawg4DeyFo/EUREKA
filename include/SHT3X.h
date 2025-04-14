@@ -59,13 +59,13 @@ typedef struct sht3x_sensors_values {
 
 uint8_t sht3x_generate_crc(const uint8_t* data, uint16_t count);
 
-esp_err_t sht3x_send_command(uint8_t *command, i2c_device_handle_t *Dev_Handle);
+esp_err_t sht3x_send_command(uint8_t *command, i2c_master_dev_handle_t *Dev_Handle);
 
-esp_err_t sht3x_read(uint8_t *hex_code, uint8_t *measurements, uint8_t , i2c_device_handle_t *Dev_Handle);
+esp_err_t sht3x_read(uint8_t *hex_code, uint8_t *measurements, uint8_t , i2c_master_dev_handle_t *Dev_Handle);
 
-esp_err_t sht3x_write(uint8_t *hex_code, uint8_t *measurements, uint8_t size, i2c_device_handle_t *Dev_Handle);
+esp_err_t sht3x_write(uint8_t *hex_code, uint8_t *measurements, uint8_t size, i2c_master_dev_handle_t *Dev_Handle);
 
-esp_err_t sht3x_send_command_and_fetch_result(uint8_t *command, uint8_t *measurements, uint8_t size, i2c_device_handle_t *Dev_Handle);
+esp_err_t sht3x_send_command_and_fetch_result(uint8_t *command, uint8_t *measurements, uint8_t size, i2c_master_dev_handle_t *Dev_Handle);
 
 esp_err_t sht3x_start_periodic_measurement();
 
