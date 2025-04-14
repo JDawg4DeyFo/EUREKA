@@ -45,6 +45,9 @@
 #include <stdlib.h>
 
 #include "sht3x.h"
+#include "driver/i2c_master.h"
+#include "driver/i2c_slave.h"
+#include "esp_timer.h"
 
 #define SHT3x_STATUS_CMD               0xF32D
 #define SHT3x_CLEAR_STATUS_CMD         0x3041
@@ -183,7 +186,7 @@ bool sht3x_start_measurement (sht3x_sensor_t* dev, sht3x_mode_t mode, sht3x_repe
         return false;
     }
 
-    dev->meas_start_time = sdk_system_get_time ();
+    dev->meas_start_time = esp_timer_get_time();
     dev->meas_started = true;
     dev->meas_first = true;
 
@@ -300,7 +303,7 @@ static bool sht3x_is_measuring (sht3x_sensor_t* dev)
       return false;
     
     // not running if time elapsed is greater than duration
-    uint32_t elapsed = sdk_system_get_time() - dev->meas_start_time;
+    uint32_t elapsed = esp_timer_get_time() - dev->meas_start_time;
 
     return elapsed < SHT3x_MEAS_DURATION_US[dev->repeatability];
 }

@@ -13,6 +13,8 @@
 // sht3x sensor REFERENCE: https://sensirion.com/media/documents/213E6A3B/63A5A569/Datasheet_SHT3x_DIS.pdf
 // sht3x sensor driver REFERENCE: https://github.com/gschorcht/sht3x-esp-idf/tree/master
 
+// try using this sensor driver: https://github.com/ma-lwa-re/esp32-sht3x/blob/master/sht3x.h
+
 // TODO: Replace references to write_to_sensor() and read_from_sensor() with
 // respective I2C_Write() and I2C_Read() functions.
 
