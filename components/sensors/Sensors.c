@@ -44,7 +44,7 @@ static i2c_device_config_t Soil_Cfg = {
 };
 static i2c_device_config_t HumidTemp_Cfg = {
 	.dev_addr_length = I2C_ADDR_BIT_LEN_7,
-	.device_address = SHT3x_ADDR_1,
+	.device_address = SHT3X_SENSOR_ADDR,
 	.scl_speed_hz = I2C_MASTER_FREQ_HZ,
 };
 
@@ -56,11 +56,6 @@ static i2c_master_dev_handle_t HumidTemp_Handle;
 
 static const char *TAG = "Sensors";
 
-// SHT3X Variables
-sht3x_sensor_t *SHT3X_DataStruct;
-sht3x_mode_t SHT3X_Mode = SHT3X_REPEATABILITY;
-sht3x_repeat_t SHT3X_Repeat = SHT3X_PERIOD;
-
 static void delay_ms(int ms)
 {
 	vTaskDelay((ms) / portTICK_PERIOD_MS);
@@ -69,16 +64,14 @@ static void delay_ms(int ms)
 SensorsIDs_t Sensors_Init(SensorsIDs_t Sensors)
 {
 	static uint8_t I2C_InitStatus = 0;
-	uint8_t StatusByte;
 	SensorsIDs_t ReturnStatus;
 
-	esp_err_t I2C_Result;
 
 	// First step will be to Initialize the I2C Bus.
 	// Inititialize I2C Bus, if it hasn't been initialized already.
 	if (!I2C_InitStatus)
 	{
-		ESP_ERROR_CHECK(i2c_new_master_Bus(&i2c_bus_config, &Bus_Handle));
+		ESP_ERROR_CHECK(i2c_new_master_bus(&i2c_bus_config, &Bus_Handle));
 	}
 
 	// If I2C_Init() passes, set I2C_STATUS to 1.
@@ -90,7 +83,7 @@ SensorsIDs_t Sensors_Init(SensorsIDs_t Sensors)
 	ReturnStatus = 0;
 	if (Sensors && SOIL)
 	{
-		ESP_ERROR_CHECK(i2c_master_bus_add_device(&Bus_Handle, &Soil_Cfg, &Soil_Handle));
+		ESP_ERROR_CHECK(i2c_master_bus_add_device(Bus_Handle, &Soil_Cfg, &Soil_Handle));
 
 	}
 
@@ -113,18 +106,18 @@ SensorsIDs_t Sensors_Init(SensorsIDs_t Sensors)
 	// initialize a data struct by calling sht3x_init_sensor()
 	if (Sensors && HUMID_TEMP)
 	{
-		ESP_ERROR_CHECK(i2c_master_bus_add_device(&Bus_Handle, &HumidTemp_Cfg, &HumidTemp_Handle));
+		ESP_ERROR_CHECK(i2c_master_bus_add_device(Bus_Handle, &HumidTemp_Cfg, &HumidTemp_Handle));
 
-		SHT3X_DataStruct = sht3x_init_sensor(I2C_MASTER_NUM, SHT3x_ADDR_1);
-		// Check for error in inititalization.
-		if (SHT3X_DataStruct != NULL)
-		{
-			ReturnStatus |= HUMID_TEMP;
-		}
-		else
-		{
-			ESP_LOGW(TAG, "SHT3X Initialization failed");
-		}
+		// SHT3X_DataStruct = sht3x_init_sensor(I2C_MASTER_NUM, SHT3x_ADDR_1);
+		// // Check for error in inititalization.
+		// if (SHT3X_DataStruct != NULL)
+		// {
+		// 	ReturnStatus |= HUMID_TEMP;
+		// }
+		// else
+		// {
+		// 	ESP_LOGW(TAG, "SHT3X Initialization failed");
+		// }
 	}
 
 	return ReturnStatus;
@@ -139,9 +132,9 @@ esp_err_t Read_SoilMoisture(short *Reading)
 	uint8_t Read_Buffer[SOIL_MOISTURE_DATA_LENGTH];
 
 	Write_Buffer[0] = STEMMA_MOISTURE_BASE_REG;
-	Write_Buffer[1] = STEMMA_MOISTURE_FUNC_REG
+	Write_Buffer[1] = STEMMA_MOISTURE_FUNC_REG;
 
-	I2C_Result = ESP_ERROR_CHECK(i2c_master_transmit_receive(&Soil_Handle, Write_Buffer, sizeof(Write_Buffer), Read_Buffer, Read_Buffer_size,8000))
+	I2C_Result = ESP_ERROR_CHECK(i2c_master_transmit_receive(&Soil_Handle, Write_Buffer, sizeof(Write_Buffer), Read_Buffer, Read_Buffer_Size,8000));
 
 	// Transfer data into variable passed by reference
 	*Reading = ((uint16_t)Read_Buffer[0] << 8) | Read_Buffer[1];
@@ -152,7 +145,7 @@ esp_err_t Read_SoilMoisture(short *Reading)
 esp_err_t Read_SoilTemperature(float *Reading)
 {
 	esp_err_t I2C_Result;
-	unt8_t Write_Buffer[2];
+	uint8_t Write_Buffer[2];
 
 	size_t Read_Buffer_Size = SOIL_TEMP_DATA_LENGTH;
 	uint8_t Read_Buffer[SOIL_TEMP_DATA_LENGTH];
@@ -170,17 +163,17 @@ esp_err_t Read_SoilTemperature(float *Reading)
 
 bool Read_Air_HumidityTemperature(float *Temp_Reading, float *Humid_Reading)
 {
-	// Start reading
-	if (!sht3x_start_measurement(SHT3X_DataStruct, SHT3X_Mode, SHT3X_Repeat))
-	{
-		return false;
-	}
+	// // Start reading
+	// if (!sht3x_start_measurement(SHT3X_DataStruct, SHT3X_Mode, SHT3X_Repeat))
+	// {
+	// 	return false;
+	// }
 
-	// Get results of (last) reading
-	if (!sht3x_get_results(SHT3X_DataStruct, Temp_Reading, Humid_Reading))
-	{
-		return false;
-	}
+	// // Get results of (last) reading
+	// if (!sht3x_get_results(SHT3X_DataStruct, Temp_Reading, Humid_Reading))
+	// {
+	// 	return false;
+	// }
 
 	return true;
 }
