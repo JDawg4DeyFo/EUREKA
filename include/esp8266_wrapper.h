@@ -15,7 +15,7 @@ extern "C" {
 #include "freertos/task.h"
 #include "freertos/queue.h"
 
-#include "driver/uart.h"
+// #include "driver/uart.h"
 #include "driver/spi_common.h"
 #include "driver/gpio.h"
 

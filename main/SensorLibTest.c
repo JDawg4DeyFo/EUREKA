@@ -32,13 +32,6 @@ void app_main(void)
 
 	printf("whats good gang");
 
-	ret = I2C_Init();
-	if (ret != ESP_OK)
-	{
-		ESP_LOGE(TAG, "I2C initialization failed");
-		return;
-	}
-
 	SensorsIDs_t sensors = SOIL | HUMID_TEMP;
 	SensorsIDs_t initialized = Sensors_Init(sensors);
 

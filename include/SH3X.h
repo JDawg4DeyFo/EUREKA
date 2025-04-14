@@ -51,7 +51,7 @@
 #include "stdint.h"
 #include "stdbool.h"
 
-#include "sht3x_platform.h"
+// #include "sht3x_platform.h"
 
 #ifdef __cplusplus
 extern "C" {
