@@ -5,9 +5,10 @@
 set(srcs Sensors.c SH3X.c)
 
 # Declare public dependencies
-set(requires i2c esp8266_wrapper)
+set(requires esp8266_wrapper)
 
-# No private dependencies to declare
+# Declare private dependencies
+set(requires esp_driver_i2c)
 
 # Register component
 idf_component_register(SRCS "${srcs}"
