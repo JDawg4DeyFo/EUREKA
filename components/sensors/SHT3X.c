@@ -108,7 +108,7 @@ uint8_t sht3x_generate_crc(const uint8_t* data, uint16_t count) {
 esp_err_t sht3x_send_command(uint8_t *command, i2c_device_handle_t *Dev_Handle) {
     esp_err_t err;
 
-	err = ESP_ERROR_CHECK(i2c_master_transmit_receive(Dev))
+	err = ESP_ERROR_CHECK(i2c_master_transmit(Dev_Handle, command, sizeof(command), I2C_MASTER_TIMEOUT_MS))
 
     return err;
 }
@@ -120,20 +120,10 @@ esp_err_t sht3x_send_command(uint8_t *command, i2c_device_handle_t *Dev_Handle) 
 * In read direction it is up to the master to decide if it wants to process the checksum.
 */
 esp_err_t sht3x_read(uint8_t *hex_code, uint8_t *measurements, uint8_t size, i2c_device_handle_t *Dev_Handle) {
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
+    esp_err_t err;
 
-    ESP_ERROR_CHECK(i2c_master_start(cmd));
-    ESP_ERROR_CHECK(i2c_master_write_byte(cmd, (SHT3X_SENSOR_ADDR << 1) | I2C_MASTER_WRITE, I2C_ACK_CHECK_EN));
-    ESP_ERROR_CHECK(i2c_master_write(cmd, hex_code, SHT3X_HEX_CODE_SIZE, I2C_ACK_CHECK_EN));
+	err = ESP_ERROR_CHECK(i2c_master_transmit_receive(Dev_Handle, hex_code, SHT3X_HEX_CODE_SIZE, measurements, size, I2C_MASTER_TIMEOUT_MS))
 
-    ESP_ERROR_CHECK(i2c_master_start(cmd));
-    ESP_ERROR_CHECK(i2c_master_write_byte(cmd, (SHT3X_SENSOR_ADDR << 1) | I2C_MASTER_READ, I2C_ACK_CHECK_EN));
-    ESP_ERROR_CHECK(i2c_master_read(cmd, measurements, size, I2C_MASTER_LAST_NACK));
-
-    ESP_ERROR_CHECK(i2c_master_stop(cmd));
-    esp_err_t err = i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, I2C_MASTER_TIMEOUT_MS / portTICK_PERIOD_MS);
-
-    i2c_cmd_link_delete(cmd);
     return err;
 }
 
@@ -144,17 +134,11 @@ esp_err_t sht3x_read(uint8_t *hex_code, uint8_t *measurements, uint8_t size, i2c
 * In read direction it is up to the master to decide if it wants to process the checksum.
 */
 esp_err_t sht3x_write(uint8_t *hex_code, uint8_t *measurements, uint8_t size, i2c_device_handle_t *Dev_Handle) {
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
+    esp_err_t err;
 
-    ESP_ERROR_CHECK(i2c_master_start(cmd));
-    ESP_ERROR_CHECK(i2c_master_write_byte(cmd, (SHT3X_SENSOR_ADDR << 1) | I2C_MASTER_WRITE, I2C_ACK_CHECK_EN));
-    ESP_ERROR_CHECK(i2c_master_write(cmd, hex_code, SHT3X_HEX_CODE_SIZE, I2C_ACK_CHECK_EN));
-    ESP_ERROR_CHECK(i2c_master_write(cmd, measurements, size, I2C_ACK_CHECK_EN));
+	err = ESP_ERROR_CHECK(i2c_master_transmit(Dev_Handle, hex_code, SHT3X_HEX_CODE_SIZE, I2C_MASTER_TIMEOUT_MS));
+	err |= ESP_ERROR_CHECK(i2c_master_transmit(Dev_Handle, measurements, size, I2C_MASTER_TIMEOUT_MS));
 
-    ESP_ERROR_CHECK(i2c_master_stop(cmd));
-    esp_err_t err = i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, I2C_MASTER_TIMEOUT_MS / portTICK_PERIOD_MS);
-
-    i2c_cmd_link_delete(cmd);
     return err;
 }
 
@@ -165,23 +149,13 @@ esp_err_t sht3x_write(uint8_t *hex_code, uint8_t *measurements, uint8_t size, i2
 * Commands must not be sent while a previous command is being processed.
 */
 esp_err_t sht3x_send_command_and_fetch_result(uint8_t *command, uint8_t *measurements, uint8_t size, i2c_device_handle_t *Dev_Handle) {
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
+    esp_err_t err;	
 
-    ESP_ERROR_CHECK(i2c_master_start(cmd));
-    ESP_ERROR_CHECK(i2c_master_write_byte(cmd, (SHT3X_SENSOR_ADDR << 1) | I2C_MASTER_WRITE, I2C_ACK_CHECK_EN));
-    ESP_ERROR_CHECK(i2c_master_write(cmd, command, sizeof(command), I2C_ACK_CHECK_EN));
-    ESP_ERROR_CHECK(i2c_master_stop(cmd));
+	err = ESP_ERROR_CHECK(i2c_master_transmit(Dev_Handle, command, sizeof(command), I2C_MASTER_TIMEOUT_MS));
 
     delay_ms(1000);
 
-    ESP_ERROR_CHECK(i2c_master_write(cmd, measurements, size, I2C_ACK_CHECK_EN));
-
-    ESP_ERROR_CHECK(i2c_master_start(cmd));
-    ESP_ERROR_CHECK(i2c_master_write_byte(cmd, (SHT3X_SENSOR_ADDR << 1) | I2C_MASTER_READ, I2C_ACK_CHECK_EN));
-    ESP_ERROR_CHECK(i2c_master_read(cmd, measurements, size, I2C_MASTER_LAST_NACK));
-
-    ESP_ERROR_CHECK(i2c_master_stop(cmd));
-    esp_err_t err = i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, I2C_MASTER_TIMEOUT_MS / portTICK_PERIOD_MS);
+    err |= ESP_ERROR_CHECK(i2c_master_receive(Dev_Handle, measurements, size,I2C_MASTER_TIMEOUT_MS));
 
     i2c_cmd_link_delete(cmd);
     return err;
