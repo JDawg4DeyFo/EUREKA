@@ -21,7 +21,7 @@
  *         - 1 spi init failed
  * @note   none
  */
-uint8_t esp32_SPI_bus_init(void);
+esp_err_t esp32_SPI_bus_init(void);
 
  /**
  * @brief  free the spi bus from the sx1262 but first remove the device to do so
@@ -30,7 +30,7 @@ uint8_t esp32_SPI_bus_init(void);
  *         - 1 spi deinit failed
  * @note   none
  */
-uint8_t esp32_SPI_bus_deinit(void);
+esp_err_t esp32_SPI_bus_deinit(void);
 
  /**
  * @brief  Read and write via SPI one transaction 
@@ -39,7 +39,7 @@ uint8_t esp32_SPI_bus_deinit(void);
  *         - 1 spi read and write asynch failed
  * @note   none
  */
-uint8_t esp32_SPI_READ_WRITE_synch(void);
+esp_err_t esp32_SPI_WRITE_test(void);
 
 
 
