@@ -9,6 +9,7 @@
  * 
  */
 #include "SH3X.h"
+#include "I2C.h"
 
 
 /*******************************************************************************
@@ -29,6 +30,7 @@
 // sht3x defines
 #define SHT3X_REPEATABILITY sht3x_low // both are defined in SH3X.h
 #define SHT3X_PERIOD sht3x_single_shot
+
 
 /*******************************************************************************
  * PUBLIC DATATYPES
