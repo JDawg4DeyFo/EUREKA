@@ -148,12 +148,15 @@ SensorsIDs_t Sensors_Init(SensorsIDs_t Sensors)
 esp_err_t Read_SoilMoisture(short *Reading)
 {
 	esp_err_t I2C_Result;
-	uint8_t Write_Buffer[3];
+	uint8_t Write_Buffer[2];
 
 	size_t Read_Buffer_Size = SOIL_MOISTURE_DATA_LENGTH;
 	uint8_t Read_Buffer[SOIL_MOISTURE_DATA_LENGTH];
 
-	I2C_Result = ESP_ERROR_CHECK(i2c_master_transmit_receive(dev_handle, Write_Buffer, sizeof(Write_Buffer), Read_Buffer, Read_Buffer_size,8000))
+	Write_Buffer[0] = STEMMA_MOISTURE_BASE_REG;
+	Write_Buffer[1] = STEMMA_MOISTURE_FUNC_REG
+
+	I2C_Result = ESP_ERROR_CHECK(i2c_master_transmit_receive(&Soil_Handle, Write_Buffer, sizeof(Write_Buffer), Read_Buffer, Read_Buffer_size,8000))
 
 	// Transfer data into variable passed by reference
 	*Reading = ((uint16_t)Read_Buffer[0] << 8) | Read_Buffer[1];
@@ -164,49 +167,18 @@ esp_err_t Read_SoilMoisture(short *Reading)
 esp_err_t Read_SoilTemperature(float *Reading)
 {
 	esp_err_t I2C_Result;
-	int len = SOIL_TEMP_DATA_LENGTH;
-	uint8_t Temperature[SOIL_TEMP_DATA_LENGTH];
+	unt8_t Write_Buffer[2];
 
-	// Send out control bytes, indicating soil temperature read request
-	i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-	i2c_master_start(cmd);
-	i2c_master_write_byte(cmd, STEMMA_SENSOR_ADDR << 1 | WRITE_BIT, ACK_CHECK_EN);
-	i2c_master_write_byte(cmd, STEMMA_TEMP_BASE_REG, ACK_CHECK_EN);
-	i2c_master_write_byte(cmd, STEMMA_TEMP_FUNC_REG, ACK_CHECK_EN);
-	i2c_master_stop(cmd);
-	I2C_Result = i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, I2C_MASTER_TIMEOUT_MS / portTICK_PERIOD_MS);
-	i2c_cmd_link_delete(cmd);
+	size_t Read_Buffer_Size = SOIL_TEMP_DATA_LENGTH;
+	uint8_t Read_Buffer[SOIL_TEMP_DATA_LENGTH];
+	
+	Write_Buffer[0] = STEMMA_MOISTURE_BASE_REG;
+	Write_Buffer[1] = STEMMA_MOISTURE_FUNC_REG;
 
-	// Check that request passed through
-	if (I2C_Result != ESP_OK)
-	{
-		ESP_LOGW(TAG, "Temperature request failed");
-		return I2C_Result;
-	}
+	I2C_Result = ESP_ERROR_CHECK(i2c_master_transmit_receive(&HumidTemp_Handle, Write_Buffer, sizeof(Write_Buffer), Read_Buffer, Read_Buffer_Size, 8000));	
 
-	// small delay as indicated by datasheet
-	delay_ms(50);
-
-	// Begin read operations
-	cmd = i2c_cmd_link_create();
-	i2c_master_start(cmd);
-	i2c_master_write_byte(cmd, STEMMA_SENSOR_ADDR << 1 | READ_BIT, ACK_CHECK_EN);
-	i2c_master_read(cmd, Temperature, len - 1, NACK_VAL);
-	i2c_master_read_byte(cmd, Temperature + len - 1, NACK_VAL);
-	i2c_master_stop(cmd);
-	I2C_Result = i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, I2C_MASTER_TIMEOUT_MS / portTICK_PERIOD_MS);
-	i2c_cmd_link_delete(cmd);
-
-	// check read operation concluded successfully, and store data
-	if (I2C_Result == ESP_OK)
-	{
-		int32_t raw_temp = ((uint32_t)Temperature[0] << 24) | ((uint32_t)Temperature[1] << 16) | ((uint32_t)Temperature[2] << 8) | Temperature[3];
-		*Reading = (1.0 / (1UL << 16)) * raw_temp; // normalize value
-	}
-	else
-	{
-		ESP_LOGW(TAG, "Temperature read failed");
-	}
+	int32_t raw_temp = ((uint32_t)Write_Buffer[0] << 24) | ((uint32_t)Write_Buffer[1] << 16) | ((uint32_t)Write_Buffer[2] << 8) | Write_Buffer[3];
+	*Reading = (1.0 / (1UL << 16)) * raw_temp; // normalize value
 
 	return I2C_Result;
 }
