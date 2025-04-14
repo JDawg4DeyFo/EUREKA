@@ -8,8 +8,6 @@
  * @copyright Copyright (c) 2025
  * 
  */
-
-#include "I2C.h"
 #include "SH3X.h"
 
 
