@@ -11,9 +11,7 @@
 
 // soil sensor REFERENCE: https://learn.adafruit.com/adafruit-seesaw-atsamd09-breakout/reading-and-writing-data
 // sht3x sensor REFERENCE: https://sensirion.com/media/documents/213E6A3B/63A5A569/Datasheet_SHT3x_DIS.pdf
-// sht3x sensor driver REFERENCE: https://github.com/gschorcht/sht3x-esp-idf/tree/master
-
-// try using this sensor driver: https://github.com/ma-lwa-re/esp32-sht3x/blob/master/sht3x.h
+// sht3x sensor driver REFERENCE: https://github.com/ma-lwa-re/esp32-sht3x/blob/master/
 
 // TODO: Replace references to write_to_sensor() and read_from_sensor() with
 // respective I2C_Write() and I2C_Read() functions.
@@ -25,21 +23,6 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
-// I2C DEFINES
-#define I2C_MASTER_SCL_IO CONFIG_I2C_MASTER_SCL // GPIO for clock. by  |idf.py menuconfig|
-#define I2C_MASTER_SDA_IO CONFIG_I2C_MASTER_SDA // GPIO for data line
-#define I2C_MASTER_NUM 0						// Which I2C Port we're using.
-#define I2C_MASTER_FREQ_HZ 40000				/*!< I2C master clock frequency */
-#define I2C_MASTER_TX_BUF_DISABLE 0				/*!< I2C master doesn't need buffer */
-#define I2C_MASTER_RX_BUF_DISABLE 0				/*!< I2C master doesn't need buffer */
-#define I2C_MASTER_TIMEOUT_MS 1000
-
-#define WRITE_BIT I2C_MASTER_WRITE
-#define READ_BIT I2C_MASTER_READ
-#define ACK_CHECK_EN 0x1
-#define ACK_CHECK_DIS 0x0
-#define ACK_VAL I2C_MASTER_ACK
-#define NACK_VAL I2C_MASTER_NACK
 
 // Master i2c bus configuration
 static i2c_master_bus_config_t i2c_bus_config = {
@@ -67,8 +50,8 @@ static i2c_device_config_t HumidTemp_Cfg = {
 
 
 // Sensor device handles
-static dev_handle_t Soil_Handle;
-static dev_handle_t HumidTemp_Handle;
+static i2c_master_dev_handle_t Soil_Handle;
+static i2c_master_dev_handle_t HumidTemp_Handle;
 
 
 static const char *TAG = "Sensors";

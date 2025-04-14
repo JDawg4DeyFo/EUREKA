@@ -23,14 +23,25 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include "esp_err.h"
-#include "driver/i2c_master.h"
-#include "I2C.h"
+#include "driver/i2c.h"
 
 #define FAHRENHEIT(celcius)         (((celcius * 9.0) / 5.0) + 32.0)
 #define KELVIN(celcius)             (celcius + 273.15)
 #define SCALE_CELCIUS               ('C')
 #define SCALE_FAHRENHEIT            ('F')
 #define SCALE_KELVIN                ('K')
+
+#define I2C_MASTER_SDA              (GPIO_NUM_4)
+#define I2C_MASTER_SCL              (GPIO_NUM_5)
+#define I2C_MASTER_RX_BUF_DISABLE   (0)
+#define I2C_MASTER_TX_BUF_DISABLE   (0)
+#define I2C_MASTER_FREQ_HZ          (100000)
+#define I2C_MASTER_TIMEOUT_MS       (1000)
+#define I2C_MASTER_NUM              (0)
+#define I2C_ACK_CHECK_DIS           (0x00)
+#define I2C_ACK_CHECK_EN            (0x01)
+#define I2C_ACK_VAL                 (0x00)
+#define I2C_NACK_VAL                (0x01)
 
 #define SHT3X_SENSOR_ADDR           (0x44)
 #define SHT3X_READ_ERROR            (0xFFFF)
@@ -59,13 +70,13 @@ typedef struct sht3x_sensors_values {
 
 uint8_t sht3x_generate_crc(const uint8_t* data, uint16_t count);
 
-esp_err_t sht3x_send_command(uint8_t *command, i2c_device_handle_t *Dev_Handle);
+esp_err_t sht3x_send_command(uint8_t *command);
 
-esp_err_t sht3x_read(uint8_t *hex_code, uint8_t *measurements, uint8_t , i2c_device_handle_t *Dev_Handle);
+esp_err_t sht3x_read(uint8_t *hex_code, uint8_t *measurements, uint8_t size);
 
-esp_err_t sht3x_write(uint8_t *hex_code, uint8_t *measurements, uint8_t size, i2c_device_handle_t *Dev_Handle);
+esp_err_t sht3x_write(uint8_t *hex_code, uint8_t *measurements, uint8_t size);
 
-esp_err_t sht3x_send_command_and_fetch_result(uint8_t *command, uint8_t *measurements, uint8_t size, i2c_device_handle_t *Dev_Handle);
+esp_err_t sht3x_send_command_and_fetch_result(uint8_t *command, uint8_t *measurements, uint8_t size);
 
 esp_err_t sht3x_start_periodic_measurement();
 
