@@ -20,6 +20,11 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 */
+
+
+// Outdoor humidity sensor needs to be 0x44
+// internal humidity sensor will be set to 0x45
+
 #include <stdio.h>
 #include <stdbool.h>
 #include "esp_err.h"
@@ -59,30 +64,30 @@ typedef struct sht3x_sensors_values {
 
 uint8_t sht3x_generate_crc(const uint8_t* data, uint16_t count);
 
-esp_err_t sht3x_send_command(uint8_t *command, i2c_master_dev_handle_t *Dev_Handle);
+esp_err_t sht3x_send_command(uint8_t *command, i2c_master_dev_handle_t Dev_Handle);
 
-esp_err_t sht3x_read(uint8_t *hex_code, uint8_t *measurements, uint8_t , i2c_master_dev_handle_t *Dev_Handle);
+esp_err_t sht3x_read(uint8_t *hex_code, uint8_t *measurements, uint8_t , i2c_master_dev_handle_t Dev_Handle);
 
-esp_err_t sht3x_write(uint8_t *hex_code, uint8_t *measurements, uint8_t size, i2c_master_dev_handle_t *Dev_Handle);
+esp_err_t sht3x_write(uint8_t *hex_code, uint8_t *measurements, uint8_t size, i2c_master_dev_handle_t Dev_Handle);
 
-esp_err_t sht3x_send_command_and_fetch_result(uint8_t *command, uint8_t *measurements, uint8_t size, i2c_master_dev_handle_t *Dev_Handle);
+esp_err_t sht3x_send_command_and_fetch_result(uint8_t *command, uint8_t *measurements, uint8_t size, i2c_master_dev_handle_t Dev_Handle);
 
-esp_err_t sht3x_start_periodic_measurement();
+esp_err_t sht3x_start_periodic_measurement(i2c_master_dev_handle_t Dev_Handle);
 
-esp_err_t sht3x_start_periodic_measurement_with_art();
+esp_err_t sht3x_start_periodic_measurement_with_art(i2c_master_dev_handle_t Dev_Handle);
 
-esp_err_t sht3x_read_measurement(sht3x_sensors_values_t *sensors_values);
+esp_err_t sht3x_read_measurement(sht3x_sensors_values_t *sensors_values, i2c_master_dev_handle_t Dev_Handle);
 
-esp_err_t sht3x_stop_periodic_measurement();
+esp_err_t sht3x_stop_periodic_measurement(i2c_master_dev_handle_t Dev_Handle);
 
-esp_err_t sht3x_soft_reset();
+esp_err_t sht3x_soft_reset(i2c_master_dev_handle_t Dev_Handle);
 
-esp_err_t sht3x_general_call_reset();
+esp_err_t sht3x_general_call_reset(i2c_master_dev_handle_t Dev_Handle);
 
-esp_err_t sht3x_enable_heater();
+esp_err_t sht3x_enable_heater(i2c_master_dev_handle_t Dev_Handle);
 
-esp_err_t sht3x_disable_heater();
+esp_err_t sht3x_disable_heater(i2c_master_dev_handle_t Dev_Handle);
 
-esp_err_t sht3x_read_status_register(sht3x_sensor_value_t *sensors_value);
+esp_err_t sht3x_read_status_register(sht3x_sensor_value_t *sensors_value, i2c_master_dev_handle_t Dev_Handle);
 
-esp_err_t sht3x_clear_status_register();
+esp_err_t sht3x_clear_status_register(i2c_master_dev_handle_t Dev_Handle);

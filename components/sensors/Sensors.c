@@ -125,7 +125,7 @@ SensorsIDs_t Sensors_Init(SensorsIDs_t Sensors)
 
 esp_err_t Read_SoilMoisture(short *Reading)
 {
-	esp_err_t I2C_Result;
+	esp_err_t I2C_Result = ESP_OK;
 	uint8_t Write_Buffer[2];
 
 	size_t Read_Buffer_Size = SOIL_MOISTURE_DATA_LENGTH;
@@ -134,7 +134,7 @@ esp_err_t Read_SoilMoisture(short *Reading)
 	Write_Buffer[0] = STEMMA_MOISTURE_BASE_REG;
 	Write_Buffer[1] = STEMMA_MOISTURE_FUNC_REG;
 
-	I2C_Result = ESP_ERROR_CHECK(i2c_master_transmit_receive(&Soil_Handle, Write_Buffer, sizeof(Write_Buffer), Read_Buffer, Read_Buffer_Size,8000));
+	ESP_ERROR_CHECK(i2c_master_transmit_receive(Soil_Handle, Write_Buffer, sizeof(Write_Buffer), Read_Buffer, Read_Buffer_Size, 8000));
 
 	// Transfer data into variable passed by reference
 	*Reading = ((uint16_t)Read_Buffer[0] << 8) | Read_Buffer[1];
@@ -144,16 +144,15 @@ esp_err_t Read_SoilMoisture(short *Reading)
 
 esp_err_t Read_SoilTemperature(float *Reading)
 {
-	esp_err_t I2C_Result;
+	esp_err_t I2C_Result = ESP_OK;
 	uint8_t Write_Buffer[2];
 
-	size_t Read_Buffer_Size = SOIL_TEMP_DATA_LENGTH;
 	uint8_t Read_Buffer[SOIL_TEMP_DATA_LENGTH];
 	
 	Write_Buffer[0] = STEMMA_MOISTURE_BASE_REG;
 	Write_Buffer[1] = STEMMA_MOISTURE_FUNC_REG;
 
-	I2C_Result = ESP_ERROR_CHECK(i2c_master_transmit_receive(&HumidTemp_Handle, Write_Buffer, sizeof(Write_Buffer), Read_Buffer, Read_Buffer_Size, 8000));	
+	ESP_ERROR_CHECK(i2c_master_transmit_receive(HumidTemp_Handle, Write_Buffer, sizeof(Write_Buffer), Read_Buffer, sizeof(Read_Buffer), 8000));	
 
 	int32_t raw_temp = ((uint32_t)Write_Buffer[0] << 24) | ((uint32_t)Write_Buffer[1] << 16) | ((uint32_t)Write_Buffer[2] << 8) | Write_Buffer[3];
 	*Reading = (1.0 / (1UL << 16)) * raw_temp; // normalize value
