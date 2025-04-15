@@ -2,12 +2,13 @@
 ## April 7th, 2025
 
 # Define source files
-set(srcs Sensors.c SH3X.c)
+set(srcs Sensors.c SHT3X.c)
 
 # Declare public dependencies
-set(requires i2c esp8266_wrapper)
+set(requires)
 
-# No private dependencies to declare
+# Declare private dependencies
+set(requires esp_driver_i2c)
 
 # Register component
 idf_component_register(SRCS "${srcs}"
