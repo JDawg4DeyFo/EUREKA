@@ -6,13 +6,13 @@ menu "Project I2C configuration"
 # Pin configurations
 config I2C_MASTER_SCL
 	int "I2C Master SCL GPIO Pin"
-	default 22
+	default 42
 	help
 		The GPIO pin used by the i2c master serial clock line.
 
 config I2C_MASTER_SDA
 	int "I2C Master SDA GPIO Pin"
-	default 21
+	default 41
 	help
 		The GPIO pin used by the i2c master serial data line.
 

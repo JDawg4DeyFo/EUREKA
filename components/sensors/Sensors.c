@@ -22,6 +22,7 @@
 #include "driver/i2c_master.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "esp_log.h"
 
 
 // Master i2c bus configuration
@@ -31,6 +32,7 @@ static i2c_master_bus_config_t i2c_bus_config = {
 	.scl_io_num = I2C_MASTER_SCL_IO,
 	.sda_io_num = I2C_MASTER_SDA_IO,
 	.glitch_ignore_cnt = 7,
+	// .flags.enable_internal_pullup = true,
 };
 
 // i2c bus handle
@@ -56,10 +58,10 @@ static i2c_master_dev_handle_t HumidTemp_Handle;
 
 static const char *TAG = "Sensors";
 
-static void delay_ms(int ms)
-{
-	vTaskDelay((ms) / portTICK_PERIOD_MS);
-}
+// static void delay_ms(int ms)
+// {
+// 	vTaskDelay((ms) / portTICK_PERIOD_MS);
+// }
 
 SensorsIDs_t Sensors_Init(SensorsIDs_t Sensors)
 {
@@ -73,7 +75,6 @@ SensorsIDs_t Sensors_Init(SensorsIDs_t Sensors)
 	{
 		ESP_ERROR_CHECK(i2c_new_master_bus(&i2c_bus_config, &Bus_Handle));
 	}
-
 	// If I2C_Init() passes, set I2C_STATUS to 1.
 	I2C_InitStatus = 1;
 
@@ -84,7 +85,8 @@ SensorsIDs_t Sensors_Init(SensorsIDs_t Sensors)
 	if (Sensors && SOIL)
 	{
 		ESP_ERROR_CHECK(i2c_master_bus_add_device(Bus_Handle, &Soil_Cfg, &Soil_Handle));
-
+		
+		ReturnStatus |= SOIL;
 	}
 
 	if (Sensors && WIND)
@@ -107,7 +109,6 @@ SensorsIDs_t Sensors_Init(SensorsIDs_t Sensors)
 	if (Sensors && HUMID_TEMP)
 	{
 		ESP_ERROR_CHECK(i2c_master_bus_add_device(Bus_Handle, &HumidTemp_Cfg, &HumidTemp_Handle));
-
 		// SHT3X_DataStruct = sht3x_init_sensor(I2C_MASTER_NUM, SHT3x_ADDR_1);
 		// // Check for error in inititalization.
 		// if (SHT3X_DataStruct != NULL)
@@ -134,7 +135,7 @@ esp_err_t Read_SoilMoisture(short *Reading)
 	Write_Buffer[0] = STEMMA_MOISTURE_BASE_REG;
 	Write_Buffer[1] = STEMMA_MOISTURE_FUNC_REG;
 
-	ESP_ERROR_CHECK(i2c_master_transmit_receive(Soil_Handle, Write_Buffer, sizeof(Write_Buffer), Read_Buffer, Read_Buffer_Size, 8000));
+	ESP_ERROR_CHECK(i2c_master_transmit_receive(Soil_Handle, Write_Buffer, sizeof(Write_Buffer), Read_Buffer, Read_Buffer_Size, 1000));
 
 	// Transfer data into variable passed by reference
 	*Reading = ((uint16_t)Read_Buffer[0] << 8) | Read_Buffer[1];
@@ -152,9 +153,11 @@ esp_err_t Read_SoilTemperature(float *Reading)
 	Write_Buffer[0] = STEMMA_MOISTURE_BASE_REG;
 	Write_Buffer[1] = STEMMA_MOISTURE_FUNC_REG;
 
-	ESP_ERROR_CHECK(i2c_master_transmit_receive(HumidTemp_Handle, Write_Buffer, sizeof(Write_Buffer), Read_Buffer, sizeof(Read_Buffer), 8000));	
+	ESP_LOGI("Made it to line 156");
 
-	int32_t raw_temp = ((uint32_t)Write_Buffer[0] << 24) | ((uint32_t)Write_Buffer[1] << 16) | ((uint32_t)Write_Buffer[2] << 8) | Write_Buffer[3];
+	ESP_ERROR_CHECK(i2c_master_transmit_receive(HumidTemp_Handle, Write_Buffer, sizeof(Write_Buffer), Read_Buffer, sizeof(Read_Buffer), 1000));	
+
+	int32_t raw_temp = ((uint32_t)Read_Buffer[0] << 24) | ((uint32_t)Read_Buffer[1] << 16) | ((uint32_t)Read_Buffer[2] << 8) | Read_Buffer[3];
 	*Reading = (1.0 / (1UL << 16)) * raw_temp; // normalize value
 
 	return I2C_Result;

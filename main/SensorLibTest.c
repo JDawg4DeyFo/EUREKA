@@ -27,15 +27,15 @@ void app_main(void)
 	esp_err_t ret;
 	short moisture;
 	float temp;
-	float humid;
+	// float humid;
 	int iteration_count = 0;
 
 	printf("whats good gang");
 
 	SensorsIDs_t sensors = SOIL | HUMID_TEMP;
+	printf("Before sensor init");
 	SensorsIDs_t initialized = Sensors_Init(sensors);
 
-	while(1);
 
 	while (1)
 	{
@@ -67,22 +67,22 @@ void app_main(void)
 			ESP_LOGW(TAG, "soil sensor not initialized");
 		}
 
-		if (initialized & HUMID_TEMP)
-		{
-			ret = Read_Air_HumidityTemperature(&temp, &humid);
-			if (ret)
-			{
-				ESP_LOGI(TAG, "temperature: %f, humidity: %f", temp, humid);
-			}
-			else
-			{
-				ESP_LOGW(TAG, "Failed to read humidity and temperature");
-			}
-		}
-		else
-		{
-			ESP_LOGW(TAG, "Humidity temp sensor not initialized");
-		}
+		// if (initialized & HUMID_TEMP)
+		// {
+		// 	ret = Read_Air_HumidityTemperature(&temp, &humid);
+		// 	if (ret)
+		// 	{
+		// 		ESP_LOGI(TAG, "temperature: %f, humidity: %f", temp, humid);
+		// 	}
+		// 	else
+		// 	{
+		// 		ESP_LOGW(TAG, "Failed to read humidity and temperature");
+		// 	}
+		// }
+		// else
+		// {
+		// 	ESP_LOGW(TAG, "Humidity temp sensor not initialized");
+		// }
 
 		delay_ms(500);
 		ESP_LOGW(TAG, "While loop iteration #: %d", iteration_count);
