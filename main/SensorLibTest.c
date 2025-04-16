@@ -29,8 +29,9 @@ void app_main(void)
 	float temp;
 	// float humid;
 	int iteration_count = 0;
-
-	printf("whats good gang");
+	
+	printf("\nSoil Sensor Test Harness!!!\n");
+	printf("SCL: %d, SDA: %d", CONFIG_I2C_MASTER_SCL, CONFIG_I2C_MASTER_SDA);
 
 	SensorsIDs_t sensors = SOIL | HUMID_TEMP;
 	printf("Before sensor init");
