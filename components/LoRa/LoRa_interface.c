@@ -2,8 +2,8 @@
  * @file LoRa_interface.c
  * @author Edouard Valenzuela (ecvalenz@ucsc.edu)
  * @brief Library for interfacing with the ESP32 with the SX1262
- * @version 0.1
- * @date 2025-04-12
+ * @version 1.0
+ * @date 2025-04-14
  * 
  * @copyright Copyright (c) 2025
  * 
@@ -29,8 +29,8 @@ const spi_bus_config_t bus_pins = {
    .mosi_io_num = GPIO_MOSI,
    .sclk_io_num = GPIO_SCK,
    .max_transfer_sz = 32,
-   .quadwp_io_num = -1
-   .quadwp_hd_num = -1;
+   .quadwp_io_num = -1,
+   .quadwp_hd_num = -1,
 };
 
 spi_device_interface_config_t dev_config = {
@@ -59,31 +59,29 @@ spi_device_interface_config_t dev_config = {
 
    esp_err_t check_result = spi_bus_initialize(spi_bus1, &bus_pins, DMA_channel);
 
-   if (check_result  == ESP_OK){
-      printf("spi_bus_initalize is a success\n");
-      spi_bus_initialize(spi_bus1, &bus_pins, DMA_channel);
-   } else {
+   if (check_result  != ESP_OK){
+      printf("spi_bus_initalize failed\n");
       return check_result;
-   }
+   } 
+
+   printf("spi_bus_initalize is a success\n");
 
    check_result = spi_bus_add_device(spi_bus1, &dev_config, &slave_handle);
-   if (check_result == ESP_OK){
-      printf("spi_bus_add_device is a success\n");
-      spi_bus_add_device(spi_bus1, &dev_config, &slave_handle);
-      sx1262_init(&LoRa_handle);
-   } else {
+
+   if (check_result != ESP_OK){
       printf("spi_bus_add_device failed\n");
       return check_result;
    }
+   printf("spi_bus_add_device is a success\n");
 
    uint8_t check_LoRa_init = sx1262_init(&LoRa_handle);
-   if (check_LoRa_init != 1){
-      printf("LoRa chip successfully initaliazed\n")
-      sx1262_init(&LoRa_handle);
-   } else {
+
+   if (check_LoRa_init != 0){
       printf("LoRa chip failed to initialize, reason: %d\n", sx1262_init(&LoRa_handle));
       return ESP_ERR_NOT_FOUND;
-   }
+   } 
+   printf("LoRa chip successfully initaliazed\n");
+   printf("Successful initialization\n");
 
    return ESP_OK;
 }
@@ -101,30 +99,28 @@ esp_err_t esp32_SPI_bus_deinit(void){
    uint8_t check_LoRa_deinit = sx1262_deinit(&LoRa_handle);
 
    if (check_LoRa_deinit != 1){
-      printf("LoRa chip successfully deinitaliazed\n")
-      sx1262_deinit(&LoRa_handle);
-   } else {
-      printf("LoRa chip failed to deinitialize, reason: %d\n", sx1262_deinit(&LoRa_handle));
+      printf("LoRa chip failed to deinitialize, reason: %u\n", sx1262_deinit(&LoRa_handle));
       return ESP_ERR_NOT_FOUND;
    }
+   printf("LoRa chip successfully deinitaliazed\n");
 
    esp_err_t check_result2 = spi_bus_remove_device(slave_handle);
 
-   if (check_result2  == ESP_OK){
-      printf("spi_bus_remove_device is a success\n");
-      spi_bus_remove_device(slave_handle);
-   } else {
+   if (check_result2 != ESP_OK){
       return check_result2;
-   }
+   } 
+
+   printf("spi_bus_remove_device is a success\n");
 
    check_result2 = spi_bus_free(spi_bus1);
-   if (check_result2 == ESP_OK){
-      printf("spi__bus_free is a success\n");
-      spi_bus_free(spi_bus1);
-   } else {
+   if (check_result2 != ESP_OK){
       printf("spi_bus_add_device failed\n");
       return check_result2;
-   }
+   } 
+
+   printf("spi__bus_free is a success\n");
+   printf("Successful deinitialization!\n");
+
    return ESP_OK;
 }
 
@@ -135,28 +131,35 @@ esp_err_t esp32_SPI_bus_deinit(void){
  *         - 1 spi read and write asynch failed
  * @note   none
  */
-esp_err_t esp32_SPI_WRITE_test(void){
+esp_err_t esp32_SPI_WRITE_READ_test(void){
 
    spi_transaction_t transaction_mes{
-      .length = 8,
-      .rxlength = 8,
-      .txdata{test},
-      .user = htx,
+      .txdata = {"test"},
+      .length = 32,
+      .rxlength = 32,
+      .user = "htx",
       .flags = SPI_TRANS_USE_TXDATA | SPI_TRANS_USE_RXDATA,
    };
 
    esp_err_t check_result3 = spi_device_transmit(slave_handle, &transaction_mes);
-   if (check_result3 == ESP_OK){
-      printf("spi_device_transmit is a success\n");
-      spi_device_transmit(slave_handle, &transaction_mes);
-   } else {
+   if (check_result3 != ESP_OK){
       printf("spi_device_transmit failed\n");
       return check_result3;
+   } 
+
+   printf("spi_device_transmit is a success\n");
+   printf("Successful single transaction, rx_data = ");
+   for (int i = 0; i < sizeof(transaction_mes.rx_data); i++){
+      printf("%c", transaction_mes.rx_data[i]);
    }
+   printf("\n");
+
    return ESP_OK;
    
 }
 
-uint8_t main(void){
-   return 0;
+void main(void){
+   esp32_SPI_bus_init(void);
+   esp32_SPI_WRITE_READ_test(void);
+   esp32_SPI_bus_deinit(void)
 }
