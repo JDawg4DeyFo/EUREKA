@@ -38,35 +38,41 @@ void app_main(void)
 	SensorsIDs_t initialized = Sensors_Init(sensors);
 
 
+	
+
 	while (1)
 	{
 		iteration_count++;
-		if (initialized & SOIL)
-		{
-			ret = Read_SoilMoisture(&moisture);
-			if (ret == ESP_OK)
-			{
-				ESP_LOGI(TAG, "Soil Moisture: %d", moisture);
-			}
-			else
-			{
-				ESP_LOGW(TAG, "Failed to read soil moisture");
-			}
+		ret = Read_SoilMoisture(&moisture);
 
-			ret = Read_SoilTemperature(&temp);
-			if (ret == ESP_OK)
-			{
-				ESP_LOGI(TAG, "Soil Temperature: %.2f", temp);
-			}
-			else
-			{
-				ESP_LOGW(TAG, "Failed to read soil temperature");
-			}
-		}
-		else
-		{
-			ESP_LOGW(TAG, "soil sensor not initialized");
-		}
+		// ORIGINAL TEST HARNESS:
+		// iteration_count++;
+		// if (initialized & SOIL)
+		// {
+		// 	ret = Read_SoilMoisture(&moisture);
+		// 	if (ret == ESP_OK)
+		// 	{
+		// 		ESP_LOGI(TAG, "Soil Moisture: %d", moisture);
+		// 	}
+		// 	else
+		// 	{
+		// 		ESP_LOGW(TAG, "Failed to read soil moisture");
+		// 	}
+
+		// 	ret = Read_SoilTemperature(&temp);
+		// 	if (ret == ESP_OK)
+		// 	{
+		// 		ESP_LOGI(TAG, "Soil Temperature: %.2f", temp);
+		// 	}
+		// 	else
+		// 	{
+		// 		ESP_LOGW(TAG, "Failed to read soil temperature");
+		// 	}
+		// }
+		// else
+		// {
+		// 	ESP_LOGW(TAG, "soil sensor not initialized");
+		// }
 
 		// if (initialized & HUMID_TEMP)
 		// {
@@ -86,7 +92,8 @@ void app_main(void)
 		// }
 
 		delay_ms(500);
-		ESP_LOGW(TAG, "While loop iteration #: %d", iteration_count);
+		ESP_LOGI(TAG, "While loop iteration #: %d\n", iteration_count);
+		ESP_LOGI(TAG, "Moisture reading: %d", moisture);
 		fflush(stdout);
 
 	}
