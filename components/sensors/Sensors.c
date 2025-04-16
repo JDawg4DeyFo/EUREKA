@@ -24,6 +24,11 @@
 #include "freertos/task.h"
 #include "esp_log.h"
 
+static void delay_ms(int ms)
+{
+    vTaskDelay((ms) / portTICK_PERIOD_MS);
+}
+
 
 // Master i2c bus configuration
 static i2c_master_bus_config_t i2c_bus_config = {
@@ -134,7 +139,11 @@ esp_err_t Read_SoilMoisture(short *Reading)
 	Write_Buffer[0] = STEMMA_MOISTURE_BASE_REG;
 	Write_Buffer[1] = STEMMA_MOISTURE_FUNC_REG;
 
-	ESP_ERROR_CHECK(i2c_master_transmit_receive(Soil_Handle, Write_Buffer, sizeof(Write_Buffer), Read_Buffer, Read_Buffer_Size, 1000));
+	ESP_ERROR_CHECK_WITHOUT_ABORT(i2c_master_transmit(Soil_Handle, Write_Buffer, sizeof(Write_Buffer), 1000));
+
+	delay_ms(50);
+
+	ESP_ERROR_CHECK_WITHOUT_ABORT(i2c_master_receive(Soil_Handle, Read_Buffer, Read_Buffer_Size, 1000));
 
 	// Transfer data into variable passed by reference
 	*Reading = ((uint16_t)Read_Buffer[0] << 8) | Read_Buffer[1];
@@ -147,6 +156,7 @@ esp_err_t Read_SoilTemperature(float *Reading)
 	esp_err_t I2C_Result = ESP_OK;
 	uint8_t Write_Buffer[2];
 
+	size_t Read_Buffer_Size = SOIL_TEMP_DATA_LENGTH;
 	uint8_t Read_Buffer[SOIL_TEMP_DATA_LENGTH];
 	
 	Write_Buffer[0] = STEMMA_MOISTURE_BASE_REG;
@@ -154,7 +164,11 @@ esp_err_t Read_SoilTemperature(float *Reading)
 
 	ESP_LOGI(TAG, "Made it to line 156");
 
-	ESP_ERROR_CHECK(i2c_master_transmit_receive(HumidTemp_Handle, Write_Buffer, sizeof(Write_Buffer), Read_Buffer, sizeof(Read_Buffer), 1000));	
+	ESP_ERROR_CHECK_WITHOUT_ABORT(i2c_master_transmit(Soil_Handle, Write_Buffer, sizeof(Write_Buffer), 1000));	
+
+	delay_ms(50);
+
+	ESP_ERROR_CHECK_WITHOUT_ABORT(i2c_master_receive(Soil_Handle, Read_Buffer, Read_Buffer_Size, 1000));
 
 	int32_t raw_temp = ((uint32_t)Read_Buffer[0] << 24) | ((uint32_t)Read_Buffer[1] << 16) | ((uint32_t)Read_Buffer[2] << 8) | Read_Buffer[3];
 	*Reading = (1.0 / (1UL << 16)) * raw_temp; // normalize value
