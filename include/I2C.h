@@ -30,7 +30,7 @@
 #define ACK_CHECK_EN 0x1
 #define ACK_CHECK_DIS 0x0
 #define ACK_VAL I2C_MASTER_ACK
-#define NACK_VAL I2C_MASTER_NACK
+#define NACK_VAL 
 
 // From sh3x driver:
 #define I2C_MASTER_SDA              (CONFIG_I2C_MASTER_SCL)
