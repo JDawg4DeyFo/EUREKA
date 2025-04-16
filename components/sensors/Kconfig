@@ -16,6 +16,18 @@ config I2C_MASTER_SDA
 	help
 		The GPIO pin used by the i2c master serial data line.
 
+config I2C_MASTER_FREQ
+	int "I2C Master Frequency (Hz)"
+	default 100000
+	help
+		Frequency of the I2C line, in Hz.
+
+config I2C_MASTER_TIMEOUT
+	int "I2C Master timeout (ms)"
+	default 1000
+	help
+		Time in miliseconds before master gives up on response.
+
 # bit definitions
 config I2C_MASTER_WRITE
 	int "I2C Master Write Bit"

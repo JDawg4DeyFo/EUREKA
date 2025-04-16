@@ -27,7 +27,7 @@ void app_main(void)
 	esp_err_t ret;
 	short moisture;
 	float temp;
-	// float humid;
+	float humid;
 	int iteration_count = 0;
 	
 	printf("\nSoil Sensor Test Harness!!!\n");
