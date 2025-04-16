@@ -10,7 +10,7 @@
  * 
  *  
  */
-#include "LoRa_interface.h"
+#include "../../include/LoRa_interface.h"
 
 #define GPIO_MOSI 6
 #define GPIO_MISO 3
