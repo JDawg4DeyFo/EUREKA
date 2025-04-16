@@ -68,7 +68,6 @@ SensorsIDs_t Sensors_Init(SensorsIDs_t Sensors)
 	static uint8_t I2C_InitStatus = 0;
 	SensorsIDs_t ReturnStatus;
 
-
 	// First step will be to Initialize the I2C Bus.
 	// Inititialize I2C Bus, if it hasn't been initialized already.
 	if (!I2C_InitStatus)
@@ -153,7 +152,7 @@ esp_err_t Read_SoilTemperature(float *Reading)
 	Write_Buffer[0] = STEMMA_MOISTURE_BASE_REG;
 	Write_Buffer[1] = STEMMA_MOISTURE_FUNC_REG;
 
-	ESP_LOGI("Made it to line 156");
+	ESP_LOGI(TAG, "Made it to line 156");
 
 	ESP_ERROR_CHECK(i2c_master_transmit_receive(HumidTemp_Handle, Write_Buffer, sizeof(Write_Buffer), Read_Buffer, sizeof(Read_Buffer), 1000));	
 
