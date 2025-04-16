@@ -24,6 +24,8 @@
 #include "freertos/task.h"
 #include "esp_log.h"
 
+#include "esp_adc/adc_oneshot.h"
+
 // standard delay :P
 static void delay_ms(int ms)
 {
@@ -59,6 +61,40 @@ static i2c_device_config_t SHT30_Cfg = {
 // Sensor device handles
 static i2c_master_dev_handle_t Soil_Handle;
 static i2c_master_dev_handle_t SHT30_Handle;
+
+// ADC Handles and configs
+static adc_oneshot_unit_handle_t ADC_Handle;
+
+static adc_oneshot_unit_init_cfg_t ADC_Init_cfg = {
+	.unit_id = ADC_UNIT_1,
+	.ulp_mode = ADC_ULP_MODE_DISABLE,
+};
+
+static adc_oneshot_chan_cfg_t ADC_cfg = {
+	.bitwidth = ADC_BITWIDTH_DEFAULT,
+	.atten = ADC_ATTEN_DB_12,
+};
+
+// look up tableeee
+static float WindDirection_LookupTable[NUMBER_OF_KEYS] = {
+	2.53,
+	1.31,
+	1.49,
+	0.27,
+	0.30,
+	0.21,
+	0.60,
+	0.41,
+	0.93,
+	0.79,
+	2.03,
+	1.93,
+	3.05,
+	2.67,
+	2.86,
+	2.26
+};
+static float Max_ADC_Reading = pow(2, ADC_BITWIDTH);
 
 
 static const char *TAG = "Sensors";
@@ -97,6 +133,8 @@ SensorsIDs_t Sensors_Init(SensorsIDs_t Sensors)
 	{
 		// Initialization code:
 		//	1. Initialize ADC Module
+		ESP_ERROR_CHECK(adc_oneshot_new_unit(&ADC_Init_cfg, &ADC_Handle));
+		ESP_ERROR_CHECK(adc_oneshot_config_channel(ADC_Handle, ADC_CHANNEL_1, &ADC_cfg));
 		//  2. Verify connectivity of sensor
 		ReturnStatus |= WINDVANE;
 	}
@@ -179,4 +217,37 @@ bool Read_SHT30_HumidityTemperature(float *Temp_Reading, float *Humid_Reading)
 	*Humid_Reading = Readings.humidity;
 
 	return true;
+}
+
+float Get_Wind_Direction() {
+	int Reading, Key, i;
+	float Direction;
+	float SmallestDistance, IterationDistance, Voltage;
+	
+	// Procedure:
+	// 1. Read raw adc
+	ESP_ERROR_CHECK(adc_oneshot_read(ADC_Handle, ADC_CHANNEL_1, &Reading));
+
+	// 2. convert to voltage
+	Voltage = (Reading / Max_ADC_Reading) * MAX_ADC_VOLTAGE;
+
+	// 3. convert to degrees
+	SmallestDistance = 10; // arbitrary value
+	Key = 0;
+	// Iterate through lookup table to find which voltage matches the best with
+	// reading.
+	for (i = 0; i < NUMBER_OF_KEYS; i++) {
+		IterationDistance = fabs(Voltage - WindDirection_LookupTable[i]);
+		// if current iteration is better match than previous ones, set it as
+		// the current best match, and update key value.
+		if (IterationDistance < SmallestDistance) {
+			SmallestDistance = IterationDistance;
+			Key = i;
+		}
+	}
+
+	// Convert key value into direction
+	Direction = Key * KEY_TO_DEG;
+
+	return Direction;
 }

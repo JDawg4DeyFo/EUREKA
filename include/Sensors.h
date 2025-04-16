@@ -10,7 +10,7 @@
  */
 #include "SHT3X.h"
 #include "I2C.h"
-
+#include <math.h>
 
 /*******************************************************************************
  * PUBLIC #DEFINES                                                            *
@@ -31,6 +31,13 @@
 #define SHT3X_REPEATABILITY sht3x_low // both are defined in SH3X.h
 #define SHT3X_PERIOD sht3x_single_shot
 
+// ADC defines
+#define ADC_BITWIDTH 12.0
+#define MAX_ADC_VOLTAGE 3.3
+
+// Windvane defines
+#define NUMBER_OF_KEYS 16
+#define KEY_TO_DEG 22.5
 
 /*******************************************************************************
  * PUBLIC DATATYPES
@@ -91,3 +98,10 @@ esp_err_t Read_SoilTemperature(float *Reading);
  * @return bool, true success, false for fail 
  */
 bool Read_SHT30_HumidityTemperature(float *Temp_Reading, float *Humid_Reading);
+
+/**
+ * @brief Get wind direction from ADC reading
+ * 
+ * @return short bearing, in degrees 
+ */
+float Get_Wind_Direction();
