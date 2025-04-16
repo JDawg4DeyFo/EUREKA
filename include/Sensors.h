@@ -38,9 +38,9 @@
 // Associated bits for each sensor
 typedef enum {
     SOIL = 0x1,
-    WIND = 0x2,
-    AIR = 0x4,
-    HUMID_TEMP = 0X8,
+    WINDVANE = 0x2,
+	ANEMOMETER = 0x4,
+    SHT30 = 0X8,
 } SensorsIDs_t;
 
 // Possible errors.
@@ -90,4 +90,4 @@ esp_err_t Read_SoilTemperature(float *Reading);
  * @param Humid_Reading float to store humidity reading into
  * @return bool, true success, false for fail 
  */
-bool Read_Air_HumidityTemperature(float *Temp_Reading, float *Humid_Reading);
+bool Read_SHT30_HumidityTemperature(float *Temp_Reading, float *Humid_Reading);
