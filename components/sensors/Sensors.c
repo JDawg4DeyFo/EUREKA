@@ -24,6 +24,7 @@
 #include "freertos/task.h"
 #include "esp_log.h"
 
+// standard delay :P
 static void delay_ms(int ms)
 {
     vTaskDelay((ms) / portTICK_PERIOD_MS);
@@ -37,7 +38,6 @@ static i2c_master_bus_config_t i2c_bus_config = {
 	.scl_io_num = I2C_MASTER_SCL_IO,
 	.sda_io_num = I2C_MASTER_SDA_IO,
 	.glitch_ignore_cnt = 7,
-	// .flags.enable_internal_pullup = true,
 };
 
 // i2c bus handle
@@ -49,7 +49,7 @@ static i2c_device_config_t Soil_Cfg = {
 	.device_address = STEMMA_SENSOR_ADDR,
 	.scl_speed_hz = I2C_MASTER_FREQ_HZ,
 };
-static i2c_device_config_t HumidTemp_Cfg = {
+static i2c_device_config_t SHT30_Cfg = {
 	.dev_addr_length = I2C_ADDR_BIT_LEN_7,
 	.device_address = SHT3X_SENSOR_ADDR,
 	.scl_speed_hz = I2C_MASTER_FREQ_HZ,
@@ -58,7 +58,7 @@ static i2c_device_config_t HumidTemp_Cfg = {
 
 // Sensor device handles
 static i2c_master_dev_handle_t Soil_Handle;
-static i2c_master_dev_handle_t HumidTemp_Handle;
+static i2c_master_dev_handle_t SHT30_Handle;
 
 
 static const char *TAG = "Sensors";
@@ -93,36 +93,27 @@ SensorsIDs_t Sensors_Init(SensorsIDs_t Sensors)
 		ReturnStatus |= SOIL;
 	}
 
-	if (Sensors && WIND)
+	if (Sensors && WINDVANE)
 	{
 		// Initialization code:
 		//	1. Initialize ADC Module
 		//  2. Verify connectivity of sensor
-		ReturnStatus |= WIND;
+		ReturnStatus |= WINDVANE;
 	}
 
-	if (Sensors && AIR)
+	if (Sensors && ANEMOMETER)
 	{
 		// Initialization code
-
-		ReturnStatus |= AIR;
+		// 1. Initialize input compare
+		ReturnStatus |= ANEMOMETER;
 	}
 
-	// This sensor requires us to connect the sensor to the bus, and to
-	// initialize a data struct by calling sht3x_init_sensor()
-	if (Sensors && HUMID_TEMP)
+	// Sensor 2: SHT30
+	if (Sensors && SHT30)
 	{
-		ESP_ERROR_CHECK(i2c_master_bus_add_device(Bus_Handle, &HumidTemp_Cfg, &HumidTemp_Handle));
-		// SHT3X_DataStruct = sht3x_init_sensor(I2C_MASTER_NUM, SHT3x_ADDR_1);
-		// // Check for error in inititalization.
-		// if (SHT3X_DataStruct != NULL)
-		// {
-		// 	ReturnStatus |= HUMID_TEMP;
-		// }
-		// else
-		// {
-		// 	ESP_LOGW(TAG, "SHT3X Initialization failed");
-		// }
+		ESP_ERROR_CHECK(i2c_master_bus_add_device(Bus_Handle, &SHT30_Cfg, &SHT30_Handle));
+		
+		ReturnStatus |= SHT30;
 	}
 
 	return ReturnStatus;
@@ -176,19 +167,16 @@ esp_err_t Read_SoilTemperature(float *Reading)
 	return I2C_Result;
 }
 
-bool Read_Air_HumidityTemperature(float *Temp_Reading, float *Humid_Reading)
+bool Read_SHT30_HumidityTemperature(float *Temp_Reading, float *Humid_Reading)
 {
-	// // Start reading
-	// if (!sht3x_start_measurement(SHT3X_DataStruct, SHT3X_Mode, SHT3X_Repeat))
-	// {
-	// 	return false;
-	// }
+	sht3x_sensors_values_t Readings;
 
-	// // Get results of (last) reading
-	// if (!sht3x_get_results(SHT3X_DataStruct, Temp_Reading, Humid_Reading))
-	// {
-	// 	return false;
-	// }
+	if (sht3x_read_measurement(&Readings, SHT30_Handle) != ESP_OK) {
+		return false;
+	}
+
+	*Temp_Reading = Readings.temperature;
+	*Humid_Reading = Readings.humidity;
 
 	return true;
 }
