@@ -1,0 +1,12 @@
+## Timer Library KConfig
+# April 13, 2025
+
+menu "Project timer configuration"
+config GPT_RESOLUTION
+	int "General purpose timer resolution (Hz)"
+	default 1000000
+	help
+		Resolution in Hertz of the general purpose timer.
+
+
+endmenu

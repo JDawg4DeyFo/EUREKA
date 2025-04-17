@@ -18,10 +18,12 @@
 
 #include <stddef.h>
 
-#include "../../include/Sensors.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_log.h"
+
+#include "../../include/Sensors.h"
+#incldue "../../include/Timer.h"
 
 #include "driver/i2c_master.h"
 #include "esp_adc/adc_oneshot.h"
@@ -78,7 +80,7 @@ static adc_oneshot_chan_cfg_t ADC_cfg = {
 	.atten = ADC_ATTEN_DB_12,
 };
 
-// look up tableeee
+// ADC variables
 static float WindDirection_LookupTable[NUMBER_OF_KEYS] = {
 	2.53,
 	1.31,
@@ -99,7 +101,10 @@ static float WindDirection_LookupTable[NUMBER_OF_KEYS] = {
 };
 static float Max_ADC_Reading = pow(2, ADC_BITWIDTH);
 
-static int Start_Time;
+// Timer variables
+extern gpt_timer_handle_t GPT_Handle;
+static int Start_Time = 0;
+static int Duration = 0;
 
 // ISR for pulse counter module (anemometer)
 void IRAM_ATTR pcnt_intr_handler(void *arg) {
