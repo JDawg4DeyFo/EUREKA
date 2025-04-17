@@ -28,6 +28,7 @@
 #include "driver/i2c_master.h"
 #include "esp_adc/adc_oneshot.h"
 #include "driver/gptimer.h"
+#include "driver/pcnt.h"
 
 static const char *TAG = "Sensors";
 
@@ -117,11 +118,13 @@ static pcnt_chan_config_t PCNT_Channel_cfg = {
 	.edge_gpio_num = ANEMOMETER_GPIO,
 }
 
-// ISR for pulse counter module (anemometer)
-void IRAM_ATTR pcnt_intr_handler(void *arg) {
+static bool PCNT_CallbackLogic(pcnt_unit_handle_t unit, const pcnt_watch_event_data_t *edata, void *user_ctx) {
 
 }
 
+static pcnt_event_callbacks_t cbs = {
+	.on_reach = PCNT_CallbackLogic,
+}
 
 SensorsIDs_t Sensors_Init(SensorsIDs_t Sensors)
 {
@@ -164,9 +167,20 @@ SensorsIDs_t Sensors_Init(SensorsIDs_t Sensors)
 		// Initialize free running timer
 		FreeRunningTimer_Init();
 
+		
 		// Initialize PCNT
 		ESP_ERROR_CHECK(pcnt_new_unit(&PCNT_Unit_cfg, &PCNT_Unit));
 		ESP_ERROR_CHECK(pcnt_new_channel(PCNT_Unit, &PCNT_Channel_cfg, &PCNT_Channel));
+
+		// Configure channel behavior
+		ESP_ERROR_CHECK(pcnt_channel_set_edge_action(pcnt_chan, PCNT_CHANNEL_EDGE_ACTION_INCREASE, PCNT_CHANNEL_LEVEL_ACTION_HOLD));
+		ESP_ERROR_CHECK(pcnt_unit_add_watch_point(PCNT_Unit, 1));	// log start
+		ESP_ERROR_CHECK(pcnt_unit_add_watch_point(PCNT_Unit, 2));	// log time elapsed
+
+		// Start channel up
+		ESP_ERROR_CHECK(pcnt_unit_enable(PCNT_Unit));
+		ESP_ERROR_CHECK(pcnt_unit_stop(PCNT_Unit));
+		ESP_ERROR_CHECK(pcnt_unit_clear_count(PCNT_Unit));
 
 		ReturnStatus |= ANEMOMETER;
 	}
@@ -274,4 +288,9 @@ float Get_Wind_Direction() {
 	Direction = Key * KEY_TO_DEG;
 
 	return Direction;
+}
+
+float Get_Wind_Speed(void) {
+	
+	return 0;
 }
