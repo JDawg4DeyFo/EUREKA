@@ -157,9 +157,3 @@ esp_err_t esp32_SPI_WRITE_READ_test(void){
    return ESP_OK;
    
 }
-
-void main(void){
-   esp32_SPI_bus_init(void);
-   esp32_SPI_WRITE_READ_test(void);
-   esp32_SPI_bus_deinit(void);
-}

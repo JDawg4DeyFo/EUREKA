@@ -26,7 +26,11 @@ message(STATUS "Value of SENSOR_LIB_TEST: ${CONFIG_SENSOR_LIB_TEST}")
 if(CONFIG_SENSOR_LIB_TEST)
 	list(APPEND srcs SensorLibTest.c)
 	list(APPEND requires)
-	list(APPEND priv_requires sensors i2c)
+	list(APPEND priv_requires sensors)
+elseif(CONFIG_LORA_LIB_TEST)
+	list(APPEND srcs LoraLibTest.c)
+	list(APPEND requires)
+	list(APPEND priv_requires LoRa)
 endif()
 
 # Register main as the component
