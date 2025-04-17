@@ -19,12 +19,15 @@
 #include <stddef.h>
 
 #include "../../include/Sensors.h"
-#include "driver/i2c_master.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_log.h"
 
+#include "driver/i2c_master.h"
 #include "esp_adc/adc_oneshot.h"
+#include "driver/gptimer.h"
+
+static const char *TAG = "Sensors";
 
 // standard delay :P
 static void delay_ms(int ms)
@@ -96,23 +99,24 @@ static float WindDirection_LookupTable[NUMBER_OF_KEYS] = {
 };
 static float Max_ADC_Reading = pow(2, ADC_BITWIDTH);
 
+static int Start_Time;
 
-static const char *TAG = "Sensors";
+// ISR for pulse counter module (anemometer)
+void IRAM_ATTR pcnt_intr_handler(void *arg) {
 
-// static void delay_ms(int ms)
-// {
-// 	vTaskDelay((ms) / portTICK_PERIOD_MS);
-// }
+}
+
 
 SensorsIDs_t Sensors_Init(SensorsIDs_t Sensors)
 {
-	static uint8_t I2C_InitStatus = 0;
+	static uint8_t Already_Called = 0;
 	SensorsIDs_t ReturnStatus;
 
 	// First step will be to Initialize the I2C Bus.
 	// Inititialize I2C Bus, if it hasn't been initialized already.
-	if (!I2C_InitStatus)
+	if (!Already_Called)
 	{
+		
 		ESP_ERROR_CHECK(i2c_new_master_bus(&i2c_bus_config, &Bus_Handle));
 	}
 	// If I2C_Init() passes, set I2C_STATUS to 1.
