@@ -22,7 +22,7 @@ static spi_device_handle_t slave_handle;
 
 
 spi_common_dma_t DMA_channel = SPI_DMA_CH_AUTO;
-spi_host_device_t spi_bus1 = SPI_HOST;
+spi_host_device_t spi_bus1 = SPI3_HOST;
 
 const spi_bus_config_t bus_pins = {
    .miso_io_num = GPIO_MISO,
@@ -30,7 +30,7 @@ const spi_bus_config_t bus_pins = {
    .sclk_io_num = GPIO_SCK,
    .max_transfer_sz = 32,
    .quadwp_io_num = -1,
-   .quadwp_hd_num = -1,
+   .quadhd_io_num = -1,
 };
 
 spi_device_interface_config_t dev_config = {
@@ -133,8 +133,8 @@ esp_err_t esp32_SPI_bus_deinit(void){
  */
 esp_err_t esp32_SPI_WRITE_READ_test(void){
 
-   spi_transaction_t transaction_mes{
-      .txdata = {"test"},
+   spi_transaction_t transaction_mes = {
+      .tx_data = {"test"},
       .length = 32,
       .rxlength = 32,
       .user = "htx",
