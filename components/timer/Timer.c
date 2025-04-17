@@ -15,5 +15,5 @@ void FreeRunningTimer_Init()
 {
 	ESP_ERROR_CHECK(gptimer_new_timer(&GPT_cfg, &GPT_Handle));
 	ESP_ERROR_CHECK(gptimer_enable(GPT_Handle));
-	ESP_ERROR_CHECK(gptimer_)
+	ESP_ERROR_CHECK(gptimer_start(GPT_Handle))
 }

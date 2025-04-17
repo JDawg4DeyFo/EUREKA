@@ -31,13 +31,18 @@
 #define SHT3X_REPEATABILITY sht3x_low // both are defined in SH3X.h
 #define SHT3X_PERIOD sht3x_single_shot
 
-// ADC defines
-#define ADC_BITWIDTH 12.0
-#define MAX_ADC_VOLTAGE 3.3
 
-// Windvane defines
+// Weathervane defines
 #define NUMBER_OF_KEYS 16
 #define KEY_TO_DEG 22.5
+#define ANEMOMETER_GPIO	CONFIG_ANEMOMETER_GPIO
+#define WINDVANE_GPIO	CONFIG_WINDVANE_GPIO
+	// ADC defines
+	#define ADC_BITWIDTH 12.0
+	#define MAX_ADC_VOLTAGE 3.3
+	// PCNT defines
+	#define PCNT_HIGH_LIMIT 10;
+	#define PCNT_LOW_LIMIT -10;
 
 /*******************************************************************************
  * PUBLIC DATATYPES

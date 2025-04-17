@@ -106,6 +106,17 @@ extern gpt_timer_handle_t GPT_Handle;
 static int Start_Time = 0;
 static int Duration = 0;
 
+// PCNT handles and config
+static pcnt_unit_handle_t PCNT_Unit = NULL;
+static pcnt_unit_config_t PCNT_Unit_cfg = {
+	.high_limit = PCNT_HIGH_LIMIT,
+	.low_limit = PCNT_LOW_LIMIT,
+};
+static pcnt_channel_handle_t PCNT_Channel = NULL;
+static pcnt_chan_config_t PCNT_Channel_cfg = {
+	.edge_gpio_num = ANEMOMETER_GPIO,
+}
+
 // ISR for pulse counter module (anemometer)
 void IRAM_ATTR pcnt_intr_handler(void *arg) {
 
@@ -150,12 +161,16 @@ SensorsIDs_t Sensors_Init(SensorsIDs_t Sensors)
 
 	if (Sensors && ANEMOMETER)
 	{
-		// Initialization code
-		// 1. Initialize input compare
+		// Initialize free running timer
+		FreeRunningTimer_Init();
+
+		// Initialize PCNT
+		ESP_ERROR_CHECK(pcnt_new_unit(&PCNT_Unit_cfg, &PCNT_Unit));
+		ESP_ERROR_CHECK(pcnt_new_channel(PCNT_Unit, &PCNT_Channel_cfg, &PCNT_Channel));
+
 		ReturnStatus |= ANEMOMETER;
 	}
 
-	// Sensor 2: SHT30
 	if (Sensors && SHT30)
 	{
 		ESP_ERROR_CHECK(i2c_master_bus_add_device(Bus_Handle, &SHT30_Cfg, &SHT30_Handle));
