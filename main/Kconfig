@@ -3,4 +3,7 @@
 config SENSOR_LIB_TEST
 	bool "Build sensor test harness"
 	default n
-	
+
+config LORA_LIB_TEST
+	bool "Build LoRa test harness"
+	default n
