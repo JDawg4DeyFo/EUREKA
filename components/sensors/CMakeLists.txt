@@ -8,9 +8,10 @@ set(srcs Sensors.c SHT3X.c)
 set(requires)
 
 # Declare private dependencies
-set(requires esp_driver_i2c)
+set(priv_requires esp_driver_i2c esp_adc)
 
 # Register component
 idf_component_register(SRCS "${srcs}"
        	INCLUDE_DIRS "../../include"
-	REQUIRES "${requires}")
+	REQUIRES "${requires}"
+	PRIV_REQUIRES "${priv_requires}")

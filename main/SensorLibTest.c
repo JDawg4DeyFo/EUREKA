@@ -27,13 +27,13 @@ void app_main(void)
 	esp_err_t ret;
 	short moisture;
 	float temp;
-	// float humid;
+	float humid;
 	int iteration_count = 0;
 	
 	printf("\nSoil Sensor Test Harness!!!\n");
 	printf("SCL: %d, SDA: %d", CONFIG_I2C_MASTER_SCL, CONFIG_I2C_MASTER_SDA);
 
-	SensorsIDs_t sensors = SOIL | HUMID_TEMP;
+	SensorsIDs_t sensors = SOIL | SHT30;
 	printf("Before sensor init");
 	SensorsIDs_t initialized = Sensors_Init(sensors);
 
@@ -74,9 +74,9 @@ void app_main(void)
 		// 	ESP_LOGW(TAG, "soil sensor not initialized");
 		// }
 
-		// if (initialized & HUMID_TEMP)
+		// if (initialized & SHT30)
 		// {
-		// 	ret = Read_Air_HumidityTemperature(&temp, &humid);
+		// 	ret = Read_STH30_HumidityTemperature(&temp, &humid);
 		// 	if (ret)
 		// 	{
 		// 		ESP_LOGI(TAG, "temperature: %f, humidity: %f", temp, humid);
