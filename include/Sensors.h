@@ -12,6 +12,8 @@
 #include "I2C.h"
 #include <math.h>
 
+#incldue "../../include/Timer.h"
+
 /*******************************************************************************
  * PUBLIC #DEFINES                                                            *
  ******************************************************************************/
@@ -63,6 +65,14 @@ typedef enum {
     NO_RESPONSE = 0x2,
     BUS_COLISION = 0x4,
 } SesnorErrors_t;
+
+typdef struct {
+	int IterationCount;
+	int StartTime;
+	int EndTime;
+	gptimer_handle_t *TimerHandle;
+	pcnt_unit_handle_t *PCNTHandle;
+} PCNT_State_t;
 
 /*******************************************************************************
  * PUBLIC FUNCTIONS                                                           *

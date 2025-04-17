@@ -23,7 +23,6 @@
 #include "esp_log.h"
 
 #include "../../include/Sensors.h"
-#incldue "../../include/Timer.h"
 
 #include "driver/i2c_master.h"
 #include "esp_adc/adc_oneshot.h"
@@ -104,7 +103,6 @@ static float Max_ADC_Reading = pow(2, ADC_BITWIDTH);
 
 // Timer variables
 extern gpt_timer_handle_t GPT_Handle;
-static int Start_Time = 0;
 static int Duration = 0;
 
 // PCNT handles and config
@@ -118,11 +116,31 @@ static pcnt_chan_config_t PCNT_Channel_cfg = {
 	.edge_gpio_num = ANEMOMETER_GPIO,
 }
 
-static bool PCNT_CallbackLogic(pcnt_unit_handle_t unit, const pcnt_watch_event_data_t *edata, void *user_ctx) {
+static PCNT_State_t PCNT_State = {
+	.IterationCount = 0,
+	.StartTime = 0,
+	.EndTime = 0,
+	.TimerHadnle = &GPT_Handle,
+	.PCNTHandle = &PCNT_Unit,
+};
 
+static bool PCNT_CallbackLogic(pcnt_unit_handle_t unit, const pcnt_watch_event_data_t *edata, void *user_ctx) {
+	int EndTime;
+	// Pass context to internal variable
+	pcnt_event_state_t *state = (pcnt_event_state_t *)user_ctx;
+
+	if(Iteration == 0) {
+		state->Iteration++;
+		gptimer_get_raw_count(state->(*TimerHandle), state->Start_Time);
+	} else {
+		state->Iteration = 0;
+		gptimer_get_raw_count(state->(*TimerHandle), state->EndTime);
+		ESP_ERROR_CHECK(pcnt_unit_stop(state->(*PCNTHandle)));
+		ESP_ERROR_CHECK(pcnt_unit_clear_count(state->(*PCNTHandle)));
+	}
 }
 
-static pcnt_event_callbacks_t cbs = {
+static pcnt_event_callbacks_t PCNT_Callbacks = {
 	.on_reach = PCNT_CallbackLogic,
 }
 
@@ -176,6 +194,7 @@ SensorsIDs_t Sensors_Init(SensorsIDs_t Sensors)
 		ESP_ERROR_CHECK(pcnt_channel_set_edge_action(pcnt_chan, PCNT_CHANNEL_EDGE_ACTION_INCREASE, PCNT_CHANNEL_LEVEL_ACTION_HOLD));
 		ESP_ERROR_CHECK(pcnt_unit_add_watch_point(PCNT_Unit, 1));	// log start
 		ESP_ERROR_CHECK(pcnt_unit_add_watch_point(PCNT_Unit, 2));	// log time elapsed
+		ESP_ERROR_CHECK(pcnt_unit_register_event_callbacks((PCNT_Unit, &PCNT_Callbacks, &PCNT_State));
 
 		// Start channel up
 		ESP_ERROR_CHECK(pcnt_unit_enable(PCNT_Unit));
@@ -291,6 +310,21 @@ float Get_Wind_Direction() {
 }
 
 float Get_Wind_Speed(void) {
+	float Speed;
+	// if iteration  = 1, then system is currently measuring speed. in that case
+	// just return previous measurement
+	if (PCNT_State.IterationCount == 1) {
+		// conversion code
+		Speed = Duration - 1;
+		return Speed;
+	}
 	
+	// Otherwise, return previous measurement and start a new measurement\
+	// also update duration
+	Duration = PCNT_State->EndTime - PCNT_State->StartTime;
+	
+	ESP_ERROR_CHECK(pcnt_unit_clear_count(PCNT_Unit));
+	ESP_ERROR_CHECK(pcnt_unit_start(PCNT_Unit));
+
 	return 0;
 }
