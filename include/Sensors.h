@@ -104,4 +104,14 @@ bool Read_SHT30_HumidityTemperature(float *Temp_Reading, float *Humid_Reading);
  * 
  * @return short bearing, in degrees 
  */
-float Get_Wind_Direction();
+float Get_Wind_Direction(void);
+
+/**
+ * @brief Get wind speed from anemometer pulse width
+ * 
+ * @return float wind speed
+ */
+float Get_Wind_Speed(void);
+
+
+// Could add a function to disable sensors, for when we enter sleep mode.
