@@ -118,7 +118,7 @@ esp_err_t esp32_SPI_bus_deinit(void){
       return check_result2;
    } 
 
-   printf("spi__bus_free is a success\n");
+   printf("spi_bus_free is a success\n");
    printf("Successful deinitialization!\n");
 
    return ESP_OK;
