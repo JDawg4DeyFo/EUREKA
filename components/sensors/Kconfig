@@ -1,57 +1,70 @@
 ## Sensor Library KConfig
 # April 13, 2025
 
-menu "Project I2C configuration"
-
-# Pin configurations
-config I2C_MASTER_SCL
-	int "I2C Master SCL GPIO Pin"
-	default 42
+menu "Sensor Configurations"
+config WINDVANE_GPIO
+	int "GPIO pin used by the windvane"
+	default 10
 	help
-		The GPIO pin used by the i2c master serial clock line.
+		windvane is connected to ADC
 
-config I2C_MASTER_SDA
-	int "I2C Master SDA GPIO Pin"
-	default 41
+config ANEMOMETER_GPIO
+	int "GPIO pin used by the anemometer"
+	default 11
 	help
-		The GPIO pin used by the i2c master serial data line.
+		The anemometer is connected to PCNT
 
-config I2C_MASTER_FREQ
-	int "I2C Master Frequency (Hz)"
-	default 100000
-	help
-		Frequency of the I2C line, in Hz.
+	menu "I2C Configurations"
+	# Pin configurations
+	config I2C_MASTER_SCL
+		int "I2C Master SCL GPIO Pin"
+		default 42
+		help
+			The GPIO pin used by the i2c master serial clock line.
 
-config I2C_MASTER_TIMEOUT
-	int "I2C Master timeout (ms)"
-	default 1000
-	help
-		Time in miliseconds before master gives up on response.
+	config I2C_MASTER_SDA
+		int "I2C Master SDA GPIO Pin"
+		default 41
+		help
+			The GPIO pin used by the i2c master serial data line.
 
-# bit definitions
-config I2C_MASTER_WRITE
-	int "I2C Master Write Bit"
-	default 0
-	help
-		The value of the 8th bit in a command frame indicating W operations.
+	config I2C_MASTER_FREQ
+		int "I2C Master Frequency (Hz)"
+		default 100000
+		help
+			Frequency of the I2C line, in Hz.
 
-config I2C_MASTER_READ
-	int "I2C Master Read Bit"
-	default 1
-	help
-		The value of the 8th bit in a command frame indicating R operations.
+	config I2C_MASTER_TIMEOUT
+		int "I2C Master timeout (ms)"
+		default 1000
+		help
+			Time in miliseconds before master gives up on response.
 
-# ack/nack definitions
-config I2C_MASTER_ACK
-	int "I2C Master Acknowledge"
-	default 0
-	help
-		The value of a master acknowledge bit
+	# bit definitions
+	config I2C_MASTER_WRITE
+		int "I2C Master Write Bit"
+		default 0
+		help
+			The value of the 8th bit in a command frame indicating W operations.
 
-config I2C_MASTER_NACK
-	int "I2C Master No_Acknowledge"
-	default 1
-	help
-		The value of a master no_acknowledge bit
+	config I2C_MASTER_READ
+		int "I2C Master Read Bit"
+		default 1
+		help
+			The value of the 8th bit in a command frame indicating R operations.
 
-endmenu	
+	# ack/nack definitions
+	config I2C_MASTER_ACK
+		int "I2C Master Acknowledge"
+		default 0
+		help
+			The value of a master acknowledge bit
+
+	config I2C_MASTER_NACK
+		int "I2C Master No_Acknowledge"
+		default 1
+		help
+			The value of a master no_acknowledge bit
+
+	endmenu
+endmenu

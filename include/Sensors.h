@@ -12,6 +12,8 @@
 #include "I2C.h"
 #include <math.h>
 
+#incldue "../../include/Timer.h"
+
 /*******************************************************************************
  * PUBLIC #DEFINES                                                            *
  ******************************************************************************/
@@ -31,13 +33,18 @@
 #define SHT3X_REPEATABILITY sht3x_low // both are defined in SH3X.h
 #define SHT3X_PERIOD sht3x_single_shot
 
-// ADC defines
-#define ADC_BITWIDTH 12.0
-#define MAX_ADC_VOLTAGE 3.3
 
-// Windvane defines
+// Weathervane defines
 #define NUMBER_OF_KEYS 16
 #define KEY_TO_DEG 22.5
+#define ANEMOMETER_GPIO	CONFIG_ANEMOMETER_GPIO
+#define WINDVANE_GPIO	CONFIG_WINDVANE_GPIO
+	// ADC defines
+	#define ADC_BITWIDTH 12.0
+	#define MAX_ADC_VOLTAGE 3.3
+	// PCNT defines
+	#define PCNT_HIGH_LIMIT 10;
+	#define PCNT_LOW_LIMIT -10;
 
 /*******************************************************************************
  * PUBLIC DATATYPES
@@ -58,6 +65,14 @@ typedef enum {
     NO_RESPONSE = 0x2,
     BUS_COLISION = 0x4,
 } SesnorErrors_t;
+
+typdef struct {
+	int IterationCount;
+	int StartTime;
+	int EndTime;
+	gptimer_handle_t *TimerHandle;
+	pcnt_unit_handle_t *PCNTHandle;
+} PCNT_State_t;
 
 /*******************************************************************************
  * PUBLIC FUNCTIONS                                                           *
@@ -104,4 +119,14 @@ bool Read_SHT30_HumidityTemperature(float *Temp_Reading, float *Humid_Reading);
  * 
  * @return short bearing, in degrees 
  */
-float Get_Wind_Direction();
+float Get_Wind_Direction(void);
+
+/**
+ * @brief Get wind speed from anemometer pulse width
+ * 
+ * @return float wind speed
+ */
+float Get_Wind_Speed(void);
+
+
+// Could add a function to disable sensors, for when we enter sleep mode.
