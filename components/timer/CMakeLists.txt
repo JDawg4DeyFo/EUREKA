@@ -5,7 +5,7 @@
 set(srcs Timer.c)
 
 # Declare public dependencies
-set(requires driver)
+set(requires esp_driver_gptimer)
 
 # Declare private dependencies
 set(priv_requires)

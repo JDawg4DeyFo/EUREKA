@@ -3,7 +3,7 @@
 
 static const char *TAG = "FreeRUnningGPTimer";
 
-gpt_timer_handle_t GPT_Handle;
+gptimer_handle_t GPT_Handle;
 
 static gptimer_config_t GPT_cfg = {
 	.clk_src = GPTIMER_CLK_SRC_DEFAULT,
