@@ -8,11 +8,10 @@
  * @copyright Copyright (c) 2025
  * 
  */
-#include "SHT3X.h"
 #include "I2C.h"
 #include <math.h>
 
-#incldue "../../include/Timer.h"
+#include "../../include/Timer.h"
 
 /*******************************************************************************
  * PUBLIC #DEFINES                                                            *
@@ -66,7 +65,7 @@ typedef enum {
     BUS_COLISION = 0x4,
 } SesnorErrors_t;
 
-typdef struct {
+typedef struct {
 	int IterationCount;
 	int StartTime;
 	int EndTime;

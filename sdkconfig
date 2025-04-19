@@ -2179,7 +2179,13 @@ CONFIG_WIFI_PROV_STA_ALL_CHANNEL_SCAN=y
 CONFIG_LORA_LIB_TEST=y
 
 #
-# Project I2C configuration
+# Sensor Configurations
+#
+CONFIG_WINDVANE_GPIO=10
+CONFIG_ANEMOMETER_GPIO=11
+
+#
+# I2C Configurations
 #
 CONFIG_I2C_MASTER_SCL=42
 CONFIG_I2C_MASTER_SDA=41
@@ -2189,7 +2195,14 @@ CONFIG_I2C_MASTER_WRITE=0
 CONFIG_I2C_MASTER_READ=1
 CONFIG_I2C_MASTER_ACK=0
 CONFIG_I2C_MASTER_NACK=1
-# end of Project I2C configuration
+# end of I2C Configurations
+# end of Sensor Configurations
+
+#
+# Project timer configuration
+#
+CONFIG_GPT_RESOLUTION=1000000
+# end of Project timer configuration
 # end of Component config
 
 # CONFIG_IDF_EXPERIMENTAL_FEATURES is not set
