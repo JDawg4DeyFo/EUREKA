@@ -85,7 +85,7 @@ spi_device_interface_config_t dev_config = {
 
    return ESP_OK;
 }
-//Poop - testing the main branch commit warning
+ 
 
  /**
  * @brief  free the spi bus from the sx1262 but first remove the device to do so
