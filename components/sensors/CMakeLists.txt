@@ -5,7 +5,7 @@
 set(srcs Sensors.c SHT3X.c)
 
 # Declare public dependencies
-set(requires timer)
+set(requires timer esp_driver_pcnt)
 
 # Declare private dependencies
 set(priv_requires esp_driver_i2c esp_adc)
