@@ -102,11 +102,6 @@ static float Max_ADC_Reading = pow(2, ADC_BITWIDTH);
 
 static int Start_Time;
 
-// ISR for pulse counter module (anemometer)
-void IRAM_ATTR pcnt_intr_handler(void *arg) {
-
-}
-
 
 SensorsIDs_t Sensors_Init(SensorsIDs_t Sensors)
 {
