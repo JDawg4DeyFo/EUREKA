@@ -74,6 +74,20 @@ spi_device_interface_config_t dev_config = {
    }
    printf("spi_bus_add_device is a success\n");
 
+   DRIVER_SX1262_LINK_INIT(&gs_handle, sx1262_handle_t);
+   DRIVER_SX1262_LINK_SPI_INIT(&gs_handle, sx1262_interface_spi_init);
+   DRIVER_SX1262_LINK_SPI_DEINIT(&gs_handle, sx1262_interface_spi_deinit);
+   DRIVER_SX1262_LINK_SPI_WRITE_READ(&gs_handle, sx1262_interface_spi_write_read);
+   DRIVER_SX1262_LINK_RESET_GPIO_INIT(&gs_handle, sx1262_interface_reset_gpio_init);
+   DRIVER_SX1262_LINK_RESET_GPIO_DEINIT(&gs_handle, sx1262_interface_reset_gpio_deinit);
+   DRIVER_SX1262_LINK_RESET_GPIO_WRITE(&gs_handle, sx1262_interface_reset_gpio_write);
+   DRIVER_SX1262_LINK_BUSY_GPIO_INIT(&gs_handle, sx1262_interface_busy_gpio_init);
+   DRIVER_SX1262_LINK_BUSY_GPIO_DEINIT(&gs_handle, sx1262_interface_busy_gpio_deinit);
+   DRIVER_SX1262_LINK_BUSY_GPIO_READ(&gs_handle, sx1262_interface_busy_gpio_read);
+   DRIVER_SX1262_LINK_DELAY_MS(&gs_handle, sx1262_interface_delay_ms);
+   DRIVER_SX1262_LINK_DEBUG_PRINT(&gs_handle, sx1262_interface_debug_print);
+   DRIVER_SX1262_LINK_RECEIVE_CALLBACK(&gs_handle, callback);
+
    uint8_t check_LoRa_init = sx1262_init(&LoRa_handle);
 
    if (check_LoRa_init != 0){
