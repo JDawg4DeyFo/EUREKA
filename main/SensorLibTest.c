@@ -12,7 +12,7 @@
 #include "../include/Sensors.h"
 
 #include "esp_log.h"
-static const char *TAG = "Sesnor-library test";
+static const char *TAG = "Sensor-library test";
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -24,76 +24,65 @@ static void delay_ms(int ms)
 
 void app_main(void)
 {
-	esp_err_t ret;
-	short moisture;
+	short soil_moisture;
+	float soil_temp;
 	float temp;
 	float humid;
+	float WindDirection;
+	float WindSpeed;
 	int iteration_count = 0;
 	
 	printf("\nSoil Sensor Test Harness!!!\n");
 	printf("SCL: %d, SDA: %d", CONFIG_I2C_MASTER_SCL, CONFIG_I2C_MASTER_SDA);
 
-	SensorsIDs_t sensors = SOIL | SHT30;
-	printf("Before sensor init");
-	SensorsIDs_t initialized = Sensors_Init(sensors);
+	SensorsIDs_t sensors = SOIL | SHT30 | WINDVANE | ANEMOMETER;
+	Sensors_Init(sensors);
 
+	printf("Sensor Inititalization passed!\n");
 
 	
 
 	while (1)
 	{
 		iteration_count++;
-		ret = Read_SoilMoisture(&moisture);
+		ESP_LOGI(TAG, "\n Testing Sensor readings. Iteration number %d\n", iteration_count);
 
-		// ORIGINAL TEST HARNESS:
-		// iteration_count++;
-		// if (initialized & SOIL)
-		// {
-		// 	ret = Read_SoilMoisture(&moisture);
-		// 	if (ret == ESP_OK)
-		// 	{
-		// 		ESP_LOGI(TAG, "Soil Moisture: %d", moisture);
-		// 	}
-		// 	else
-		// 	{
-		// 		ESP_LOGW(TAG, "Failed to read soil moisture");
-		// 	}
+		ESP_LOGI(TAG, "Testing soil moisture Reading.\n");
+		if(Read_SoilMoisture(&soil_moisture) != ESP_OK) {
+			ESP_LOGW(TAG, "\tSoil Moisture Reading fail.\n");
+		}
+		else {
+			ESP_LOGI(TAG, "\tSoil Moisture Reading: %d", soil_moisture);
+		}
 
-		// 	ret = Read_SoilTemperature(&temp);
-		// 	if (ret == ESP_OK)
-		// 	{
-		// 		ESP_LOGI(TAG, "Soil Temperature: %.2f", temp);
-		// 	}
-		// 	else
-		// 	{
-		// 		ESP_LOGW(TAG, "Failed to read soil temperature");
-		// 	}
-		// }
-		// else
-		// {
-		// 	ESP_LOGW(TAG, "soil sensor not initialized");
-		// }
+		ESP_LOGI(TAG, "Testing soil temperature Reading.\n");
+		if(Read_SoilTemperature(&soil_temp) != ESP_OK) {
+			ESP_LOGW(TAG, "\tSoil Temperature Reading fail.\n");
+		}
+		else {
+			ESP_LOGI(TAG, "\tSoil Temperature Reading: %f\n", soil_temp);
+		}
+		
+		ESP_LOGI(TAG, "Testing SHT30 humidity temperature reading.\n");
+		if(Read_SHT30_HumidityTemperature(&temp, &humid) != true) {
+			ESP_LOGW(TAG, "\tSHT30 reading fail.\n");
+		}
+		else {
+			ESP_LOGI(TAG, "\tSuccess! temperature: %f humidity: %f\n", temp, humid);
+		}
 
-		// if (initialized & SHT30)
-		// {
-		// 	ret = Read_STH30_HumidityTemperature(&temp, &humid);
-		// 	if (ret)
-		// 	{
-		// 		ESP_LOGI(TAG, "temperature: %f, humidity: %f", temp, humid);
-		// 	}
-		// 	else
-		// 	{
-		// 		ESP_LOGW(TAG, "Failed to read humidity and temperature");
-		// 	}
-		// }
-		// else
-		// {
-		// 	ESP_LOGW(TAG, "Humidity temp sensor not initialized");
-		// }
+		ESP_LOGI(TAG, "Testing wind direction reading.\n");
+		ESP_LOGI(TAG, "Note: no fail condition for this test.\n");
+		WindDirection = Get_Wind_Direction();
+		ESP_LOGI(TAG, "\t Wind direction: %f\n", WindDirection);
+
+		ESP_LOGI(TAG, "Testing wind speed reading.\n");
+		ESP_LOGI(TAG, "Note: no fail condition for this test.\n");
+		WindSpeed = Get_Wind_Speed();
+		ESP_LOGI(TAG, "\t Wind speed: %f\n", WindSpeed);
 
 		delay_ms(500);
-		ESP_LOGI(TAG, "While loop iteration #: %d\n", iteration_count);
-		ESP_LOGI(TAG, "Moisture reading: %d", moisture);
+
 		fflush(stdout);
 
 	}
