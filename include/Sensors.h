@@ -43,8 +43,8 @@
 	#define ADC_BITWIDTH 12.0
 	#define MAX_ADC_VOLTAGE 3.3
 	// PCNT defines
-	#define PCNT_HIGH_LIMIT 10;
-	#define PCNT_LOW_LIMIT -10;
+	#define PCNT_HIGH_LIMIT 10
+	#define PCNT_LOW_LIMIT -10
 
 /*******************************************************************************
  * PUBLIC DATATYPES
@@ -68,8 +68,8 @@ typedef enum {
 
 typedef struct {
 	int IterationCount;
-	int StartTime;
-	int EndTime;
+	uint64_t StartTime;
+	uint64_t EndTime;
 	gptimer_handle_t *TimerHandle;
 	pcnt_unit_handle_t *PCNTHandle;
 } PCNT_State_t;
