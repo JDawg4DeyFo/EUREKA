@@ -63,15 +63,15 @@ spi_transaction_t transaction_mes = {
  * @note   none
  */
 
- esp_err_t esp32_SPI_bus_init(void){
+ uint8_t esp32_SPI_bus_init(void){
 
    spi_common_dma_t DMA_channel = SPI_DMA_CH_AUTO;
 
    esp_err_t check_result = spi_bus_initialize(spi_bus1, &bus_pins, DMA_channel);
 
    if (check_result  != ESP_OK){
-      printf("spi_bus_initalize failed\n");
-      return check_result;
+      printf("spi_bus_initalize failed due to: %d\n", check_result);
+      return 1;
    } 
 
    printf("spi_bus_initalize is a success\n");
@@ -79,12 +79,12 @@ spi_transaction_t transaction_mes = {
    check_result = spi_bus_add_device(spi_bus1, &dev_config, &slave_handle);
 
    if (check_result != ESP_OK){
-      printf("spi_bus_add_device failed\n");
-      return check_result;
+      printf("spi_bus_add_device failed due to: %d\n", check_result);
+      return 1;
    }
    printf("spi_bus_add_device is a success\n");
 
-   return ESP_OK;
+   return 0;
 }
  
 
@@ -95,34 +95,35 @@ spi_transaction_t transaction_mes = {
  *         - 1 spi deinit failed
  * @note   none
  */
-esp_err_t esp32_SPI_bus_deinit(void){
+uint8_t esp32_SPI_bus_deinit(void){
 
    uint8_t check_LoRa_deinit = sx1262_deinit(&LoRa_handle);
 
    if (check_LoRa_deinit != 1){
       printf("LoRa chip failed to deinitialize, reason: %u\n", sx1262_deinit(&LoRa_handle));
-      return ESP_ERR_NOT_FOUND;
+      return 1;
    }
    printf("LoRa chip successfully deinitaliazed\n");
 
    esp_err_t check_result2 = spi_bus_remove_device(slave_handle);
 
    if (check_result2 != ESP_OK){
-      return check_result2;
+      printf("spi_bus_add_device failed due to: %d\n", check_result2);
+      return 1;
    } 
 
    printf("spi_bus_remove_device is a success\n");
 
    check_result2 = spi_bus_free(spi_bus1);
    if (check_result2 != ESP_OK){
-      printf("spi_bus_add_device failed\n");
-      return check_result2;
+      printf("spi_bus_add_device failed due to: %d\n", check_result2);
+      return 1;
    } 
 
    printf("spi_bus_free is a success\n");
    printf("Successful deinitialization!\n");
 
-   return ESP_OK;
+   return 0;
 }
 
  /**
@@ -132,12 +133,12 @@ esp_err_t esp32_SPI_bus_deinit(void){
  *         - 1 spi read and write asynch failed
  * @note   none
  */
-esp_err_t esp32_SPI_WRITE_READ_test(void){
+uint8_t esp32_SPI_WRITE_READ_test(void){
 
    esp_err_t check_result3 = spi_device_transmit(slave_handle, &transaction_mes);
    if (check_result3 != ESP_OK){
-      printf("spi_device_transmit failed\n");
-      return check_result3;
+      printf("spi_device_transmit failed due to: %d\n", check_result3);
+      return 1;
    } 
 
    printf("spi_device_transmit is a success\n");
@@ -148,7 +149,7 @@ esp_err_t esp32_SPI_WRITE_READ_test(void){
    }
    printf("\n");
 
-   return ESP_OK;
+   return 0;
    
 }
 
@@ -162,9 +163,9 @@ esp_err_t esp32_SPI_WRITE_READ_test(void){
 
 uint8_t sx1262_device_init(void){
    DRIVER_SX1262_LINK_INIT(&LoRa_handle, sx1262_handle_t);
-   DRIVER_SX1262_LINK_SPI_INIT(&LoRa_handle, esp32_SPI_bus_init());
-   DRIVER_SX1262_LINK_SPI_DEINIT(&LoRa_handle, esp32_SPI_bus_deinit());
-   DRIVER_SX1262_LINK_SPI_WRITE_READ(&LoRa_handle, esp32_SPI_WRITE_READ_test());
+   DRIVER_SX1262_LINK_SPI_INIT(&LoRa_handle, esp32_SPI_bus_init);
+   DRIVER_SX1262_LINK_SPI_DEINIT(&LoRa_handle, esp32_SPI_bus_deinit);
+   DRIVER_SX1262_LINK_SPI_WRITE_READ(&LoRa_handle, esp32_SPI_WRITE_READ_test);
    DRIVER_SX1262_LINK_RESET_GPIO_INIT(&LoRa_handle, );
    DRIVER_SX1262_LINK_RESET_GPIO_DEINIT(&LoRa_handle, );
    DRIVER_SX1262_LINK_RESET_GPIO_WRITE(&LoRa_handle, );
