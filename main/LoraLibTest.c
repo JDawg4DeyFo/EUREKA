@@ -13,7 +13,9 @@
 
 void app_main(void){
    esp32_SPI_bus_init();
+   sx1262_device_init();
    esp32_SPI_WRITE_READ_test();
+   sx1262_device_deinit();
    esp32_SPI_bus_deinit();
 
    while(1);

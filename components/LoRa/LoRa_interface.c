@@ -16,6 +16,8 @@
 #define GPIO_MISO 3
 #define GPIO_SCK 5
 #define GPIO_CS 7
+#define GPIO_BUSY 34
+#define GPIO_RESET 8
 
 static sx1262_handle_t LoRa_handle;
 static spi_device_handle_t slave_handle; 
@@ -43,6 +45,14 @@ spi_device_interface_config_t dev_config = {
    .spics_io_num = GPIO_CS,
    .queue_size = 1,
    .cs_ena_posttrans = 1,
+};
+
+spi_transaction_t transaction_mes = {
+   .tx_data = {"test"},
+   .length = 32,
+   .rxlength = 32,
+   .user = "htx",
+   .flags = SPI_TRANS_USE_TXDATA | SPI_TRANS_USE_RXDATA,
 };
 
   /**
@@ -73,29 +83,6 @@ spi_device_interface_config_t dev_config = {
       return check_result;
    }
    printf("spi_bus_add_device is a success\n");
-
-   DRIVER_SX1262_LINK_INIT(&gs_handle, sx1262_handle_t);
-   DRIVER_SX1262_LINK_SPI_INIT(&gs_handle, sx1262_interface_spi_init);
-   DRIVER_SX1262_LINK_SPI_DEINIT(&gs_handle, sx1262_interface_spi_deinit);
-   DRIVER_SX1262_LINK_SPI_WRITE_READ(&gs_handle, sx1262_interface_spi_write_read);
-   DRIVER_SX1262_LINK_RESET_GPIO_INIT(&gs_handle, sx1262_interface_reset_gpio_init);
-   DRIVER_SX1262_LINK_RESET_GPIO_DEINIT(&gs_handle, sx1262_interface_reset_gpio_deinit);
-   DRIVER_SX1262_LINK_RESET_GPIO_WRITE(&gs_handle, sx1262_interface_reset_gpio_write);
-   DRIVER_SX1262_LINK_BUSY_GPIO_INIT(&gs_handle, sx1262_interface_busy_gpio_init);
-   DRIVER_SX1262_LINK_BUSY_GPIO_DEINIT(&gs_handle, sx1262_interface_busy_gpio_deinit);
-   DRIVER_SX1262_LINK_BUSY_GPIO_READ(&gs_handle, sx1262_interface_busy_gpio_read);
-   DRIVER_SX1262_LINK_DELAY_MS(&gs_handle, sx1262_interface_delay_ms);
-   DRIVER_SX1262_LINK_DEBUG_PRINT(&gs_handle, sx1262_interface_debug_print);
-   DRIVER_SX1262_LINK_RECEIVE_CALLBACK(&gs_handle, callback);
-   
-   uint8_t check_LoRa_init = sx1262_init(&LoRa_handle);
-
-   if (check_LoRa_init != 0){
-      printf("LoRa chip failed to initialize, reason: %d\n", sx1262_init(&LoRa_handle));
-      return ESP_ERR_NOT_FOUND;
-   } 
-   printf("LoRa chip successfully initaliazed\n");
-   printf("Successful initialization\n");
 
    return ESP_OK;
 }
@@ -147,14 +134,6 @@ esp_err_t esp32_SPI_bus_deinit(void){
  */
 esp_err_t esp32_SPI_WRITE_READ_test(void){
 
-   spi_transaction_t transaction_mes = {
-      .tx_data = {"test"},
-      .length = 32,
-      .rxlength = 32,
-      .user = "htx",
-      .flags = SPI_TRANS_USE_TXDATA | SPI_TRANS_USE_RXDATA,
-   };
-
    esp_err_t check_result3 = spi_device_transmit(slave_handle, &transaction_mes);
    if (check_result3 != ESP_OK){
       printf("spi_device_transmit failed\n");
@@ -163,6 +142,7 @@ esp_err_t esp32_SPI_WRITE_READ_test(void){
 
    printf("spi_device_transmit is a success\n");
    printf("Successful single transaction, rx_data = ");
+
    for (int i = 0; i < sizeof(transaction_mes.rx_data); i++){
       printf("%c", transaction_mes.rx_data[i]);
    }
@@ -170,4 +150,57 @@ esp_err_t esp32_SPI_WRITE_READ_test(void){
 
    return ESP_OK;
    
+}
+
+ /**
+ * @brief  Link the SPI bus the sx1262 and the ESP32 with respect to the ESP32 
+ * @return status code
+ *         - 1 success
+ *         - 0 LoRa chip failed to initialize
+ * @note   none
+ */
+
+uint8_t sx1262_device_init(void){
+   DRIVER_SX1262_LINK_INIT(&LoRa_handle, sx1262_handle_t);
+   DRIVER_SX1262_LINK_SPI_INIT(&LoRa_handle, esp32_SPI_bus_init());
+   DRIVER_SX1262_LINK_SPI_DEINIT(&LoRa_handle, esp32_SPI_bus_deinit());
+   DRIVER_SX1262_LINK_SPI_WRITE_READ(&LoRa_handle, esp32_SPI_WRITE_READ_test());
+   DRIVER_SX1262_LINK_RESET_GPIO_INIT(&LoRa_handle, );
+   DRIVER_SX1262_LINK_RESET_GPIO_DEINIT(&LoRa_handle, );
+   DRIVER_SX1262_LINK_RESET_GPIO_WRITE(&LoRa_handle, );
+   DRIVER_SX1262_LINK_BUSY_GPIO_INIT(&LoRa_handle, );
+   DRIVER_SX1262_LINK_BUSY_GPIO_DEINIT(&LoRa_handle, );
+   DRIVER_SX1262_LINK_BUSY_GPIO_READ(&LoRa_handle, );
+   DRIVER_SX1262_LINK_DELAY_MS(&LoRa_handle, );
+   DRIVER_SX1262_LINK_DEBUG_PRINT(&LoRa_handle, );
+   DRIVER_SX1262_LINK_RECEIVE_CALLBACK(&LoRa_handle, );
+   
+   uint8_t check_LoRa_init = sx1262_init(&LoRa_handle);
+
+   if (check_LoRa_init != 0){
+      printf("LoRa chip failed to initialize, reason: %d\n", sx1262_init(&LoRa_handle));
+      return 1;
+   } 
+
+   printf("LoRa chip successfully initaliazed\n");
+   return 0;
+
+}
+
+ /**
+ * @brief  Deinitalize the LoRa
+ * @return status code
+ *         - 1 success
+ *         - 0 LoRa chip failed to deinitialize
+ * @note   none
+ */
+
+uint8_t sx1262_device_deinit(void){
+   if (sx1262_deinit(&LoRa_handle) != 0) {
+      printf("LoRa chip failed to deinitialize");
+      return 1;
+   }
+
+   printf("LoRa chip successfully deinitaliazed\n");
+   return 0;
 }
