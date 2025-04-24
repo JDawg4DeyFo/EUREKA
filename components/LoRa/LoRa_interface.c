@@ -52,15 +52,6 @@ spi_device_interface_config_t dev_config = {
    .cs_ena_posttrans = 1,
 };
 
-//Transaction example to be sent via SPI
-spi_transaction_t transaction_mes = {
-   .tx_data = {"test"},
-   .length = 32,
-   .rxlength = 32,
-   .user = "htx",
-   .flags = SPI_TRANS_USE_TXDATA | SPI_TRANS_USE_RXDATA,
-};
-
 //Definitions of the GPIO Reset and Busy Pins on the ESP32-S3
 
 gpio_config_t Reset_GPIO = {
@@ -147,7 +138,20 @@ uint8_t esp32_SPI_bus_deinit(void){
  *         - 1 spi read and write asynch failed
  * @note   none
  */
-uint8_t esp32_SPI_WRITE_READ_test(void){
+
+static const uint8_t[4] = "test";
+
+uint8_t esp32_SPI_WRITE_READ_test(uint8_t *in_buf, uint32_t in_len, uint8_t *out_buf, uint32_t out_len){
+   //Transaction example to be sent via SPI
+   spi_transaction_t transaction_mes = {
+      .tx_buffer = in_buf,
+      .rx_buffer = out_buf,
+      .tx_data = {"test"},
+      .length = in_len,
+      .rxlength = out_len,
+      .user = "htx",
+      .flags = SPI_TRANS_USE_TXDATA | SPI_TRANS_USE_RXDATA,
+   };
 
    esp_err_t check_result3 = spi_device_transmit(slave_handle, &transaction_mes);
    if (check_result3 != ESP_OK){
@@ -285,7 +289,18 @@ void sx1262_interface_delay_ms(uint32_t ms);
  * @param[in] fmt format data
  * @note      none
  */
-void sx1262_interface_debug_print(const char *const fmt, ...);
+void sx1262_interface_debug_print(const char *const fmt, ...){
+   va_list args;
+   va_start(args, fmt);
+
+   char buffer[256];
+   vsnprintf(buffer, sizeof(buffer), fmt, args);
+   buffer[sizeof(buffer) - 1] = '\0';  // Ensure null-termination
+
+   ESP_LOGI(TAG, "%s", buffer);
+
+   va_end(args);
+}
 
 /**
  * @brief     interface receive callback
@@ -294,7 +309,78 @@ void sx1262_interface_debug_print(const char *const fmt, ...);
  * @param[in] len buffer length
  * @note      none
  */
-void sx1262_interface_receive_callback(uint16_t type, uint8_t *buf, uint16_t len);
+void sx1262_interface_receive_callback(uint16_t type, uint8_t *buf, uint16_t len)
+{
+   switch (type)
+   {
+       case SX1262_IRQ_TX_DONE :
+       {
+           sx1262_interface_debug_print("sx1262: irq tx done.\n");
+           
+           break;
+       }
+       case SX1262_IRQ_RX_DONE :
+       {
+           sx1262_interface_debug_print("sx1262: irq rx done.\n");
+           
+           break;
+       }
+       case SX1262_IRQ_PREAMBLE_DETECTED :
+       {
+           sx1262_interface_debug_print("sx1262: irq preamble detected.\n");
+           
+           break;
+       }
+       case SX1262_IRQ_SYNC_WORD_VALID :
+       {
+           sx1262_interface_debug_print("sx1262: irq valid sync word detected.\n");
+           
+           break;
+       }
+       case SX1262_IRQ_HEADER_VALID :
+       {
+           sx1262_interface_debug_print("sx1262: irq valid header.\n");
+           
+           break;
+       }
+       case SX1262_IRQ_HEADER_ERR :
+       {
+           sx1262_interface_debug_print("sx1262: irq header error.\n");
+           
+           break;
+       }
+       case SX1262_IRQ_CRC_ERR :
+       {
+           sx1262_interface_debug_print("sx1262: irq crc error.\n");
+           
+           break;
+       }
+       case SX1262_IRQ_CAD_DONE :
+       {
+           sx1262_interface_debug_print("sx1262: irq cad done.\n");
+           
+           break;
+       }
+       case SX1262_IRQ_CAD_DETECTED :
+       {
+           sx1262_interface_debug_print("sx1262: irq cad detected.\n");
+           
+           break;
+       }
+       case SX1262_IRQ_TIMEOUT :
+       {
+           sx1262_interface_debug_print("sx1262: irq timeout.\n");
+           
+           break;
+       }
+       default :
+       {
+           sx1262_interface_debug_print("sx1262: unknown code.\n");
+           
+           break;
+       }
+   }
+}
 
 
  /**
@@ -317,13 +403,13 @@ uint8_t sx1262_device_init(void){
    DRIVER_SX1262_LINK_BUSY_GPIO_DEINIT(&LoRa_handle, sx1262_interface_busy_gpio_deinit);
    DRIVER_SX1262_LINK_BUSY_GPIO_READ(&LoRa_handle, );
    DRIVER_SX1262_LINK_DELAY_MS(&LoRa_handle, );
-   DRIVER_SX1262_LINK_DEBUG_PRINT(&LoRa_handle, );
-   DRIVER_SX1262_LINK_RECEIVE_CALLBACK(&LoRa_handle, );
+   DRIVER_SX1262_LINK_DEBUG_PRINT(&LoRa_handle, sx1262_interface_debug_print);
+   DRIVER_SX1262_LINK_RECEIVE_CALLBACK(&LoRa_handle, sx1262_interface_receive_callback);
    
    uint8_t check_LoRa_init = sx1262_init(&LoRa_handle);
 
    if (check_LoRa_init != 0){
-      printf("LoRa chip failed to initialize, reason: %d\n", sx1262_init(&LoRa_handle));
+      printf("LoRa chip failed to initialize, reason: %d\n", check_LoRa_init);
       return 1;
    } 
 
