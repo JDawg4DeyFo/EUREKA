@@ -71,7 +71,7 @@ static i2c_master_dev_handle_t SHT30_Handle;
 static adc_oneshot_unit_handle_t ADC_Handle;
 
 static adc_oneshot_unit_init_cfg_t ADC_Init_cfg = {
-	.unit_id = ADC_UNIT_1,
+	.unit_id = ADC_UNIT_2,
 	.ulp_mode = ADC_ULP_MODE_DISABLE,
 };
 
