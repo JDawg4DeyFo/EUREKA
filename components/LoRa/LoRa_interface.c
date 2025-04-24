@@ -311,10 +311,10 @@ uint8_t sx1262_device_init(void){
    DRIVER_SX1262_LINK_SPI_DEINIT(&LoRa_handle, esp32_SPI_bus_deinit);
    DRIVER_SX1262_LINK_SPI_WRITE_READ(&LoRa_handle, esp32_SPI_WRITE_READ_test);
    DRIVER_SX1262_LINK_RESET_GPIO_INIT(&LoRa_handle, sx1262_interface_reset_gpio_init);
-   DRIVER_SX1262_LINK_RESET_GPIO_DEINIT(&LoRa_handle, );
+   DRIVER_SX1262_LINK_RESET_GPIO_DEINIT(&LoRa_handle, sx1262_interface_reset_gpio_deinit);
    DRIVER_SX1262_LINK_RESET_GPIO_WRITE(&LoRa_handle, );
-   DRIVER_SX1262_LINK_BUSY_GPIO_INIT(&LoRa_handle, );
-   DRIVER_SX1262_LINK_BUSY_GPIO_DEINIT(&LoRa_handle, );
+   DRIVER_SX1262_LINK_BUSY_GPIO_INIT(&LoRa_handle, sx1262_interface_busy_gpio_init);
+   DRIVER_SX1262_LINK_BUSY_GPIO_DEINIT(&LoRa_handle, sx1262_interface_busy_gpio_deinit);
    DRIVER_SX1262_LINK_BUSY_GPIO_READ(&LoRa_handle, );
    DRIVER_SX1262_LINK_DELAY_MS(&LoRa_handle, );
    DRIVER_SX1262_LINK_DEBUG_PRINT(&LoRa_handle, );
