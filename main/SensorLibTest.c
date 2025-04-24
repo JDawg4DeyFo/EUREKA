@@ -63,13 +63,13 @@ void app_main(void)
 			ESP_LOGI(TAG, "\tSoil Temperature Reading: %f\n", soil_temp);
 		}
 		
-		ESP_LOGI(TAG, "Testing SHT30 humidity temperature reading.\n");
-		if(Read_SHT30_HumidityTemperature(&temp, &humid) != true) {
-			ESP_LOGW(TAG, "\tSHT30 reading fail.\n");
-		}
-		else {
-			ESP_LOGI(TAG, "\tSuccess! temperature: %f humidity: %f\n", temp, humid);
-		}
+		// ESP_LOGI(TAG, "Testing SHT30 humidity temperature reading.\n");
+		// if(Read_SHT30_HumidityTemperature(&temp, &humid) != true) {
+		// 	ESP_LOGW(TAG, "\tSHT30 reading fail.\n");
+		// }
+		// else {
+		// 	ESP_LOGI(TAG, "\tSuccess! temperature: %f humidity: %f\n", temp, humid);
+		// }
 
 		ESP_LOGI(TAG, "Testing wind direction reading.\n");
 		ESP_LOGI(TAG, "Note: no fail condition for this test.\n");

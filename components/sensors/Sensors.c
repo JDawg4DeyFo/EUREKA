@@ -248,8 +248,8 @@ esp_err_t Read_SoilTemperature(float *Reading)
 	size_t Read_Buffer_Size = SOIL_TEMP_DATA_LENGTH;
 	uint8_t Read_Buffer[SOIL_TEMP_DATA_LENGTH];
 	
-	Write_Buffer[0] = STEMMA_MOISTURE_BASE_REG;
-	Write_Buffer[1] = STEMMA_MOISTURE_FUNC_REG;
+	Write_Buffer[0] = STEMMA_TEMP_BASE_REG;
+	Write_Buffer[1] = STEMMA_TEMP_FUNC_REG;
 
 	ESP_LOGI(TAG, "Made it to line 156");
 
