@@ -1,4 +1,4 @@
-## SENSORS CMakeLists file
+## LoRa CMakeLists file
 ## April 7th, 2025
 
 # Define source files
