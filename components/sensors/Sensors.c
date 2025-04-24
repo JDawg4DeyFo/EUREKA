@@ -19,6 +19,7 @@
 #include <stddef.h>
 
 #include "../../include/Sensors.h"
+#include "../../include/SHT3X.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_log.h"
@@ -102,11 +103,6 @@ static float Max_ADC_Reading = pow(2, ADC_BITWIDTH);
 
 static int Start_Time;
 
-// ISR for pulse counter module (anemometer)
-void IRAM_ATTR pcnt_intr_handler(void *arg) {
-
-}
-
 
 SensorsIDs_t Sensors_Init(SensorsIDs_t Sensors)
 {
@@ -120,8 +116,8 @@ SensorsIDs_t Sensors_Init(SensorsIDs_t Sensors)
 		
 		ESP_ERROR_CHECK(i2c_new_master_bus(&i2c_bus_config, &Bus_Handle));
 	}
-	// If I2C_Init() passes, set I2C_STATUS to 1.
-	I2C_InitStatus = 1;
+	// If I2C_Init() passes, set Already_Called to 1.
+	Already_Called = 1;
 
 	// Initialize sensors:
 	// Each device must be added to master bus, and some devices may require

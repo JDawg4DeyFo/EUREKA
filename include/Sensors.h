@@ -12,6 +12,7 @@
 #include <math.h>
 
 #include "../../include/Timer.h"
+#include "driver/pulse_cnt.h"
 
 /*******************************************************************************
  * PUBLIC #DEFINES                                                            *
