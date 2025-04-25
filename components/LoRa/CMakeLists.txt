@@ -5,7 +5,7 @@
 set(srcs LoRa_driver.c LoRa_interface.c)
 
 # Declare public dependencies
-set(requires esp_driver_spi)
+set(requires esp_driver_spi esp_driver_gpio)
 
 # Declare private dependencies
 set(priv_requires)

@@ -11,6 +11,9 @@
  *  
  */
 #include "../../include/LoRa_interface.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "esp_log.h"
 
 //Pin numbers on the ESP32 
 #define GPIO_MOSI 6
@@ -138,19 +141,16 @@ uint8_t esp32_SPI_bus_deinit(void){
  *         - 1 spi read and write asynch failed
  * @note   none
  */
-
-static const uint8_t[4] = "test";
+static const char *TAG_SPI = "SPI_WRITE_READ_TEST";
 
 uint8_t esp32_SPI_WRITE_READ_test(uint8_t *in_buf, uint32_t in_len, uint8_t *out_buf, uint32_t out_len){
    //Transaction example to be sent via SPI
    spi_transaction_t transaction_mes = {
       .tx_buffer = in_buf,
       .rx_buffer = out_buf,
-      .tx_data = {"test"},
       .length = in_len,
       .rxlength = out_len,
       .user = "htx",
-      .flags = SPI_TRANS_USE_TXDATA | SPI_TRANS_USE_RXDATA,
    };
 
    esp_err_t check_result3 = spi_device_transmit(slave_handle, &transaction_mes);
@@ -163,7 +163,7 @@ uint8_t esp32_SPI_WRITE_READ_test(uint8_t *in_buf, uint32_t in_len, uint8_t *out
    printf("Successful single transaction, rx_data = ");
 
    for (int i = 0; i < sizeof(transaction_mes.rx_data); i++){
-      printf("%c", transaction_mes.rx_data[i]);
+      ESP_LOGI(TAG_SPI, "%c", transaction_mes.rx_data[i]);
    }
    printf("\n");
 
@@ -200,7 +200,7 @@ uint8_t sx1262_interface_reset_gpio_init(void){
 uint8_t sx1262_interface_reset_gpio_deinit(void){
 
    gpio_mode_t gpio_reset_disable = GPIO_MODE_DISABLE;
-   esp_err_t gpio_reset_func_test = gpio_reset_device(GPIO_RESET_PIN_NUM);
+   esp_err_t gpio_reset_func_test = gpio_reset_pin(GPIO_RESET_PIN_NUM);
    esp_err_t gpio_reset_disable_func = gpio_set_direction(GPIO_RESET_PIN_NUM, gpio_reset_disable);
 
    if(((gpio_reset_func_test) || (gpio_reset_disable_func)) != ESP_OK){
@@ -223,7 +223,9 @@ uint8_t sx1262_interface_reset_gpio_deinit(void){
  *            - 1 write failed
  * @note      none
  */
-uint8_t sx1262_interface_reset_gpio_write(uint8_t data);
+uint8_t sx1262_interface_reset_gpio_write(uint8_t data){
+   return 0;
+}
 
 /**
  * @brief  interface busy gpio init
@@ -233,7 +235,7 @@ uint8_t sx1262_interface_reset_gpio_write(uint8_t data);
  * @note   none
  */
 uint8_t sx1262_interface_busy_gpio_init(void){
-   esp_err_t check_result6 = gpio_config(Busy_GPIO);
+   esp_err_t check_result6 = gpio_config(&Busy_GPIO);
    if(check_result6 != ESP_OK){
       printf("GPIO Busy Pin has failed to initialize due to: %d\n", check_result6);
       return 1;
@@ -252,7 +254,7 @@ uint8_t sx1262_interface_busy_gpio_init(void){
  */
 uint8_t sx1262_interface_busy_gpio_deinit(void){
    gpio_mode_t gpio_busy_disable = GPIO_MODE_DISABLE;
-   esp_err_t gpio_busy_func_test = gpio_reset_device(GPIO_BUSY_PIN_NUM);
+   esp_err_t gpio_busy_func_test = gpio_reset_pin(GPIO_BUSY_PIN_NUM);
    esp_err_t gpio_busy_disable_func = gpio_set_direction(GPIO_BUSY_PIN_NUM, gpio_busy_disable);
 
    if(((gpio_busy_func_test) || (gpio_busy_disable_func)) != ESP_OK){
@@ -275,20 +277,26 @@ uint8_t sx1262_interface_busy_gpio_deinit(void){
  *             - 1 read failed
  * @note       none
  */
-uint8_t sx1262_interface_busy_gpio_read(uint8_t *value);
+uint8_t sx1262_interface_busy_gpio_read(uint8_t *value){
+   return 0;
+}
 
 /**
  * @brief     interface delay ms
  * @param[in] ms time
  * @note      none
  */
-void sx1262_interface_delay_ms(uint32_t ms);
+void sx1262_interface_delay_ms(uint32_t ms){
+   vTaskDelay((ms) / portTICK_PERIOD_MS);
+}
 
 /**
  * @brief     interface print format data
  * @param[in] fmt format data
  * @note      none
  */
+static const char *TAG = "SX_1262 DEBUG Print";
+
 void sx1262_interface_debug_print(const char *const fmt, ...){
    va_list args;
    va_start(args, fmt);
@@ -398,11 +406,11 @@ uint8_t sx1262_device_init(void){
    DRIVER_SX1262_LINK_SPI_WRITE_READ(&LoRa_handle, esp32_SPI_WRITE_READ_test);
    DRIVER_SX1262_LINK_RESET_GPIO_INIT(&LoRa_handle, sx1262_interface_reset_gpio_init);
    DRIVER_SX1262_LINK_RESET_GPIO_DEINIT(&LoRa_handle, sx1262_interface_reset_gpio_deinit);
-   DRIVER_SX1262_LINK_RESET_GPIO_WRITE(&LoRa_handle, );
+   DRIVER_SX1262_LINK_RESET_GPIO_WRITE(&LoRa_handle, sx1262_interface_reset_gpio_write);
    DRIVER_SX1262_LINK_BUSY_GPIO_INIT(&LoRa_handle, sx1262_interface_busy_gpio_init);
    DRIVER_SX1262_LINK_BUSY_GPIO_DEINIT(&LoRa_handle, sx1262_interface_busy_gpio_deinit);
-   DRIVER_SX1262_LINK_BUSY_GPIO_READ(&LoRa_handle, );
-   DRIVER_SX1262_LINK_DELAY_MS(&LoRa_handle, );
+   DRIVER_SX1262_LINK_BUSY_GPIO_READ(&LoRa_handle, sx1262_interface_busy_gpio_read);
+   DRIVER_SX1262_LINK_DELAY_MS(&LoRa_handle, sx1262_interface_delay_ms);
    DRIVER_SX1262_LINK_DEBUG_PRINT(&LoRa_handle, sx1262_interface_debug_print);
    DRIVER_SX1262_LINK_RECEIVE_CALLBACK(&LoRa_handle, sx1262_interface_receive_callback);
    
@@ -429,7 +437,7 @@ uint8_t sx1262_device_init(void){
 uint8_t sx1262_device_deinit(void){
 
    if (sx1262_deinit(&LoRa_handle) != 0) {
-      printf("LoRa chip failed to deinitialize");
+      printf("LoRa chip failed to deinitialize\n");
       return 1;
    }
 
