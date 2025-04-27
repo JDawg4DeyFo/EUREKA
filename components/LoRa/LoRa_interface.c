@@ -34,7 +34,7 @@ spi_common_dma_t DMA_channel = SPI_DMA_CH_AUTO;
 spi_host_device_t spi_bus1 = SPI3_HOST;
 
 //Config spi bus between the master (ESP32-S3) and slave (Semtech SX1262)
-const spi_bus_config_t bus_pins = {
+spi_bus_config_t bus_pins = {
    .miso_io_num = GPIO_MISO,
    .mosi_io_num = GPIO_MOSI,
    .sclk_io_num = GPIO_SCK,
@@ -216,14 +216,34 @@ uint8_t sx1262_interface_reset_gpio_deinit(void){
 }
 
 /**
+ * @brief     interface delay ms
+ * @param[in] ms time
+ * @note      none
+ */
+void sx1262_interface_delay_ms(uint32_t ms){
+   vTaskDelay((ms) / portTICK_PERIOD_MS);
+}
+
+/**
  * @brief     interface reset gpio write
- * @param[in] data written data
+ * @param[in] data written data (time to hold pin low which is 100 us)
  * @return    status code
  *            - 0 success
  *            - 1 write failed
  * @note      none
  */
+
+static uint32_t logic_low = 0;
+static uint32_t logic_high = 1;
+
 uint8_t sx1262_interface_reset_gpio_write(uint8_t data){
+   if(data != 0) {
+      gpio_set_level(GPIO_RESET, logic_high);
+   } else {
+      gpio_set_level(GPIO_RESET, logic_low);
+   }
+   uint32_t hundred_us_in_ms = 0.1;
+   sx1262_interface_delay_ms(hundred_us_in_ms);
    return 0;
 }
 
@@ -271,23 +291,21 @@ uint8_t sx1262_interface_busy_gpio_deinit(void){
 
 /**
  * @brief      interface busy gpio read
- * @param[out] *value pointer to a value buffer
+ * @param[out] *value pointer to a value buffer of the busy status
  * @return     status code
  *             - 0 success
  *             - 1 read failed
  * @note       none
  */
 uint8_t sx1262_interface_busy_gpio_read(uint8_t *value){
+   int gpio_current_level = gpio_get_level(GPIO_BUSY);
+   if (gpio_current_level != 0){
+      printf("The SX1262 is ready to accept a command (NOT BUSY)\n");
+   } else {
+      printf("The SX1262 is not ready to accept a command (BUSY)\n");
+   }
+   *value = (uint8_t)gpio_current_level;
    return 0;
-}
-
-/**
- * @brief     interface delay ms
- * @param[in] ms time
- * @note      none
- */
-void sx1262_interface_delay_ms(uint32_t ms){
-   vTaskDelay((ms) / portTICK_PERIOD_MS);
 }
 
 /**
