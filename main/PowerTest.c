@@ -41,7 +41,7 @@ void app_main(void)
 	ESP_LOGI(TAG, "Entering light sleep for %d seconds...", wakeup_time_sec);
 
 	// Light sleep start
-	esp_light_sleep_start();
+	esp_deep_sleep_start(); // deep sleep mode but LoRa wakeup is enabled
 
 	// Program will resume here once timer reaches wakeup time
 	ESP_LOGI(TAG, "Wokeup from light sleep!");
