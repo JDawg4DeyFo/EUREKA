@@ -1,5 +1,5 @@
 /**
- * @file LoRa_main.c
+ * @file LoRa_main.h
  * @author Edouard Valenzuela (ecvalenz@ucsc.edu)
  * @brief Consolidation of LoRa functions
  * @version 1.0
