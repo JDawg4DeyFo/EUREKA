@@ -38,7 +38,7 @@ elseif(CONFIG_PCNT_TEST)
 elseif(CONFIG_POWER_TEST)
 	list(APPEND srcs PowerTest.c)
 	list(APPEND requires)
-	list(APPEND priv_requires sensors esp_timer)
+	list(APPEND priv_requires sensors esp_timer LoRa)
 endif()
 
 # Register main as the component

@@ -14,7 +14,11 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_timer.h"
-#include "Sensors.h"
+
+#include "../include/Sensors.h"
+#include "../include/LoRa_driver.h"
+#include "../include/LoRa_main.h"
+
 
 #define MICROSECOND_CONVERSION 1000000
 
@@ -25,15 +29,20 @@ static void delay_ms(int ms)
     vTaskDelay((ms) / portTICK_PERIOD_MS);
 }
 
+static sx1262_handle_t LORA_Handle;
+
 void app_main(void)
 {
 	const int wakeup_time_sec = 10;
-	const int standby_time_sec = 60;
+	const int standby_time_sec = 30;
+	int TX_time_sec = 30;
+
 	int64_t start_time;
 	int iteration_count = 0;
 	int foo = 0;
 	float temp, humid, WindDirection, WindSpeed, soil_temp;
 	short soil_moisture;
+	uint8_t ret;
 
 	ESP_LOGI(TAG, "Welcome to the power consumption test harness!");
 
@@ -93,7 +102,35 @@ void app_main(void)
 		}
 	}
 
-	// Light sleep state test
+// TX state test
+/******************************************************************************/
+ESP_LOGI(TAG, "Preparing to enter TX state...");
+if (sx1262_lora_begin(&LORA_Handle)) {
+	ESP_LOGI(TAG, "LoRa Initialized correctly");
+	ESP_LOGI(TAG, "Beginning continous wave output...");
+
+	// Set continous wave output
+	ret = sx1262_set_tx_continuous_wave(&LORA_Handle)
+	if (ret) {
+		// If fail, set hold time to 0
+		ESP_LOGE(TAG, "Error setting continous wave! Code: %d", ret);
+		TX_time_sec = 0;
+	}
+
+	// Hold continous wave output
+	while ((esp_timer_get_time() - start_time) < (TX_time_sec * MICROSECOND_CONVERSION));
+
+
+} else {
+	ESP_LOGE(TAG, "Error initializing LoRa");
+}
+
+
+// RX state test
+/******************************************************************************/
+
+
+// Light sleep state test
 /******************************************************************************/
 	ESP_LOGI(TAG, "Peparing to enter light sleep mode...");
 
