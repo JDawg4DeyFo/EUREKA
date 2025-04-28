@@ -71,7 +71,7 @@ static i2c_master_dev_handle_t SHT30_Handle;
 static adc_oneshot_unit_handle_t ADC_Handle;
 
 static adc_oneshot_unit_init_cfg_t ADC_Init_cfg = {
-	.unit_id = ADC_UNIT_1,
+	.unit_id = ADC_UNIT_2,
 	.ulp_mode = ADC_ULP_MODE_DISABLE,
 };
 
@@ -134,8 +134,8 @@ static bool PCNT_CallbackLogic(pcnt_unit_handle_t unit, const pcnt_watch_event_d
 	} else {
 		state->IterationCount = 0;
 		gptimer_get_raw_count(*(state->TimerHandle), &state->EndTime);
-		ESP_ERROR_CHECK(pcnt_unit_stop(*(state->PCNTHandle)));
-		ESP_ERROR_CHECK(pcnt_unit_clear_count(*(state->PCNTHandle)));
+		ESP_ERROR_CHECK_WITHOUT_ABORT(pcnt_unit_stop(*(state->PCNTHandle)));
+		ESP_ERROR_CHECK_WITHOUT_ABORT(pcnt_unit_clear_count(*(state->PCNTHandle)));
 	}
 
 	return pdFALSE;
@@ -156,7 +156,7 @@ SensorsIDs_t Sensors_Init(SensorsIDs_t Sensors)
 	if (!Already_Called)
 	{
 		
-		ESP_ERROR_CHECK(i2c_new_master_bus(&i2c_bus_config, &Bus_Handle));
+		ESP_ERROR_CHECK_WITHOUT_ABORT(i2c_new_master_bus(&i2c_bus_config, &Bus_Handle));
 	}
 	// If I2C_Init() passes, set Already_Called to 1.
 	Already_Called = 1;
@@ -167,7 +167,7 @@ SensorsIDs_t Sensors_Init(SensorsIDs_t Sensors)
 	ReturnStatus = 0;
 	if (Sensors && SOIL)
 	{
-		ESP_ERROR_CHECK(i2c_master_bus_add_device(Bus_Handle, &Soil_Cfg, &Soil_Handle));
+		ESP_ERROR_CHECK_WITHOUT_ABORT(i2c_master_bus_add_device(Bus_Handle, &Soil_Cfg, &Soil_Handle));
 		
 		ReturnStatus |= SOIL;
 	}
@@ -176,8 +176,8 @@ SensorsIDs_t Sensors_Init(SensorsIDs_t Sensors)
 	{
 		// Initialization code:
 		//	1. Initialize ADC Module
-		ESP_ERROR_CHECK(adc_oneshot_new_unit(&ADC_Init_cfg, &ADC_Handle));
-		ESP_ERROR_CHECK(adc_oneshot_config_channel(ADC_Handle, ADC_CHANNEL_1, &ADC_cfg));
+		ESP_ERROR_CHECK_WITHOUT_ABORT(adc_oneshot_new_unit(&ADC_Init_cfg, &ADC_Handle));
+		ESP_ERROR_CHECK_WITHOUT_ABORT(adc_oneshot_config_channel(ADC_Handle, ADC_CHANNEL_1, &ADC_cfg));
 		//  2. Verify connectivity of sensor
 		ReturnStatus |= WINDVANE;
 	}
@@ -189,19 +189,19 @@ SensorsIDs_t Sensors_Init(SensorsIDs_t Sensors)
 
 		
 		// Initialize PCNT
-		ESP_ERROR_CHECK(pcnt_new_unit(&PCNT_Unit_cfg, &PCNT_Unit));
-		ESP_ERROR_CHECK(pcnt_new_channel(PCNT_Unit, &PCNT_Channel_cfg, &PCNT_Channel));
+		ESP_ERROR_CHECK_WITHOUT_ABORT(pcnt_new_unit(&PCNT_Unit_cfg, &PCNT_Unit));
+		ESP_ERROR_CHECK_WITHOUT_ABORT(pcnt_new_channel(PCNT_Unit, &PCNT_Channel_cfg, &PCNT_Channel));
 
 		// Configure channel behavior
-		ESP_ERROR_CHECK(pcnt_channel_set_edge_action(PCNT_Channel, PCNT_CHANNEL_EDGE_ACTION_INCREASE, PCNT_CHANNEL_LEVEL_ACTION_HOLD));
-		ESP_ERROR_CHECK(pcnt_unit_add_watch_point(PCNT_Unit, 1));	// log start
-		ESP_ERROR_CHECK(pcnt_unit_add_watch_point(PCNT_Unit, 2));	// log time elapsed
-		ESP_ERROR_CHECK(pcnt_unit_register_event_callbacks(PCNT_Unit, &PCNT_Callbacks, &PCNT_State));
+		ESP_ERROR_CHECK_WITHOUT_ABORT(pcnt_channel_set_edge_action(PCNT_Channel, PCNT_CHANNEL_EDGE_ACTION_INCREASE, PCNT_CHANNEL_LEVEL_ACTION_HOLD));
+		ESP_ERROR_CHECK_WITHOUT_ABORT(pcnt_unit_add_watch_point(PCNT_Unit, 1));	// log start
+		ESP_ERROR_CHECK_WITHOUT_ABORT(pcnt_unit_add_watch_point(PCNT_Unit, 2));	// log time elapsed
+		ESP_ERROR_CHECK_WITHOUT_ABORT(pcnt_unit_register_event_callbacks(PCNT_Unit, &PCNT_Callbacks, &PCNT_State));
 
 		// Start channel up
-		ESP_ERROR_CHECK(pcnt_unit_enable(PCNT_Unit));
-		ESP_ERROR_CHECK(pcnt_unit_stop(PCNT_Unit));
-		ESP_ERROR_CHECK(pcnt_unit_clear_count(PCNT_Unit));
+		ESP_ERROR_CHECK_WITHOUT_ABORT(pcnt_unit_enable(PCNT_Unit));
+		ESP_ERROR_CHECK_WITHOUT_ABORT(pcnt_unit_stop(PCNT_Unit));
+		ESP_ERROR_CHECK_WITHOUT_ABORT(pcnt_unit_clear_count(PCNT_Unit));
 
 		ReturnStatus |= ANEMOMETER;
 	}
@@ -209,7 +209,7 @@ SensorsIDs_t Sensors_Init(SensorsIDs_t Sensors)
 	// Sensor 2: SHT30
 	if (Sensors && SHT30)
 	{
-		ESP_ERROR_CHECK(i2c_master_bus_add_device(Bus_Handle, &SHT30_Cfg, &SHT30_Handle));
+		ESP_ERROR_CHECK_WITHOUT_ABORT(i2c_master_bus_add_device(Bus_Handle, &SHT30_Cfg, &SHT30_Handle));
 		
 		ReturnStatus |= SHT30;
 	}
@@ -248,8 +248,8 @@ esp_err_t Read_SoilTemperature(float *Reading)
 	size_t Read_Buffer_Size = SOIL_TEMP_DATA_LENGTH;
 	uint8_t Read_Buffer[SOIL_TEMP_DATA_LENGTH];
 	
-	Write_Buffer[0] = STEMMA_MOISTURE_BASE_REG;
-	Write_Buffer[1] = STEMMA_MOISTURE_FUNC_REG;
+	Write_Buffer[0] = STEMMA_TEMP_BASE_REG;
+	Write_Buffer[1] = STEMMA_TEMP_FUNC_REG;
 
 	ESP_LOGI(TAG, "Made it to line 156");
 
@@ -286,7 +286,7 @@ float Get_Wind_Direction() {
 	
 	// Procedure:
 	// 1. Read raw adc
-	ESP_ERROR_CHECK(adc_oneshot_read(ADC_Handle, ADC_CHANNEL_1, &Reading));
+	ESP_ERROR_CHECK_WITHOUT_ABORT(adc_oneshot_read(ADC_Handle, ADC_CHANNEL_1, &Reading));
 
 	// 2. convert to voltage
 	Voltage = (Reading / Max_ADC_Reading) * MAX_ADC_VOLTAGE;
@@ -327,8 +327,8 @@ float Get_Wind_Speed(void) {
 	// also update duration
 	Duration = PCNT_State.EndTime - PCNT_State.StartTime;
 	
-	ESP_ERROR_CHECK(pcnt_unit_clear_count(PCNT_Unit));
-	ESP_ERROR_CHECK(pcnt_unit_start(PCNT_Unit));
+	ESP_ERROR_CHECK_WITHOUT_ABORT(pcnt_unit_clear_count(PCNT_Unit));
+	ESP_ERROR_CHECK_WITHOUT_ABORT(pcnt_unit_start(PCNT_Unit));
 
 	return 0;
 }
