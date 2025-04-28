@@ -9,11 +9,10 @@
  * 
  */
 
-#include "../include/LoRa_interface.h"
+#include "../include/LoRa_main.h"
 
-static sx1262_handle_t LoRa_test_handle;
+
 void app_main(void){
-   sx1262_device_init(&LoRa_test_handle);
-   sx1262_device_deinit(&LoRa_test_handle);
+  printf("Result of LoRa_begin function: %d\n", sx1262_lora_begin());
    //while(1);
  }

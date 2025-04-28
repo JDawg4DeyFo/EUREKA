@@ -142,14 +142,13 @@ uint8_t esp32_SPI_bus_deinit(void){
  */
 static const char *TAG_SPI = "SPI_WRITE_READ_TEST";
 
-uint8_t esp32_SPI_WRITE_READ_test(uint8_t *in_buf, uint32_t in_len, uint8_t *out_buf, uint32_t out_len){
+uint8_t esp32_SPI_WRITE_READ(uint8_t *in_buf, uint32_t in_len, uint8_t *out_buf, uint32_t out_len){
    //Transaction example to be sent via SPI
    spi_transaction_t transaction_mes = {
       .tx_buffer = in_buf,
       .rx_buffer = out_buf,
-      .length = in_len,
-      .rxlength = out_len,
-      .user = "htx",
+      .length = in_len * 8,
+      .rxlength = out_len * 8,
    };
 
    esp_err_t check_result3 = spi_device_transmit(slave_handle, &transaction_mes);
@@ -159,12 +158,15 @@ uint8_t esp32_SPI_WRITE_READ_test(uint8_t *in_buf, uint32_t in_len, uint8_t *out
    } 
 
    printf("spi_device_transmit is a success\n");
-   printf("Successful single transaction, rx_data = ");
 
-   for (int i = 0; i < sizeof(transaction_mes.rx_data); i++){
-      ESP_LOGI(TAG_SPI, "%c", transaction_mes.rx_data[i]);
+    // Print out each opcode and the value stored in that buffer
+    for (int i = 0; i < in_len; i++) {
+      ESP_LOGI(TAG_SPI, "tx_data :0x%02X", in_buf[i]);
    }
-   printf("\n");
+   for (int j = 0; j < out_len; j++){
+      ESP_LOGI(TAG_SPI, "rx_data :0x%02X", out_buf[j]);
+   }
+   
 
    return 0;
    
@@ -421,7 +423,7 @@ uint8_t sx1262_device_init(sx1262_handle_t *LoRa_handle){
    DRIVER_SX1262_LINK_INIT(LoRa_handle, sx1262_handle_t);
    DRIVER_SX1262_LINK_SPI_INIT(LoRa_handle, esp32_SPI_bus_init);
    DRIVER_SX1262_LINK_SPI_DEINIT(LoRa_handle, esp32_SPI_bus_deinit);
-   DRIVER_SX1262_LINK_SPI_WRITE_READ(LoRa_handle, esp32_SPI_WRITE_READ_test);
+   DRIVER_SX1262_LINK_SPI_WRITE_READ(LoRa_handle, esp32_SPI_WRITE_READ);
    DRIVER_SX1262_LINK_RESET_GPIO_INIT(LoRa_handle, sx1262_interface_reset_gpio_init);
    DRIVER_SX1262_LINK_RESET_GPIO_DEINIT(LoRa_handle, sx1262_interface_reset_gpio_deinit);
    DRIVER_SX1262_LINK_RESET_GPIO_WRITE(LoRa_handle, sx1262_interface_reset_gpio_write);
