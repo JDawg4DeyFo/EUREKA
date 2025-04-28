@@ -20,32 +20,22 @@
 
 static const char *TAG = "PowerTest.c";
 
+static void delay_ms(int ms)
+{
+    vTaskDelay((ms) / portTICK_PERIOD_MS);
+}
+
 void app_main(void)
 {
-	const int wakeup_time_sec = 60;
+	const int wakeup_time_sec = 10;
 	const int standby_time_sec = 60;
 	int64_t start_time;
 	int iteration_count = 0;
+	int foo = 0;
 	float temp, humid, WindDirection, WindSpeed, soil_temp;
 	short soil_moisture;
 
 	ESP_LOGI(TAG, "Welcome to the power consumption test harness!");
-
-// Light sleep state test
-/******************************************************************************/
-	ESP_LOGI(TAG, "Peparing to enter light sleep mode...");
-
-	// Configure the wakeup timer
-	esp_sleep_enable_timer_wakeup(wakeup_time_sec * MICROSECOND_CONVERSION);
-
-	ESP_LOGI(TAG, "Entering light sleep for %d seconds...", wakeup_time_sec);
-
-	// Light sleep start
-	esp_deep_sleep_start(); // deep sleep mode but LoRa wakeup is enabled
-
-	// Program will resume here once timer reaches wakeup time
-	ESP_LOGI(TAG, "Wokeup from light sleep!");
-
 
 // Standby state test
 /******************************************************************************/
@@ -97,8 +87,26 @@ void app_main(void)
 		ESP_LOGI(TAG, "Note: no fail condition for this test.\n");
 		WindSpeed = Get_Wind_Speed();
 		ESP_LOGI(TAG, "\t Wind speed: %f\n", WindSpeed);
+
+		for(int i = 0; i < 90000000; i++) {
+			foo++;
+		}
 	}
 
+	// Light sleep state test
+/******************************************************************************/
+	ESP_LOGI(TAG, "Peparing to enter light sleep mode...");
+
+	// Configure the wakeup timer
+	esp_sleep_enable_timer_wakeup(wakeup_time_sec * MICROSECOND_CONVERSION);
+
+	ESP_LOGI(TAG, "Entering light sleep for %d seconds...", wakeup_time_sec);
+
+	// Light sleep start
+	esp_deep_sleep_start(); // deep sleep mode but LoRa wakeup is enabled
+
+	// Program will resume here once timer reaches wakeup time
+	ESP_LOGI(TAG, "Wokeup from light sleep!");
 
 	while(1);
 }
