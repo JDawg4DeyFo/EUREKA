@@ -1,9 +1,10 @@
 #include "../../include/Timer.h"
 #include "esp_log.h"
 
-static const char *TAG = "FreeRUnningGPTimer";
+static const char *TAG = "FreeRunningGPTimer";
 
 gptimer_handle_t GPT_Handle;
+static bool Initialized;
 
 static gptimer_config_t GPT_cfg = {
 	.clk_src = GPTIMER_CLK_SRC_DEFAULT,
@@ -13,7 +14,15 @@ static gptimer_config_t GPT_cfg = {
 
 void FreeRunningTimer_Init()
 {
-	ESP_ERROR_CHECK(gptimer_new_timer(&GPT_cfg, &GPT_Handle));
-	ESP_ERROR_CHECK(gptimer_enable(GPT_Handle));
-	ESP_ERROR_CHECK(gptimer_start(GPT_Handle));
+	// Check if timer was already initialized
+	if (!Initialized) {
+		ESP_LOGI("Initialziing timer...");
+		ESP_ERROR_CHECK(gptimer_new_timer(&GPT_cfg, &GPT_Handle));
+		ESP_ERROR_CHECK(gptimer_enable(GPT_Handle));
+		ESP_ERROR_CHECK(gptimer_start(GPT_Handle));
+		Initialized = true;
+	}
+	else {
+		ESP_LOGW("Timer has already been initialized!");
+	}
 }
