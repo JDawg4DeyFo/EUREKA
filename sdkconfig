@@ -2090,10 +2090,10 @@ CONFIG_WIFI_PROV_STA_ALL_CHANNEL_SCAN=y
 # CONFIG_WIFI_PROV_STA_FAST_SCAN is not set
 # end of Wi-Fi Provisioning Manager
 
-CONFIG_SENSOR_LIB_TEST=y
+# CONFIG_SENSOR_LIB_TEST is not set
 # CONFIG_LORA_LIB_TEST is not set
 # CONFIG_PCNT_TEST is not set
-# CONFIG_POWER_TEST is not set
+CONFIG_POWER_TEST=y
 
 #
 # Sensor Configurations

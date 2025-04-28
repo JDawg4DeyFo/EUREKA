@@ -26,7 +26,8 @@ void app_main(void)
 	const int standby_time_sec = 60;
 	int64_t start_time;
 	int iteration_count = 0;
-	float temp, humid, WindDirection, WindSpeed;
+	float temp, humid, WindDirection, WindSpeed, soil_temp;
+	short soil_moisture;
 
 	ESP_LOGI(TAG, "Welcome to the power consumption test harness!");
 

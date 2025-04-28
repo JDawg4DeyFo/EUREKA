@@ -228,11 +228,11 @@ esp_err_t Read_SoilMoisture(short *Reading)
 	Write_Buffer[0] = STEMMA_MOISTURE_BASE_REG;
 	Write_Buffer[1] = STEMMA_MOISTURE_FUNC_REG;
 
-	ESP_ERROR_CHECK_WITHOUT_ABORT_WITHOUT_ABORT(i2c_master_transmit(Soil_Handle, Write_Buffer, sizeof(Write_Buffer), I2C_MASTER_TIMEOUT_MS));
+	ESP_ERROR_CHECK_WITHOUT_ABORT(i2c_master_transmit(Soil_Handle, Write_Buffer, sizeof(Write_Buffer), I2C_MASTER_TIMEOUT_MS));
 
 	delay_ms(50);
 
-	ESP_ERROR_CHECK_WITHOUT_ABORT_WITHOUT_ABORT(i2c_master_receive(Soil_Handle, Read_Buffer, Read_Buffer_Size, I2C_MASTER_TIMEOUT_MS));
+	ESP_ERROR_CHECK_WITHOUT_ABORT(i2c_master_receive(Soil_Handle, Read_Buffer, Read_Buffer_Size, I2C_MASTER_TIMEOUT_MS));
 
 	// Transfer data into variable passed by reference
 	*Reading = ((uint16_t)Read_Buffer[0] << 8) | Read_Buffer[1];
@@ -253,11 +253,11 @@ esp_err_t Read_SoilTemperature(float *Reading)
 
 	ESP_LOGI(TAG, "Made it to line 156");
 
-	ESP_ERROR_CHECK_WITHOUT_ABORT_WITHOUT_ABORT(i2c_master_transmit(Soil_Handle, Write_Buffer, sizeof(Write_Buffer), I2C_MASTER_TIMEOUT_MS));	
+	ESP_ERROR_CHECK_WITHOUT_ABORT(i2c_master_transmit(Soil_Handle, Write_Buffer, sizeof(Write_Buffer), I2C_MASTER_TIMEOUT_MS));	
 
 	delay_ms(50);
 
-	ESP_ERROR_CHECK_WITHOUT_ABORT_WITHOUT_ABORT(i2c_master_receive(Soil_Handle, Read_Buffer, Read_Buffer_Size, I2C_MASTER_TIMEOUT_MS));
+	ESP_ERROR_CHECK_WITHOUT_ABORT(i2c_master_receive(Soil_Handle, Read_Buffer, Read_Buffer_Size, I2C_MASTER_TIMEOUT_MS));
 
 	int32_t raw_temp = ((uint32_t)Read_Buffer[0] << 24) | ((uint32_t)Read_Buffer[1] << 16) | ((uint32_t)Read_Buffer[2] << 8) | Read_Buffer[3];
 	*Reading = (1.0 / (1UL << 16)) * raw_temp; // normalize value
