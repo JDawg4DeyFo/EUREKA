@@ -13,6 +13,6 @@
 
 
 void app_main(void){
-  printf("Result of LoRa_begin function: %d\n", sx1262_lora_begin());
+  sx1262_lora_begin();
    //while(1);
  }
