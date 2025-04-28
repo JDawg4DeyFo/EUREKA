@@ -410,10 +410,10 @@ void sx1262_interface_receive_callback(uint16_t type, uint8_t *buf, uint16_t len
 
 
  /**
- * @brief  Link the SPI bus the sx1262 and the ESP32 with respect to the ESP32 
+ * @brief  Initialize the LoRa chip
  * @return status code
- *         - 1 success
- *         - 0 LoRa chip failed to initialize
+ *         - 1 LoRa chip failed to initialize
+ *         - 0 success
  * @note   none
  */
 
