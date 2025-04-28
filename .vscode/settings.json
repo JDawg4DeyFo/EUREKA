@@ -1,11 +1,11 @@
 {
     "files.associations": {
-		"lora_interface.h": "c",
-		"spi_master.h": "c",
-		"math.h": "c",
-		"lora_driver.h": "c",
-		"timer.h": "c",
-		"i2c.h": "c"
-	},
+        "lora_interface.h": "c",
+        "spi_master.h": "c",
+        "math.h": "c",
+        "lora_driver.h": "c",
+        "timer.h": "c",
+        "lora_main.h": "c"
+    },
     "C_Cpp.dimInactiveRegions": false
 }
