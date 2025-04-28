@@ -135,14 +135,6 @@ void sx1262_interface_receive_callback(uint16_t type, uint8_t *buf, uint16_t len
 
 uint8_t sx1262_device_init(sx1262_handle_t *LoRa_handle);
 
- /**
- * @brief  Deinitalize the LoRa
- * @return status code
- *         - 1 success
- *         - 0 LoRa chip failed to deinitialize
- * @note   none
- */
-uint8_t sx1262_device_deinit(sx1262_handle_t *LoRa_handle);
 
 
 

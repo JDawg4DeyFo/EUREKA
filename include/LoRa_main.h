@@ -48,7 +48,7 @@
  *         - 1 run failed
  * @note   none
  */
-uint8_t sx1262_lora_irq_handler(void);
+uint8_t sx1262_lora_irq_handler(sx1262_handle_t *LoRa_handle);
 
 /**
  * @brief     call basic functions such as rf freq and tx params in one function
@@ -57,7 +57,16 @@ uint8_t sx1262_lora_irq_handler(void);
  *            - 1 init failed
  * @note      none
  */
-uint8_t sx1262_lora_begin(void);
+uint8_t sx1262_lora_begin(sx1262_handle_t *LoRa_handle);
+
+/**
+ * @brief  Deinitalize the LoRa
+ * @return status code
+ *         - 1 success
+ *         - 0 LoRa chip failed to deinitialize
+ * @note   none
+ */
+uint8_t sx1262_lora_deinit(sx1262_handle_t *LoRa_handle);
 
 /**
  * @brief  lora example enter to the continuous receive mode
@@ -67,7 +76,8 @@ uint8_t sx1262_lora_begin(void);
  * @note   none
  */
 
-uint8_t sx1262_lora_set_continuous_receive_mode(void);
+ 
+uint8_t sx1262_lora_set_continuous_receive_mode(sx1262_handle_t *LoRa_handle);
 
 /**
  * @brief     lora example enter to the shot receive mode
@@ -77,7 +87,7 @@ uint8_t sx1262_lora_set_continuous_receive_mode(void);
  *            - 1 set failed
  * @note      none
  */
-uint8_t sx1262_lora_set_shot_receive_mode(double us);
+uint8_t sx1262_lora_set_shot_receive_mode(sx1262_handle_t *LoRa_handle, double us);
 
 /**
  * @brief  lora example enter to the send mode
@@ -86,7 +96,7 @@ uint8_t sx1262_lora_set_shot_receive_mode(double us);
  *         - 1 enter failed
  * @note   none
  */
-uint8_t sx1262_lora_set_send_mode(void);
+uint8_t sx1262_lora_set_send_mode(sx1262_handle_t *LoRa_handle);
 
 /**
  * @brief     lora example send lora data
@@ -97,7 +107,7 @@ uint8_t sx1262_lora_set_send_mode(void);
  *            - 1 send failed
  * @note      none
  */
-uint8_t sx1262_lora_send(uint8_t *buf, uint16_t len);
+uint8_t sx1262_lora_send(sx1262_handle_t *LoRa_handle, uint8_t *buf, uint16_t len);
 
 /**
  * @brief      lora example run the cad
@@ -107,7 +117,7 @@ uint8_t sx1262_lora_send(uint8_t *buf, uint16_t len);
  *             - 1 run failed
  * @note       none
  */
-uint8_t sx1262_lora_run_cad(sx1262_bool_t *enable);
+uint8_t sx1262_lora_run_cad(sx1262_handle_t *LoRa_handle, sx1262_bool_t *enable);
 
 /**
  * @brief      lora example get the status
@@ -118,7 +128,7 @@ uint8_t sx1262_lora_run_cad(sx1262_bool_t *enable);
  *             - 1 get status failed
  * @note       none
  */
-uint8_t sx1262_lora_get_status(float *rssi, float *snr);
+uint8_t sx1262_lora_get_status(sx1262_handle_t *LoRa_handle, float *rssi, float *snr);
 
 /**
  * @brief      lora example check packet error
@@ -128,7 +138,7 @@ uint8_t sx1262_lora_get_status(float *rssi, float *snr);
  *             - 1 check packet error failed
  * @note       none
  */
-uint8_t sx1262_lora_check_packet_error(sx1262_bool_t *enable);
+uint8_t sx1262_lora_check_packet_error(sx1262_handle_t *LoRa_handle, sx1262_bool_t *enable);
 
 /**
  * @brief  lora example enter to the sleep mode
@@ -137,7 +147,7 @@ uint8_t sx1262_lora_check_packet_error(sx1262_bool_t *enable);
  *         - 1 sleep failed
  * @note   none
  */
-uint8_t sx1262_lora_sleep(void);
+uint8_t sx1262_lora_sleep(sx1262_handle_t *LoRa_handle);
 
 /**
  * @brief  lora example wake up the chip
@@ -146,7 +156,7 @@ uint8_t sx1262_lora_sleep(void);
  *         - 1 wake up failed
  * @note   none
  */
-uint8_t sx1262_lora_wake_up(void);
+uint8_t sx1262_lora_wake_up(sx1262_handle_t *LoRa_handle);
 
 /**
  * @}

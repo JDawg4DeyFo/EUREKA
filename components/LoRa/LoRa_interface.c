@@ -167,7 +167,6 @@ uint8_t esp32_SPI_WRITE_READ(uint8_t *in_buf, uint32_t in_len, uint8_t *out_buf,
       ESP_LOGI(TAG_SPI, "rx_data :0x%02X", out_buf[j]);
    }
    
-
    return 0;
    
 }
@@ -300,7 +299,7 @@ uint8_t sx1262_interface_busy_gpio_deinit(void){
  */
 uint8_t sx1262_interface_busy_gpio_read(uint8_t *value){
    int gpio_current_level = gpio_get_level(GPIO_BUSY_PIN_NUM);
-   if (gpio_current_level != 0){
+   if (gpio_current_level != 1){
       printf("The SX1262 is ready to accept a command (NOT BUSY)\n");
    } else {
       printf("The SX1262 is not ready to accept a command (BUSY)\n");
@@ -446,21 +445,3 @@ uint8_t sx1262_device_init(sx1262_handle_t *LoRa_handle){
 
 }
 
- /**
- * @brief  Deinitalize the LoRa
- * @return status code
- *         - 1 success
- *         - 0 LoRa chip failed to deinitialize
- * @note   none
- */
-
-uint8_t sx1262_device_deinit(sx1262_handle_t *LoRa_handle){
-
-   if (sx1262_deinit(LoRa_handle) != 0) {
-      printf("LoRa chip failed to deinitialize\n");
-      return 1;
-   }
-
-   printf("LoRa chip successfully deinitaliazed\n");
-   return 0;
-}
