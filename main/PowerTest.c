@@ -16,17 +16,25 @@
 #include "esp_timer.h"
 #include "Sensors.h"
 
-#define MICROSECOND_CONVERSION 1000000UL
+#define MICROSECOND_CONVERSION 1000000
 
 static const char *TAG = "PowerTest.c";
 
 void app_main(void)
 {
+	const int wakeup_time_sec = 60;
+	const int standby_time_sec = 60;
+	int64_t start_time;
+	int iteration_count = 0;
+	float temp, humid, WindDirection, WindSpeed;
+
 	ESP_LOGI(TAG, "Welcome to the power consumption test harness!");
+
+// Light sleep state test
+/******************************************************************************/
 	ESP_LOGI(TAG, "Peparing to enter light sleep mode...");
 
 	// Configure the wakeup timer
-	const int wakeup_tiem_sec = 60;
 	esp_sleep_enable_timer_wakeup(wakeup_time_sec * MICROSECOND_CONVERSION);
 
 	ESP_LOGI(TAG, "Entering light sleep for %d seconds...", wakeup_time_sec);
@@ -37,6 +45,58 @@ void app_main(void)
 	// Program will resume here once timer reaches wakeup time
 	ESP_LOGI(TAG, "Wokeup from light sleep!");
 
+
+// Standby state test
+/******************************************************************************/
+	ESP_LOGI(TAG, "Preparing to test Standby mode...");
+
+	// Initialize sensor module
+	Sensors_Init(ALL_SENSORS);
+
+	// Initialize timer and get start time
+	esp_timer_init();
+	start_time = esp_timer_get_time();
+
+	// Main loop
+	ESP_LOGI(TAG, "Entering Standby mode for %d seconds...", standby_time_sec);
+	while ((esp_timer_get_time() - start_time) < (standby_time_sec * MICROSECOND_CONVERSION)) {
+		iteration_count++;
+		ESP_LOGI(TAG, "\n Testing Sensor readings. Iteration number %d\n", iteration_count);
+
+		ESP_LOGI(TAG, "Testing soil moisture Reading.\n");
+		if(Read_SoilMoisture(&soil_moisture) != ESP_OK) {
+			ESP_LOGW(TAG, "\tSoil Moisture Reading fail.\n");
+		}
+		else {
+			ESP_LOGI(TAG, "\tSoil Moisture Reading: %d", soil_moisture);
+		}
+
+		ESP_LOGI(TAG, "Testing soil temperature Reading.\n");
+		if(Read_SoilTemperature(&soil_temp) != ESP_OK) {
+			ESP_LOGW(TAG, "\tSoil Temperature Reading fail.\n");
+		}
+		else {
+			ESP_LOGI(TAG, "\tSoil Temperature Reading: %f\n", soil_temp);
+		}
+		
+		ESP_LOGI(TAG, "Testing SHT30 humidity temperature reading.\n");
+		if(Read_SHT30_HumidityTemperature(&temp, &humid) != true) {
+			ESP_LOGW(TAG, "\tSHT30 reading fail.\n");
+		}
+		else {
+			ESP_LOGI(TAG, "\tSuccess! temperature: %f humidity: %f\n", temp, humid);
+		}
+
+		ESP_LOGI(TAG, "Testing wind direction reading.\n");
+		ESP_LOGI(TAG, "Note: no fail condition for this test.\n");
+		WindDirection = Get_Wind_Direction();
+		ESP_LOGI(TAG, "\t Wind direction: %f\n", WindDirection);
+
+		ESP_LOGI(TAG, "Testing wind speed reading.\n");
+		ESP_LOGI(TAG, "Note: no fail condition for this test.\n");
+		WindSpeed = Get_Wind_Speed();
+		ESP_LOGI(TAG, "\t Wind speed: %f\n", WindSpeed);
+	}
 
 
 	while(1);

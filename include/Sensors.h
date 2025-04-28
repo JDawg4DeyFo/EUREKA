@@ -58,6 +58,7 @@ typedef enum {
 	ANEMOMETER = 0x4,
     SHT30 = 0X8,
 } SensorsIDs_t;
+#define ALL_SENSORS 0xF
 
 // Possible errors.
 // 1st draft, will need to add or remove as needed
