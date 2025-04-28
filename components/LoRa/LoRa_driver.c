@@ -2640,6 +2640,55 @@ uint8_t sx1262_get_packet_type(sx1262_handle_t *handle, sx1262_packet_type_t *ty
 }
 
 /**
+ * @brief     set the tx params
+ * @param[in] *handle pointer to an sx1262 handle structure
+ * @param[in] dbm rf power 
+ * @param[in] t ramp time
+ * @return    status code
+ *            - 0 success
+ *            - 1 set tx params failed
+ *            - 2 handle is NULL
+ *            - 3 handle is not initialized
+ *            - 4 chip is busy
+ * @note      none
+ */
+
+uint8_t sx1262_set_tx_params(sx1262_handle_t *handle, int8_t dbm, sx1262_ramp_time_t t)
+{
+    uint8_t res;
+    uint8_t buf[2];
+    
+    if (handle == NULL)                                                                      /* check handle */
+    {
+        return 2;                                                                            /* return error */
+    }
+    if (handle->inited != 1)                                                                 /* check handle initialization */
+    {
+        return 3;                                                                            /* return error */
+    }
+
+    res = a_sx1262_check_busy(handle);                                                       /* check busy */
+    if (res != 0)                                                                            /* check result */
+    {
+        handle->debug_print("sx1262: chip is busy.\n");                                      /* chip is busy */
+       
+        return 4;                                                                            /* return error */
+    }
+    
+    buf[0] = dbm;                                                                            /* set param */
+    buf[1] = t;                                                                              /* set param */
+    res = a_sx1262_spi_write(handle, SX1262_COMMAND_SET_TX_PARAMS, (uint8_t *)buf, 2);       /* write command */
+    if (res != 0)                                                                            /* check result */
+    {
+        handle->debug_print("sx1262: set tx params failed.\n");                              /* set tx params failed */
+       
+        return 1;                                                                            /* return error */
+    }
+    
+    return 0;                                                                                /* success return 0 */
+}
+
+/**
  * @brief     set the modulation params in LoRa mode
  * @param[in] *handle pointer to an sx1262 handle structure
  * @param[in] sf spreading factor

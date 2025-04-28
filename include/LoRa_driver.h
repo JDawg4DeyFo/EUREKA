@@ -136,6 +136,21 @@
  } sx1262_packet_type_t;
  
  /**
+ * @brief sx1262 ramp time enumeration definition
+ */
+typedef enum
+{
+    SX1262_RAMP_TIME_10US   = 0x00,        /**< 10us */
+    SX1262_RAMP_TIME_20US   = 0x01,        /**< 20us */
+    SX1262_RAMP_TIME_40US   = 0x02,        /**< 40us */
+    SX1262_RAMP_TIME_80US   = 0x03,        /**< 80us */
+    SX1262_RAMP_TIME_200US  = 0x04,        /**< 200us */
+    SX1262_RAMP_TIME_800US  = 0x05,        /**< 800us */
+    SX1262_RAMP_TIME_1700US = 0x06,        /**< 1700us */
+    SX1262_RAMP_TIME_3400US = 0x07,        /**< 3400us */
+} sx1262_ramp_time_t;
+
+ /**
   * @brief sx1262 lora spreading factor enumeration definition
   */
  typedef enum
@@ -998,8 +1013,24 @@
   * @note      none
   */
 
+uint8_t sx1262_set_tx_params(sx1262_handle_t *handle, int8_t dbm, sx1262_ramp_time_t t);
  
- uint8_t sx1262_set_lora_modulation_params(sx1262_handle_t *handle, sx1262_lora_sf_t sf, sx1262_lora_bandwidth_t bw, 
+/**
+ * @brief     set the modulation params in LoRa mode
+ * @param[in] *handle pointer to an sx1262 handle structure
+ * @param[in] sf spreading factor
+ * @param[in] bw bandwidth
+ * @param[in] cr coding rate
+ * @param[in] low_data_rate_optimize_enable bool value
+ * @return    status code
+ *            - 0 success
+ *            - 1 set lora modulation params failed
+ *            - 2 handle is NULL
+ *            - 3 handle is not initialized
+ *            - 4 chip is busy
+ * @note      none
+ */
+uint8_t sx1262_set_lora_modulation_params(sx1262_handle_t *handle, sx1262_lora_sf_t sf, sx1262_lora_bandwidth_t bw, 
                                            sx1262_lora_cr_t cr, sx1262_bool_t low_data_rate_optimize_enable);
  
  /**
