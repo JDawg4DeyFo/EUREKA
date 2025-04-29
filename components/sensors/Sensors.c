@@ -358,7 +358,7 @@ bool Deinitialize_Sensors(void) {
 	ESP_ERROR_CHECK_WITHOUT_ABORT(i2c_master_bus_rm_device(SHT30_Handle));
 
 	// remove bus
-	ESP_ERROR_CHECK_WITHOUT_ABORT(i2c_del_master_bus(SHT30_Handle));
+	ESP_ERROR_CHECK_WITHOUT_ABORT(i2c_del_master_bus(Bus_Handle));
 	
 	// Deinit ADC
 	adc_oneshot_del_unit(ADC_Handle);
@@ -370,6 +370,8 @@ bool Deinitialize_Sensors(void) {
 
 	// deinit gptimer
 	FreeRunningTimer_Deinit();
+
+	return true;
 }
 
 

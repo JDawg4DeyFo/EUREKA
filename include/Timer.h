@@ -28,4 +28,4 @@ void FreeRunningTimer_Init(void);
  * @brief De-initialize the free running timer
  * 
  */
-void FreeRunningTImer_Deinit(void):
+void FreeRunningTimer_Deinit(void);

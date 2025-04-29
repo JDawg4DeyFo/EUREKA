@@ -111,7 +111,7 @@ void app_main(void)
 		ESP_LOGI(TAG, "Beginning continous wave output...");
 
 		// Set continous wave output
-		ret = sx1262_set_tx_continuous_wave(&LORA_Handle)
+		ret = sx1262_set_tx_continuous_wave(&LORA_Handle);
 		if (ret) {
 			// If fail, set hold time to 0
 			ESP_LOGE(TAG, "Error setting continous wave! Code: %d", ret);
