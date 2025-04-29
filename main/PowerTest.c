@@ -14,6 +14,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_timer.h"
+#include "esp_task_wdt.h"
 
 #include "../include/Sensors.h"
 #include "../include/LoRa_driver.h"
@@ -46,6 +47,9 @@ void app_main(void)
 	uint8_t ret;
 
 	ESP_LOGI(TAG, "Welcome to the power consumption test harness!");
+
+	// Disable watchdog
+	esp_task_wdt_deinit();
 
 // Standby state test
 /******************************************************************************/
@@ -106,7 +110,7 @@ void app_main(void)
 // TX state test
 /******************************************************************************/
 	ESP_LOGI(TAG, "Preparing to enter TX state...");
-	if (sx1262_lora_begin(&LORA_Handle)) {
+	if (!sx1262_lora_begin(&LORA_Handle)) {
 		ESP_LOGI(TAG, "LoRa Initialized correctly");
 		ESP_LOGI(TAG, "Beginning continous wave output...");
 
@@ -121,6 +125,7 @@ void app_main(void)
 		}
 
 		// Hold continous wave output
+		start_time = esp_timer_get_time();
 		while ((esp_timer_get_time() - start_time) < (TX_time_sec * MICROSECOND_CONVERSION));
 
 
@@ -135,8 +140,14 @@ void app_main(void)
 		ESP_LOGE(TAG, "Error enterring RX state!");
 	} else {
 		ESP_LOGI(TAG, "Testing RX state for %d seconds", RX_time_sec);
+		start_time = esp_timer_get_time();
+		// hold program, resetting watchdog timer
 		while ((esp_timer_get_time() - start_time) < (RX_time_sec * MICROSECOND_CONVERSION));
 	}
+
+
+// NOTE: Only 1 sleep state can be tested, and they may be equivalent...
+//		Execution context is not saved on wakeup.
 
 // Light sleep state test
 /******************************************************************************/
@@ -145,30 +156,21 @@ void app_main(void)
 	// Configure the wakeup timer
 	esp_sleep_enable_timer_wakeup(wakeup_time_sec * MICROSECOND_CONVERSION);
 
-	ESP_LOGI(TAG, "Entering light sleep for %d seconds...", wakeup_time_sec);
+	Deinitialize_Sensors();
 
 	// Light sleep start
+	ESP_LOGI(TAG, "Entering light sleep for %d seconds...", wakeup_time_sec);
 	esp_deep_sleep_start(); // deep sleep mode but LoRa wakeup is enabled
 
 	// Program will resume here once timer reaches wakeup time
 	ESP_LOGI(TAG, "Wokeup from light sleep!");
 
-// Deep sleep state tetst
+// Deep sleep state test
 /******************************************************************************/
 	ESP_LOGI(TAG, "Preparing to enter deep sleep mode...");
 
 	// Configure the wakeup timer
 	esp_sleep_enable_timer_wakeup(wakeup_time_sec * MICROSECOND_CONVERSION);
-
-	// Disable all peripherals
-	// i2c
-	
-	// spi
-	sx1262_deinit(&LORA_Handle);
-	// adc
-	// pulse count
-	// gptimer
-	// gpios
 
 	ESP_LOGI(TAG, "Entering deep sleep for %d seconds...", wakeup_time_sec);
 
@@ -178,23 +180,5 @@ void app_main(void)
 	// Program will resume here once timer reaches wakeup time
 	ESP_LOGI(TAG, "Wokeup from deep sleep!");
 
-	// Disable all peripherals
-	// i2c
-	// spi
-	// adc
-	// pulse count
-	// gptimer
-	// gpios
-
 	while(1);
 }
-
-
-
-/*
-Tests to conduct:
-	1. Light sleep
-	2. Deep sleep
-	3. Standby
-	4. Transmitting
-*/

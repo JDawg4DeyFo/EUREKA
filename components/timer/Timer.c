@@ -4,7 +4,7 @@
 static const char *TAG = "FreeRunningGPTimer";
 
 gptimer_handle_t GPT_Handle;
-static bool Initialized;
+static bool Initialized = false;
 
 static gptimer_config_t GPT_cfg = {
 	.clk_src = GPTIMER_CLK_SRC_DEFAULT,
@@ -15,7 +15,7 @@ static gptimer_config_t GPT_cfg = {
 void FreeRunningTimer_Init()
 {
 	// Check if timer was already initialized
-	if (!Initialized) {
+	if (Initialized == false) {
 		ESP_LOGI(TAG, "Initialziing timer...");
 		ESP_ERROR_CHECK(gptimer_new_timer(&GPT_cfg, &GPT_Handle));
 		ESP_ERROR_CHECK(gptimer_enable(GPT_Handle));

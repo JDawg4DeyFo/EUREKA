@@ -369,7 +369,7 @@ bool Deinitialize_Sensors(void) {
 	pcnt_del_unit(PCNT_Unit);
 
 	// deinit gptimer
-	FreeRunningTimer_Deinit();
+	// FreeRunningTimer_Deinit();
 
 	return true;
 }
