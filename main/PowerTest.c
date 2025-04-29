@@ -36,6 +36,7 @@ void app_main(void)
 	const int wakeup_time_sec = 10;
 	const int standby_time_sec = 30;
 	int TX_time_sec = 30;
+	const int RX_time_sec = 30;
 
 	int64_t start_time;
 	int iteration_count = 0;
@@ -104,31 +105,38 @@ void app_main(void)
 
 // TX state test
 /******************************************************************************/
-ESP_LOGI(TAG, "Preparing to enter TX state...");
-if (sx1262_lora_begin(&LORA_Handle)) {
-	ESP_LOGI(TAG, "LoRa Initialized correctly");
-	ESP_LOGI(TAG, "Beginning continous wave output...");
+	ESP_LOGI(TAG, "Preparing to enter TX state...");
+	if (sx1262_lora_begin(&LORA_Handle)) {
+		ESP_LOGI(TAG, "LoRa Initialized correctly");
+		ESP_LOGI(TAG, "Beginning continous wave output...");
 
-	// Set continous wave output
-	ret = sx1262_set_tx_continuous_wave(&LORA_Handle)
-	if (ret) {
-		// If fail, set hold time to 0
-		ESP_LOGE(TAG, "Error setting continous wave! Code: %d", ret);
-		TX_time_sec = 0;
+		// Set continous wave output
+		ret = sx1262_set_tx_continuous_wave(&LORA_Handle)
+		if (ret) {
+			// If fail, set hold time to 0
+			ESP_LOGE(TAG, "Error setting continous wave! Code: %d", ret);
+			TX_time_sec = 0;
+		} else {
+			ESP_LOGI(TAG, "Testing TX state for %d seconds", TX_time_sec);
+		}
+
+		// Hold continous wave output
+		while ((esp_timer_get_time() - start_time) < (TX_time_sec * MICROSECOND_CONVERSION));
+
+
+	} else {
+		ESP_LOGE(TAG, "Error initializing LoRa");
 	}
-
-	// Hold continous wave output
-	while ((esp_timer_get_time() - start_time) < (TX_time_sec * MICROSECOND_CONVERSION));
-
-
-} else {
-	ESP_LOGE(TAG, "Error initializing LoRa");
-}
-
 
 // RX state test
 /******************************************************************************/
-
+	ESP_LOGI(TAG, "Preparing to enter RX state...");
+	if (sx1262_lora_set_continuous_receive_mode(&LORA_Handle)) {
+		ESP_LOGE(TAG, "Error enterring RX state!");
+	} else {
+		ESP_LOGI(TAG, "Testing RX state for %d seconds", RX_time_sec);
+		while ((esp_timer_get_time() - start_time) < (RX_time_sec * MICROSECOND_CONVERSION));
+	}
 
 // Light sleep state test
 /******************************************************************************/
@@ -144,6 +152,12 @@ if (sx1262_lora_begin(&LORA_Handle)) {
 
 	// Program will resume here once timer reaches wakeup time
 	ESP_LOGI(TAG, "Wokeup from light sleep!");
+
+// Deep sleep state tetst
+/******************************************************************************/
+	ESP_LOGI(TAG, "Preparing to enter deep sleep mode...");
+
+	// configure
 
 	while(1);
 }
