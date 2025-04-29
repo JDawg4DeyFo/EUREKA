@@ -157,7 +157,34 @@ void app_main(void)
 /******************************************************************************/
 	ESP_LOGI(TAG, "Preparing to enter deep sleep mode...");
 
-	// configure
+	// Configure the wakeup timer
+	esp_sleep_enable_timer_wakeup(wakeup_time_sec * MICROSECOND_CONVERSION);
+
+	// Disable all peripherals
+	// i2c
+	
+	// spi
+	sx1262_deinit(&LORA_Handle);
+	// adc
+	// pulse count
+	// gptimer
+	// gpios
+
+	ESP_LOGI(TAG, "Entering deep sleep for %d seconds...", wakeup_time_sec);
+
+	// Light sleep start
+	esp_deep_sleep_start(); // deep sleep mode but LoRa wakeup is enabled
+
+	// Program will resume here once timer reaches wakeup time
+	ESP_LOGI(TAG, "Wokeup from deep sleep!");
+
+	// Disable all peripherals
+	// i2c
+	// spi
+	// adc
+	// pulse count
+	// gptimer
+	// gpios
 
 	while(1);
 }

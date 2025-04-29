@@ -131,7 +131,10 @@ float Get_Wind_Direction(void);
  */
 float Get_Wind_Speed(void);
 
-
-// Could add a function to disable sensors, for when we enter sleep mode.
-
-
+/**
+ * @brief Deinitialize sensors and their associated modules.
+ * 
+ * @return true 
+ * @return false 
+ */
+bool Deinitialize_Sensors(void);

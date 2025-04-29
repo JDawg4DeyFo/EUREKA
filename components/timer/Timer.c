@@ -26,3 +26,8 @@ void FreeRunningTimer_Init()
 		ESP_LOGW(TAG, "Timer has already been initialized!");
 	}
 }
+
+void FreeRunningTimer_Deinit() {
+	Initialized = false;
+	ESP_ERROR_CHECK(gptimer_del_timer(GPT_Handle));
+}
