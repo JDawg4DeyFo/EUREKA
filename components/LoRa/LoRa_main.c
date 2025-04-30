@@ -300,7 +300,6 @@ uint8_t sx1262_lora_begin(sx1262_handle_t *LoRa_handle)
  */
 
  uint8_t sx1262_lora_deinit(sx1262_handle_t *LoRa_handle){
-    sx1262_interface_DIO1_gpio_deinit();
     if (sx1262_deinit(LoRa_handle) != 0) {
        printf("LoRa chip failed to deinitialize\n");
        return 1;

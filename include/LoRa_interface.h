@@ -42,32 +42,6 @@ uint8_t esp32_SPI_bus_deinit(void);
  */
 uint8_t esp32_SPI_WRITE_READ_test(uint8_t *in_buf, uint32_t in_len, uint8_t *out_buf, uint32_t out_len);
 
- /**
- * @brief  Link the SPI bus the sx1262 and the ESP32 with respect to the ESP32 
- * @return status code
- *         - 1 success
- *         - 0 LoRa chip failed to initialize
- * @note   none
- */
-
- /**
- * @brief  interface DIO1 gpio init (serves the purpose of sending a "TX done" interrupt to the MCU for example)
- * @return status code
- *         - 0 success
- *         - 1 init failed
- * @note   none
- */
-uint8_t sx1262_interface_DIO1_gpio_init(void);
-
-/**
- * @brief  interface DIO1 gpio deinit
- * @return status code
- *         - 0 success
- *         - 1 deinit failed
- * @note   none
- */
-uint8_t sx1262_interface_DIO1_gpio_deinit(void);
-
 
  /**
  * @brief  interface reset gpio init
