@@ -491,6 +491,14 @@ uint8_t sx1262_lora_set_continuous_transmit_mode(sx1262_handle_t *LoRa_handle){
     {
         return 1;
     }
+
+     /* set lora packet params */
+     if (sx1262_set_lora_packet_params(LoRa_handle, SX1262_LORA_DEFAULT_PREAMBLE_LENGTH,
+        SX1262_LORA_DEFAULT_HEADER, SX1262_LORA_DEFAULT_BUFFER_SIZE,
+        SX1262_LORA_DEFAULT_CRC_TYPE, SX1262_LORA_DEFAULT_INVERT_IQ) != 0)
+    {
+        return 1;
+    }
         
     /* start transmit*/
     if (sx1262_set_tx_continuous_wave(LoRa_handle) != 0)
