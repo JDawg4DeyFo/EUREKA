@@ -51,6 +51,25 @@ uint8_t esp32_SPI_WRITE_READ_test(uint8_t *in_buf, uint32_t in_len, uint8_t *out
  */
 
  /**
+ * @brief  interface DIO1 gpio init (serves the purpose of sending a "TX done" interrupt to the MCU for example)
+ * @return status code
+ *         - 0 success
+ *         - 1 init failed
+ * @note   none
+ */
+uint8_t sx1262_interface_DIO1_gpio_init(void);
+
+/**
+ * @brief  interface DIO1 gpio deinit
+ * @return status code
+ *         - 0 success
+ *         - 1 deinit failed
+ * @note   none
+ */
+uint8_t sx1262_interface_DIO1_gpio_deinit(void);
+
+
+ /**
  * @brief  interface reset gpio init
  * @return status code
  *         - 0 success

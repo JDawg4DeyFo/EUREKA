@@ -12,7 +12,6 @@
  */
 #include "../../include/LoRa_main.h"
 
-
 /**
  * @brief  sx1262 lora irq
  * @return status code
@@ -301,7 +300,7 @@ uint8_t sx1262_lora_begin(sx1262_handle_t *LoRa_handle)
  */
 
  uint8_t sx1262_lora_deinit(sx1262_handle_t *LoRa_handle){
-    
+    sx1262_interface_DIO1_gpio_deinit();
     if (sx1262_deinit(LoRa_handle) != 0) {
        printf("LoRa chip failed to deinitialize\n");
        return 1;
@@ -473,12 +472,44 @@ uint8_t sx1262_lora_set_shot_receive_mode(sx1262_handle_t *LoRa_handle, double u
 }
 
 /**
+ * @brief  lora example enter to the continuous transmit mode
+ * @return status code
+ *         - 0 success
+ *         - 1 enter failed
+ * @note   none
+ */
+uint8_t sx1262_lora_set_continuous_transmit_mode(sx1262_handle_t *LoRa_handle){
+
+    /* set dio irq */
+    if (sx1262_set_dio_irq_params(LoRa_handle, SX1262_IRQ_TX_DONE | SX1262_IRQ_TIMEOUT | SX1262_IRQ_CAD_DONE | SX1262_IRQ_CAD_DETECTED,
+                                  SX1262_IRQ_TX_DONE | SX1262_IRQ_TIMEOUT | SX1262_IRQ_CAD_DONE | SX1262_IRQ_CAD_DETECTED,
+                                  0x0000, 0x0000) != 0)
+    {
+        return 1;
+    }
+    /* clear irq status */
+    if (sx1262_clear_irq_status(LoRa_handle, 0x03FFU) != 0)
+    {
+        return 1;
+    }
+        
+    /* start transmit*/
+    if (sx1262_set_tx_continuous_wave(LoRa_handle) != 0)
+    {
+        return 1;
+    }
+    
+    return 0;
+}
+
+/**
  * @brief  lora example enter to the send mode
  * @return status code
  *         - 0 success
  *         - 1 enter failed
  * @note   none
  */
+
 uint8_t sx1262_lora_set_send_mode(sx1262_handle_t *LoRa_handle)
 {
     /* set dio irq */

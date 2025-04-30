@@ -80,6 +80,15 @@ uint8_t sx1262_lora_deinit(sx1262_handle_t *LoRa_handle);
 uint8_t sx1262_lora_set_continuous_receive_mode(sx1262_handle_t *LoRa_handle);
 
 /**
+ * @brief  lora example enter to the continuous transmit mode
+ * @return status code
+ *         - 0 success
+ *         - 1 enter failed
+ * @note   none
+ */
+uint8_t sx1262_lora_set_continuous_transmit_mode(sx1262_handle_t *LoRa_handle);
+
+/**
  * @brief     lora example enter to the shot receive mode
  * @param[in] us delay in us
  * @return    status code

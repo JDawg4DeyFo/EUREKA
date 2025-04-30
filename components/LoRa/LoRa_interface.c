@@ -15,16 +15,18 @@
 #include "freertos/task.h"
 #include "esp_log.h"
 
-//Pin numbers on the ESP32 
+//GPIO numbers on the ESP32 
 #define GPIO_MOSI 6
 #define GPIO_MISO 3
 #define GPIO_SCK 5
 #define GPIO_CS 7
 #define GPIO_BUSY 34
 #define GPIO_RESET 8
+#define GPIO_DIO1 33
 
 gpio_num_t GPIO_BUSY_PIN_NUM = GPIO_BUSY;
 gpio_num_t GPIO_RESET_PIN_NUM = GPIO_RESET;
+gpio_num_t GPIO_DIO1_PIN_NUM = GPIO_DIO1;
 
 static spi_device_handle_t slave_handle; 
 
@@ -66,6 +68,14 @@ gpio_config_t Reset_GPIO = {
 
 gpio_config_t Busy_GPIO = {
    .pin_bit_mask = 1ULL << GPIO_BUSY,        
+   .mode = GPIO_MODE_DEF_INPUT,               
+   .pull_up_en = GPIO_PULLUP_DISABLE ,       
+   .pull_down_en = GPIO_PULLDOWN_DISABLE ,   
+   .intr_type = GPIO_INTR_DISABLE,
+};
+
+gpio_config_t DIO1_GPIO = {
+   .pin_bit_mask = 1ULL << GPIO_DIO1,        
    .mode = GPIO_MODE_DEF_INPUT,               
    .pull_up_en = GPIO_PULLUP_DISABLE ,       
    .pull_down_en = GPIO_PULLDOWN_DISABLE ,   
@@ -147,7 +157,7 @@ uint8_t esp32_SPI_WRITE_READ(uint8_t *in_buf, uint32_t in_len, uint8_t *out_buf,
    spi_transaction_t transaction_mes = {
       .tx_buffer = in_buf,
       .rx_buffer = out_buf,
-      .length = in_len * 8,
+      .length = (in_len + out_len) * 8,
       .rxlength = out_len * 8,
    };
 
@@ -160,7 +170,7 @@ uint8_t esp32_SPI_WRITE_READ(uint8_t *in_buf, uint32_t in_len, uint8_t *out_buf,
    printf("spi_device_transmit is a success\n");
 
     // Print out each opcode and the value stored in that buffer
-    for (int i = 0; i < in_len; i++) {
+   for (int i = 0; i < in_len; i++) {
       ESP_LOGI(TAG_SPI, "tx_data :0x%02X", in_buf[i]);
    }
    for (int j = 0; j < out_len; j++){
@@ -169,6 +179,48 @@ uint8_t esp32_SPI_WRITE_READ(uint8_t *in_buf, uint32_t in_len, uint8_t *out_buf,
    
    return 0;
    
+}
+
+/**
+ * @brief  interface DIO1 gpio init (serves the purpose of sending a "TX done" interrupt to the MCU for example)
+ * @return status code
+ *         - 0 success
+ *         - 1 init failed
+ * @note   none
+ */
+uint8_t sx1262_interface_DIO1_gpio_init(void){
+   esp_err_t dio1_res= gpio_config(&DIO1_GPIO);
+
+   if(dio1_res != ESP_OK){
+      printf("GPIO DIO1 Pin has failed to initialize due to: %d\n", dio1_res);
+      return 1;
+   }
+   
+   printf("GPIO DIO1 Pin has been initalized succesfully\n");
+   return 0;
+}
+
+/**
+ * @brief  interface DIO1 gpio deinit
+ * @return status code
+ *         - 0 success
+ *         - 1 deinit failed
+ * @note   none
+ */
+uint8_t sx1262_interface_DIO1_gpio_deinit(void){
+   gpio_mode_t gpio_DIO1_disable = GPIO_MODE_DISABLE;
+   esp_err_t gpio_DIO1_func_test = gpio_reset_pin(GPIO_DIO1_PIN_NUM);
+   esp_err_t gpio_DIO1_disable_func = gpio_set_direction(GPIO_DIO1_PIN_NUM, gpio_DIO1_disable);
+
+   if(((gpio_DIO1_func_test) || (gpio_DIO1_disable_func)) != ESP_OK){
+      printf("GPIO DIO1 Pin has failed to deinitialize, here are the results\n"); 
+      printf("gpio_DIO1_device result: %d\n", gpio_DIO1_func_test);
+      printf("gpio_set_direction result: %d\n", gpio_DIO1_disable_func);
+      return 1;
+   }
+   
+   printf("GPIO DIO1 Pin has been deinitalized succesfully\n");
+   return 0;
 }
 
 /**
@@ -189,6 +241,7 @@ uint8_t sx1262_interface_reset_gpio_init(void){
    printf("GPIO Reset Pin has been initalized succesfully\n");
    return 0;
 }
+
 
 /**
  * @brief  interface reset gpio deinit
@@ -313,7 +366,7 @@ uint8_t sx1262_interface_busy_gpio_read(uint8_t *value){
  * @param[in] fmt format data
  * @note      none
  */
-static const char *TAG = "SX_1262 DEBUG Print";
+static const char *TAG = "LoRa Chip Status Update";
 
 void sx1262_interface_debug_print(const char *const fmt, ...){
    va_list args;
@@ -412,7 +465,7 @@ void sx1262_interface_receive_callback(uint16_t type, uint8_t *buf, uint16_t len
  /**
  * @brief  Initialize the LoRa chip
  * @return status code
- *         - 1 LoRa chip failed to initialize
+ *         - 1 fail
  *         - 0 success
  * @note   none
  */
@@ -432,8 +485,9 @@ uint8_t sx1262_device_init(sx1262_handle_t *LoRa_handle){
    DRIVER_SX1262_LINK_DELAY_MS(LoRa_handle, sx1262_interface_delay_ms);
    DRIVER_SX1262_LINK_DEBUG_PRINT(LoRa_handle, sx1262_interface_debug_print);
    DRIVER_SX1262_LINK_RECEIVE_CALLBACK(LoRa_handle, sx1262_interface_receive_callback);
-   
+
    uint8_t check_LoRa_init = sx1262_init(LoRa_handle);
+   //sx1262_interface_DIO1_gpio_init();
 
    if (check_LoRa_init != 0){
       printf("LoRa chip failed to initialize, reason: %d\n", check_LoRa_init);
