@@ -288,6 +288,7 @@ uint8_t sx1262_lora_begin(sx1262_handle_t *LoRa_handle)
         return 1;
     }
     
+
     return 0;
 }
 

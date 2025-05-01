@@ -5,7 +5,8 @@
         "math.h": "c",
         "lora_driver.h": "c",
         "timer.h": "c",
-        "lora_main.h": "c"
+        "lora_main.h": "c",
+        "cstdint": "c"
     },
     "C_Cpp.dimInactiveRegions": false
 }

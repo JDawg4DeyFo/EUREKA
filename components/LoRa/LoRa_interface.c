@@ -76,7 +76,7 @@ gpio_config_t Busy_GPIO = {
 
 gpio_config_t DIO1_GPIO = {
    .pin_bit_mask = 1ULL << GPIO_DIO1,        
-   .mode = GPIO_MODE_DEF_INPUT,               
+   .mode = GPIO_MODE_DEF_OUTPUT,               
    .pull_up_en = GPIO_PULLUP_DISABLE ,       
    .pull_down_en = GPIO_PULLDOWN_DISABLE ,   
    .intr_type = GPIO_INTR_DISABLE,
@@ -171,7 +171,7 @@ uint8_t esp32_SPI_WRITE_READ(uint8_t *in_buf, uint32_t in_len, uint8_t *out_buf,
 
     // Print out each opcode and the value stored in that buffer
    for (int i = 0; i < in_len; i++) {
-      ESP_LOGI(TAG_SPI, "tx_data :0x%02X", in_buf[i]);
+      ESP_LOGI(TAG_SPI, "tx_data :0x%02X, ", in_buf[i]);
    }
    for (int j = 0; j < out_len; j++){
       ESP_LOGI(TAG_SPI, "rx_data :0x%02X", out_buf[j]);
@@ -191,6 +191,7 @@ uint8_t esp32_SPI_WRITE_READ(uint8_t *in_buf, uint32_t in_len, uint8_t *out_buf,
  */
 uint8_t sx1262_interface_reset_gpio_init(void){
    esp_err_t check_result4 = gpio_config(&Reset_GPIO);
+   gpio_config(&DIO1_GPIO);
 
    if(check_result4 != ESP_OK){
       printf("GPIO Reset Pin has failed to initialize due to: %d\n", check_result4);
@@ -214,6 +215,9 @@ uint8_t sx1262_interface_reset_gpio_deinit(void){
    gpio_mode_t gpio_reset_disable = GPIO_MODE_DISABLE;
    esp_err_t gpio_reset_func_test = gpio_reset_pin(GPIO_RESET_PIN_NUM);
    esp_err_t gpio_reset_disable_func = gpio_set_direction(GPIO_RESET_PIN_NUM, gpio_reset_disable);
+   
+   gpio_reset_pin(GPIO_DIO1_PIN_NUM);
+   gpio_set_direction(GPIO_DIO1_PIN_NUM, gpio_reset_disable);
 
    if(((gpio_reset_func_test) || (gpio_reset_disable_func)) != ESP_OK){
       printf("GPIO Reset Pin has failed to deinitialize, here are the results\n"); 
