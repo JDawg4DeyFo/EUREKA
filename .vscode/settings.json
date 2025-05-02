@@ -1,5 +1,6 @@
 {
     "files.associations": {
+<<<<<<< HEAD
         "lora_interface.h": "c",
         "spi_master.h": "c",
         "math.h": "c",
@@ -12,5 +13,15 @@
         "driver_sx1262_send_receive_test.h": "c",
         "driver_sx1262_cad_test.h": "c"
     },
+=======
+		"lora_interface.h": "c",
+		"spi_master.h": "c",
+		"math.h": "c",
+		"lora_driver.h": "c",
+		"timer.h": "c",
+		"lora_main.h": "c",
+		"i2c.h": "c"
+	},
+>>>>>>> jacob
     "C_Cpp.dimInactiveRegions": false
 }

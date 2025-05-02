@@ -11,7 +11,6 @@
 #include "I2C.h"
 #include <math.h>
 
-#include "../../include/Timer.h"
 #include "driver/pulse_cnt.h"
 
 /*******************************************************************************
@@ -39,12 +38,16 @@
 #define KEY_TO_DEG 22.5
 #define ANEMOMETER_GPIO	CONFIG_ANEMOMETER_GPIO
 #define WINDVANE_GPIO	CONFIG_WINDVANE_GPIO
-	// ADC defines
-	#define ADC_BITWIDTH 12.0
-	#define MAX_ADC_VOLTAGE 3.3
-	// PCNT defines
-	#define PCNT_HIGH_LIMIT 10
-	#define PCNT_LOW_LIMIT -10
+// #define ANEMOMETER_VELOCITY_CONSTANT 0.6666 // m/s
+#define ANEMOMETER_VELOCITY_CONSTANT 2.4 // km/h
+
+//	 ADC defines
+#define ADC_BITWIDTH 12.0
+#define MAX_ADC_VOLTAGE 3.3
+
+// PCNT defines
+#define PCNT_HIGH_LIMIT 10
+#define PCNT_LOW_LIMIT -10
 
 /*******************************************************************************
  * PUBLIC DATATYPES
@@ -56,6 +59,7 @@ typedef enum {
 	ANEMOMETER = 0x4,
     SHT30 = 0X8,
 } SensorsIDs_t;
+#define ALL_SENSORS 0xF
 
 // Possible errors.
 // 1st draft, will need to add or remove as needed
@@ -67,11 +71,11 @@ typedef enum {
 } SesnorErrors_t;
 
 typedef struct {
-	int IterationCount;
+	uint64_t Duration;
 	uint64_t StartTime;
 	uint64_t EndTime;
-	gptimer_handle_t *TimerHandle;
 	pcnt_unit_handle_t *PCNTHandle;
+	int TotalIterations;
 } PCNT_State_t;
 
 /*******************************************************************************
@@ -124,9 +128,14 @@ float Get_Wind_Direction(void);
 /**
  * @brief Get wind speed from anemometer pulse width
  * 
- * @return float wind speed
+ * @return float wind speed, in meters per second
  */
 float Get_Wind_Speed(void);
 
-
-// Could add a function to disable sensors, for when we enter sleep mode.
+/**
+ * @brief Deinitialize sensors and their associated modules.
+ * 
+ * @return true 
+ * @return false 
+ */
+bool Deinitialize_Sensors(void);
