@@ -112,7 +112,7 @@ uint8_t sht3x_generate_crc(const uint8_t* data, uint16_t count) {
 esp_err_t sht3x_send_command(uint8_t *command, i2c_master_dev_handle_t Dev_Handle) {
     esp_err_t err = ESP_OK;
 
-	ESP_ERROR_CHECK(i2c_master_transmit(Dev_Handle, command, sizeof(command), I2C_MASTER_TIMEOUT_MS));
+	ESP_ERROR_CHECK_WITHOUT_ABORT(i2c_master_transmit(Dev_Handle, command, sizeof(command), I2C_MASTER_TIMEOUT_MS));
 
     return err;
 }
@@ -126,7 +126,7 @@ esp_err_t sht3x_send_command(uint8_t *command, i2c_master_dev_handle_t Dev_Handl
 esp_err_t sht3x_read(uint8_t *hex_code, uint8_t *measurements, uint8_t size, i2c_master_dev_handle_t Dev_Handle) {
     esp_err_t err = ESP_OK;
 
-	ESP_ERROR_CHECK(i2c_master_transmit_receive(Dev_Handle, hex_code, SHT3X_HEX_CODE_SIZE, measurements, size, I2C_MASTER_TIMEOUT_MS));
+	ESP_ERROR_CHECK_WITHOUT_ABORT(i2c_master_transmit_receive(Dev_Handle, hex_code, SHT3X_HEX_CODE_SIZE, measurements, size, I2C_MASTER_TIMEOUT_MS));
 
     return err;
 }
@@ -140,8 +140,8 @@ esp_err_t sht3x_read(uint8_t *hex_code, uint8_t *measurements, uint8_t size, i2c
 esp_err_t sht3x_write(uint8_t *hex_code, uint8_t *measurements, uint8_t size, i2c_master_dev_handle_t Dev_Handle) {
     esp_err_t err = ESP_OK;
 
-	ESP_ERROR_CHECK(i2c_master_transmit(Dev_Handle, hex_code, SHT3X_HEX_CODE_SIZE, I2C_MASTER_TIMEOUT_MS));
-	ESP_ERROR_CHECK(i2c_master_transmit(Dev_Handle, measurements, size, I2C_MASTER_TIMEOUT_MS));
+	ESP_ERROR_CHECK_WITHOUT_ABORT(i2c_master_transmit(Dev_Handle, hex_code, SHT3X_HEX_CODE_SIZE, I2C_MASTER_TIMEOUT_MS));
+	ESP_ERROR_CHECK_WITHOUT_ABORT(i2c_master_transmit(Dev_Handle, measurements, size, I2C_MASTER_TIMEOUT_MS));
 
     return err;
 }
@@ -155,11 +155,11 @@ esp_err_t sht3x_write(uint8_t *hex_code, uint8_t *measurements, uint8_t size, i2
 esp_err_t sht3x_send_command_and_fetch_result(uint8_t *command, uint8_t *measurements, uint8_t size, i2c_master_dev_handle_t Dev_Handle) {
     esp_err_t err = ESP_OK;	
 
-	ESP_ERROR_CHECK(i2c_master_transmit(Dev_Handle, command, sizeof(command), I2C_MASTER_TIMEOUT_MS));
+	ESP_ERROR_CHECK_WITHOUT_ABORT(i2c_master_transmit(Dev_Handle, command, sizeof(command), I2C_MASTER_TIMEOUT_MS));
 
     delay_ms(1000);
 
-    ESP_ERROR_CHECK(i2c_master_receive(Dev_Handle, measurements, size,I2C_MASTER_TIMEOUT_MS));
+    ESP_ERROR_CHECK_WITHOUT_ABORT(i2c_master_receive(Dev_Handle, measurements, size,I2C_MASTER_TIMEOUT_MS));
 
     return err;
 }

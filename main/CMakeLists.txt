@@ -39,10 +39,18 @@ elseif(CONFIG_RX_PINGPONG_TEST)
 	list(APPEND srcs RX_Pong.c)
 	list(APPEND requires)
 	list(APPEND priv_requires PingPong)
+elseif(CONFIG_PCNT_TEST)
+	list(APPEND srcs )
+	list(APPEND requires)
+	list(APPEND priv_requires)
+elseif(CONFIG_POWER_TEST)
+	list(APPEND srcs PowerTest.c)
+	list(APPEND requires)
+	list(APPEND priv_requires sensors esp_timer LoRa)
 endif()
 
 # Register main as the component
 idf_component_register(SRCS "${srcs}"
-                       INCLUDE_DIRS "${include_dirs}"
-                       REQUIRES "${requires}"
-		       PRIV_REQUIRES "${priv_requires}")
+                    INCLUDE_DIRS "${include_dirs}"
+            		REQUIRES "${requires}"
+		       		PRIV_REQUIRES "${priv_requires}")

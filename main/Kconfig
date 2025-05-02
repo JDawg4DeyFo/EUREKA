@@ -1,8 +1,11 @@
 ## CONDITIONAL BUILD FLAGS
 # Sensors test harness
+choice
+	prompt "Select build version"
+
 config SENSOR_LIB_TEST
 	bool "Build sensor test harness"
-	default n
+	default y
 
 config LORA_LIB_TEST
 	bool "Build LoRa test harness"
@@ -15,3 +18,11 @@ config TX_PINGPONG_TEST
 config RX_PINGPONG_TEST
 	bool "Build RX_Ping for PingPong Test"
 	default n
+
+config PCNT_TEST
+	bool "Build Pulse Count test harness"
+
+config POWER_TEST
+	bool "Build power test harness"
+
+endchoice

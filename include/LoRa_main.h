@@ -82,7 +82,7 @@ uint8_t sx1262_lora_irq_handler(sx1262_handle_t *LoRa_handle);
 uint8_t sx1262_lora_begin(sx1262_handle_t *LoRa_handle);
 
 /**
- * @brief  Deinitalize the LoRa
+ * @brief  Deinitalize the LoRa. Also deinitializes the SPI module.
  * @return status code
  *         - 1 success
  *         - 0 LoRa chip failed to deinitialize

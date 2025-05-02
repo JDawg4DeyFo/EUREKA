@@ -5,10 +5,10 @@
 set(srcs Sensors.c SHT3X.c)
 
 # Declare public dependencies
-set(requires timer esp_driver_pcnt)
+set(requires esp_driver_pcnt)
 
 # Declare private dependencies
-set(priv_requires esp_driver_i2c esp_adc)
+set(priv_requires esp_driver_i2c esp_adc esp_timer)
 
 # Register component
 idf_component_register(SRCS "${srcs}"

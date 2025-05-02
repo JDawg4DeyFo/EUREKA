@@ -23,21 +23,45 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_log.h"
+#include "esp_timer.h"
 
 
 #include "driver/i2c_master.h"
 #include "esp_adc/adc_oneshot.h"
-#include "driver/gptimer.h"
 
+// VARIABLES
+/******************************************************************************/
+/******************************************************************************/
 static const char *TAG = "Sensors";
 
-// standard delay :P
-static void delay_ms(int ms)
-{
-    vTaskDelay((ms) / portTICK_PERIOD_MS);
-}
+// Whether or not init function has already been called
+static uint8_t Already_Called = 0;
 
+// Wind direction lookup tables
+static float WindDirection_LookupTable[NUMBER_OF_KEYS] = {
+	2.53,
+	1.31,
+	1.49,
+	0.27,
+	0.30,
+	0.21,
+	0.60,
+	0.41,
+	0.93,
+	0.79,
+	2.03,
+	1.93,
+	3.05,
+	2.67,
+	2.86,
+	2.26
+};
 
+// ADC max reading
+static float Max_ADC_Reading = pow(2, ADC_BITWIDTH);
+
+// Handles and configurations
+/******************************************************************************/
 // Master i2c bus configuration
 static i2c_master_bus_config_t i2c_bus_config = {
 	.clk_source = I2C_CLK_SRC_DEFAULT,
@@ -62,7 +86,6 @@ static i2c_device_config_t SHT30_Cfg = {
 	.scl_speed_hz = I2C_MASTER_FREQ_HZ,
 };
 
-
 // Sensor device handles
 static i2c_master_dev_handle_t Soil_Handle;
 static i2c_master_dev_handle_t SHT30_Handle;
@@ -71,7 +94,7 @@ static i2c_master_dev_handle_t SHT30_Handle;
 static adc_oneshot_unit_handle_t ADC_Handle;
 
 static adc_oneshot_unit_init_cfg_t ADC_Init_cfg = {
-	.unit_id = ADC_UNIT_1,
+	.unit_id = ADC_UNIT_2,
 	.ulp_mode = ADC_ULP_MODE_DISABLE,
 };
 
@@ -80,62 +103,41 @@ static adc_oneshot_chan_cfg_t ADC_cfg = {
 	.atten = ADC_ATTEN_DB_12,
 };
 
-// look up tableeee
-static float WindDirection_LookupTable[NUMBER_OF_KEYS] = {
-	2.53,
-	1.31,
-	1.49,
-	0.27,
-	0.30,
-	0.21,
-	0.60,
-	0.41,
-	0.93,
-	0.79,
-	2.03,
-	1.93,
-	3.05,
-	2.67,
-	2.86,
-	2.26
-};
-static float Max_ADC_Reading = pow(2, ADC_BITWIDTH);
-
-// Timer variables
-extern gptimer_handle_t GPT_Handle;
-static int Duration = 0;
-
-// PCNT handles and config
 static pcnt_unit_handle_t PCNT_Unit = NULL;
 static pcnt_unit_config_t PCNT_Unit_cfg = {
 	.high_limit = PCNT_HIGH_LIMIT,
 	.low_limit = PCNT_LOW_LIMIT,
 };
+
+// PCNT handles and config
 static pcnt_channel_handle_t PCNT_Channel = NULL;
 static pcnt_chan_config_t PCNT_Channel_cfg = {
 	.edge_gpio_num = ANEMOMETER_GPIO,
 };
 
+// DATA STRUCTURES
+/******************************************************************************/
 static PCNT_State_t PCNT_State = {
-	.IterationCount = 0,
+	.Duration = 0,
 	.StartTime = 0,
 	.EndTime = 0,
-	.TimerHandle = &GPT_Handle,
 	.PCNTHandle = &PCNT_Unit,
+	.TotalIterations = 0,
 };
 
 static bool PCNT_CallbackLogic(pcnt_unit_handle_t unit, const pcnt_watch_event_data_t *edata, void *user_ctx) {
 	// Pass context to internal variable
 	PCNT_State_t *state = (PCNT_State_t *)user_ctx;
 
-	if(state->IterationCount == 0) {
-		state->IterationCount++;
-		gptimer_get_raw_count(*(state->TimerHandle), &state->StartTime);
+	state->TotalIterations++;
+
+	if(edata->watch_point_value == 1) {
+		state->StartTime = esp_timer_get_time();
 	} else {
-		state->IterationCount = 0;
-		gptimer_get_raw_count(*(state->TimerHandle), &state->EndTime);
-		ESP_ERROR_CHECK(pcnt_unit_stop(*(state->PCNTHandle)));
-		ESP_ERROR_CHECK(pcnt_unit_clear_count(*(state->PCNTHandle)));
+		state->EndTime = esp_timer_get_time();
+		state->Duration = state->EndTime - state->StartTime;
+		// ESP_ERROR_CHECK_WITHOUT_ABORT(pcnt_unit_stop(*(state->PCNTHandle)));
+		ESP_ERROR_CHECK_WITHOUT_ABORT(pcnt_unit_clear_count(*(state->PCNTHandle)));
 	}
 
 	return pdFALSE;
@@ -145,10 +147,19 @@ static pcnt_event_callbacks_t PCNT_Callbacks = {
 	.on_reach = PCNT_CallbackLogic,
 };
 
+// FUNCTIONS
+/******************************************************************************/
+/******************************************************************************/
+
+// standard delay :P
+static void delay_ms(int ms)
+{
+    vTaskDelay((ms) / portTICK_PERIOD_MS);
+}
+
 
 SensorsIDs_t Sensors_Init(SensorsIDs_t Sensors)
 {
-	static uint8_t Already_Called = 0;
 	SensorsIDs_t ReturnStatus;
 
 	// First step will be to Initialize the I2C Bus.
@@ -156,7 +167,7 @@ SensorsIDs_t Sensors_Init(SensorsIDs_t Sensors)
 	if (!Already_Called)
 	{
 		
-		ESP_ERROR_CHECK(i2c_new_master_bus(&i2c_bus_config, &Bus_Handle));
+		ESP_ERROR_CHECK_WITHOUT_ABORT(i2c_new_master_bus(&i2c_bus_config, &Bus_Handle));
 	}
 	// If I2C_Init() passes, set Already_Called to 1.
 	Already_Called = 1;
@@ -167,7 +178,7 @@ SensorsIDs_t Sensors_Init(SensorsIDs_t Sensors)
 	ReturnStatus = 0;
 	if (Sensors && SOIL)
 	{
-		ESP_ERROR_CHECK(i2c_master_bus_add_device(Bus_Handle, &Soil_Cfg, &Soil_Handle));
+		ESP_ERROR_CHECK_WITHOUT_ABORT(i2c_master_bus_add_device(Bus_Handle, &Soil_Cfg, &Soil_Handle));
 		
 		ReturnStatus |= SOIL;
 	}
@@ -176,8 +187,8 @@ SensorsIDs_t Sensors_Init(SensorsIDs_t Sensors)
 	{
 		// Initialization code:
 		//	1. Initialize ADC Module
-		ESP_ERROR_CHECK(adc_oneshot_new_unit(&ADC_Init_cfg, &ADC_Handle));
-		ESP_ERROR_CHECK(adc_oneshot_config_channel(ADC_Handle, ADC_CHANNEL_1, &ADC_cfg));
+		ESP_ERROR_CHECK_WITHOUT_ABORT(adc_oneshot_new_unit(&ADC_Init_cfg, &ADC_Handle));
+		ESP_ERROR_CHECK_WITHOUT_ABORT(adc_oneshot_config_channel(ADC_Handle, ADC_CHANNEL_1, &ADC_cfg));
 		//  2. Verify connectivity of sensor
 		ReturnStatus |= WINDVANE;
 	}
@@ -185,23 +196,25 @@ SensorsIDs_t Sensors_Init(SensorsIDs_t Sensors)
 	if (Sensors && ANEMOMETER)
 	{
 		// Initialize free running timer
-		FreeRunningTimer_Init();
+		esp_timer_init();
 
 		
 		// Initialize PCNT
-		ESP_ERROR_CHECK(pcnt_new_unit(&PCNT_Unit_cfg, &PCNT_Unit));
-		ESP_ERROR_CHECK(pcnt_new_channel(PCNT_Unit, &PCNT_Channel_cfg, &PCNT_Channel));
+		ESP_ERROR_CHECK_WITHOUT_ABORT(pcnt_new_unit(&PCNT_Unit_cfg, &PCNT_Unit));
+		ESP_ERROR_CHECK_WITHOUT_ABORT(pcnt_new_channel(PCNT_Unit, &PCNT_Channel_cfg, &PCNT_Channel));
 
 		// Configure channel behavior
-		ESP_ERROR_CHECK(pcnt_channel_set_edge_action(PCNT_Channel, PCNT_CHANNEL_EDGE_ACTION_INCREASE, PCNT_CHANNEL_LEVEL_ACTION_HOLD));
-		ESP_ERROR_CHECK(pcnt_unit_add_watch_point(PCNT_Unit, 1));	// log start
-		ESP_ERROR_CHECK(pcnt_unit_add_watch_point(PCNT_Unit, 2));	// log time elapsed
-		ESP_ERROR_CHECK(pcnt_unit_register_event_callbacks(PCNT_Unit, &PCNT_Callbacks, &PCNT_State));
+		ESP_ERROR_CHECK_WITHOUT_ABORT(pcnt_channel_set_edge_action(PCNT_Channel, PCNT_CHANNEL_EDGE_ACTION_INCREASE, PCNT_CHANNEL_EDGE_ACTION_DECREASE));
+		ESP_ERROR_CHECK_WITHOUT_ABORT(pcnt_unit_add_watch_point(PCNT_Unit, 1));	// log start
+		ESP_ERROR_CHECK_WITHOUT_ABORT(pcnt_unit_add_watch_point(PCNT_Unit, 0));	// log time elapsed
+		ESP_ERROR_CHECK_WITHOUT_ABORT(pcnt_unit_register_event_callbacks(PCNT_Unit, &PCNT_Callbacks, &PCNT_State));
 
 		// Start channel up
-		ESP_ERROR_CHECK(pcnt_unit_enable(PCNT_Unit));
-		ESP_ERROR_CHECK(pcnt_unit_stop(PCNT_Unit));
-		ESP_ERROR_CHECK(pcnt_unit_clear_count(PCNT_Unit));
+		ESP_ERROR_CHECK_WITHOUT_ABORT(pcnt_unit_enable(PCNT_Unit));
+		ESP_ERROR_CHECK_WITHOUT_ABORT(pcnt_unit_stop(PCNT_Unit));
+		ESP_ERROR_CHECK_WITHOUT_ABORT(pcnt_unit_clear_count(PCNT_Unit));
+		ESP_ERROR_CHECK_WITHOUT_ABORT(pcnt_unit_start(PCNT_Unit));
+
 
 		ReturnStatus |= ANEMOMETER;
 	}
@@ -209,7 +222,7 @@ SensorsIDs_t Sensors_Init(SensorsIDs_t Sensors)
 	// Sensor 2: SHT30
 	if (Sensors && SHT30)
 	{
-		ESP_ERROR_CHECK(i2c_master_bus_add_device(Bus_Handle, &SHT30_Cfg, &SHT30_Handle));
+		ESP_ERROR_CHECK_WITHOUT_ABORT(i2c_master_bus_add_device(Bus_Handle, &SHT30_Cfg, &SHT30_Handle));
 		
 		ReturnStatus |= SHT30;
 	}
@@ -248,8 +261,8 @@ esp_err_t Read_SoilTemperature(float *Reading)
 	size_t Read_Buffer_Size = SOIL_TEMP_DATA_LENGTH;
 	uint8_t Read_Buffer[SOIL_TEMP_DATA_LENGTH];
 	
-	Write_Buffer[0] = STEMMA_MOISTURE_BASE_REG;
-	Write_Buffer[1] = STEMMA_MOISTURE_FUNC_REG;
+	Write_Buffer[0] = STEMMA_TEMP_BASE_REG;
+	Write_Buffer[1] = STEMMA_TEMP_FUNC_REG;
 
 	ESP_LOGI(TAG, "Made it to line 156");
 
@@ -286,7 +299,7 @@ float Get_Wind_Direction() {
 	
 	// Procedure:
 	// 1. Read raw adc
-	ESP_ERROR_CHECK(adc_oneshot_read(ADC_Handle, ADC_CHANNEL_1, &Reading));
+	ESP_ERROR_CHECK_WITHOUT_ABORT(adc_oneshot_read(ADC_Handle, ADC_CHANNEL_1, &Reading));
 
 	// 2. convert to voltage
 	Voltage = (Reading / Max_ADC_Reading) * MAX_ADC_VOLTAGE;
@@ -315,20 +328,36 @@ float Get_Wind_Direction() {
 
 float Get_Wind_Speed(void) {
 	float Speed;
-	// if iteration  = 1, then system is currently measuring speed. in that case
-	// just return previous measurement
-	if (PCNT_State.IterationCount == 1) {
-		// conversion code
-		Speed = Duration - 1;
-		return Speed;
-	}
-	
-	// Otherwise, return previous measurement and start a new measurement
-	// also update duration
-	Duration = PCNT_State.EndTime - PCNT_State.StartTime;
-	
-	ESP_ERROR_CHECK(pcnt_unit_clear_count(PCNT_Unit));
-	ESP_ERROR_CHECK(pcnt_unit_start(PCNT_Unit));
+	ESP_LOGW(TAG, "Total Iterations: %d", PCNT_State.TotalIterations);
 
-	return 0;
+	Speed = ANEMOMETER_VELOCITY_CONSTANT / PCNT_State.Duration;
+
+	return Speed;
 }
+
+bool Deinitialize_Sensors(void) {
+	// Indicate that sensors have been deinitialized
+	Already_Called = 0;
+	// Deinit I2C
+	// remove devices
+	ESP_ERROR_CHECK_WITHOUT_ABORT(i2c_master_bus_rm_device(Soil_Handle));
+	ESP_ERROR_CHECK_WITHOUT_ABORT(i2c_master_bus_rm_device(SHT30_Handle));
+
+	// remove bus
+	ESP_ERROR_CHECK_WITHOUT_ABORT(i2c_del_master_bus(Bus_Handle));
+	
+	// Deinit ADC
+	adc_oneshot_del_unit(ADC_Handle);
+
+	// deinit pulse count
+	pcnt_unit_disable(PCNT_Unit);
+	pcnt_del_channel(PCNT_Channel);
+	pcnt_del_unit(PCNT_Unit);
+
+	// deinit gptimer
+	// FreeRunningTimer_Deinit();
+
+	return true;
+}
+
+
