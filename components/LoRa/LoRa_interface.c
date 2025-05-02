@@ -41,7 +41,7 @@ spi_device_interface_config_t dev_config = {
    .address_bits = 0,
    .dummy_bits = 0,     
    .mode = 0,
-   .clock_speed_hz = SPI_MASTER_FREQ_8M, //clk_speed = 8 MHz
+   .clock_speed_hz = SPI_MASTER_FREQ_26M, //clk_speed = 26 MHz
    .duty_cycle_pos = 128, //Duty cycle = 50%
    .spics_io_num = GPIO_CS,
    .queue_size = 1,
@@ -71,7 +71,7 @@ gpio_config_t DIO1_GPIO = {
    .mode = GPIO_MODE_DEF_INPUT,               
    .pull_up_en = GPIO_PULLUP_DISABLE ,       
    .pull_down_en = GPIO_PULLDOWN_DISABLE ,   
-   .intr_type = GPIO_INTR_HIGH_LEVEL,
+   .intr_type = GPIO_INTR_POSEDGE,
 };
 
   /**

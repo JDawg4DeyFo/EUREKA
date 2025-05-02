@@ -519,18 +519,9 @@ uint8_t sx1262_lora_set_continuous_transmit_mode(sx1262_handle_t *LoRa_handle){
 
 uint8_t sx1262_lora_set_send_mode(sx1262_handle_t *LoRa_handle)
 {
-    /* set lora packet params */
-    if (sx1262_set_lora_packet_params(LoRa_handle, SX1262_LORA_DEFAULT_PREAMBLE_LENGTH,
-        SX1262_LORA_DEFAULT_HEADER, SX1262_LORA_DEFAULT_BUFFER_SIZE,
-        SX1262_LORA_DEFAULT_CRC_TYPE, SX1262_LORA_DEFAULT_INVERT_IQ) != 0)
-    {
-        return 1;
-    }
-
+    
     /* set dio irq */
-    if (sx1262_set_dio_irq_params(LoRa_handle, SX1262_IRQ_TX_DONE | SX1262_IRQ_TIMEOUT | SX1262_IRQ_CAD_DONE | SX1262_IRQ_CAD_DETECTED,
-                                  SX1262_IRQ_TX_DONE | SX1262_IRQ_TIMEOUT | SX1262_IRQ_CAD_DONE | SX1262_IRQ_CAD_DETECTED,
-                                  0x0000, 0x0000) != 0)
+    if (sx1262_set_dio_irq_params(LoRa_handle, SX1262_IRQ_TX_DONE, SX1262_IRQ_TX_DONE, 0x0000, 0x0000) != 0)
     {
         return 1;
     }
