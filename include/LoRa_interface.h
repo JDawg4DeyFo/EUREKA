@@ -78,7 +78,7 @@ uint8_t sx1262_interface_reset_gpio_write(uint8_t data);
  *         - 1 init failed
  * @note   none
  */
-uint8_t sx1262_interface_busy_gpio_init(void);
+uint8_t sx1262_interface_busy_dio1_gpios_init(void);
 
 /**
  * @brief  interface busy gpio deinit
@@ -87,7 +87,7 @@ uint8_t sx1262_interface_busy_gpio_init(void);
  *         - 1 deinit failed
  * @note   none
  */
-uint8_t sx1262_interface_busy_gpio_deinit(void);
+uint8_t sx1262_interface_busy_dio1_gpios_deinit(void);
 
 /**
  * @brief      interface busy gpio read

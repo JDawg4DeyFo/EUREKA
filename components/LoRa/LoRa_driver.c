@@ -32,6 +32,7 @@
  * 
  */
 #include "LoRa_driver.h"
+#include "driver/gpio.h"
 #include <math.h>
 
 /**
@@ -527,7 +528,7 @@ uint8_t sx1262_irq_handler(sx1262_handle_t *handle)
     {
         if (handle->receive_callback != NULL)                                                                  /* if receive callback */
         {
-            handle->receive_callback(SX1262_IRQ_TX_DONE, NULL, 0);                                             /* run callback */
+            handle->receive_callback(SX1262_IRQ_TX_DONE, NULL, 0);                                               /* run callback */
         }
         handle->tx_done = 1;                                                                                   /* flag tx done */
     }
@@ -1259,11 +1260,11 @@ uint8_t sx1262_lora_transmit(sx1262_handle_t *handle, sx1262_clock_source_t stan
        
         return 1;                                                                                          /* return error */
     }
-    ms = us / 1000 + 10000;                                                                                /* set timeout */
+        ms = us / 1000 + 10000;                                                                               /* set timeout */
     while ((ms != 0) && (handle->tx_done == 0) && (handle->timeout == 0))                                  /* check timeout */
     {
         handle->delay_ms(1);                                                                               /* delay 1 ms */
-        ms--;                                                                                              /* ms-- */
+        ms--;                                                                                             /* ms-- */
     }
     if ((ms != 0) && (handle->tx_done == 1))                                                               /* check the result */
     {

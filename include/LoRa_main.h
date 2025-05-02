@@ -43,7 +43,7 @@
 #define SX1262_LORA_DEFAULT_PA_CONFIG_HP_MAX            0x07                              /**< set +22dBm power */
 #define SX1262_LORA_DEFAULT_TX_DBM                      22                                /**< +22dBm */
 #define SX1262_LORA_DEFAULT_RAMP_TIME                   SX1262_RAMP_TIME_10US             /**< set ramp time 10 us */
-#define SX1262_LORA_DEFAULT_SF                          SX1262_LORA_SF_12                  /**< sf12 */
+#define SX1262_LORA_DEFAULT_SF                          SX1262_LORA_SF_12                 /**< sf12 */
 #define SX1262_LORA_DEFAULT_BANDWIDTH                   SX1262_LORA_BANDWIDTH_125_KHZ     /**< 125khz */
 #define SX1262_LORA_DEFAULT_CR                          SX1262_LORA_CR_4_5                /**< cr4/5 */
 #define SX1262_LORA_DEFAULT_LOW_DATA_RATE_OPTIMIZE      SX1262_BOOL_FALSE                 /**< disable low data rate optimize */
@@ -60,7 +60,7 @@
 #define SX1262_LORA_DEFAULT_CAD_SYMBOL_NUM              SX1262_LORA_CAD_SYMBOL_NUM_2      /**< 2 symbol */
 #define SX1262_LORA_DEFAULT_CAD_DET_PEAK                24                                /**< 24 */
 #define SX1262_LORA_DEFAULT_CAD_DET_MIN                 10                                /**< 10 */
-#define SX1262_LORA_DEFAULT_START_MODE                  SX1262_START_MODE_WARM            /**< warm mode */
+#define SX1262_LORA_DEFAULT_START_MODE                  SX1262_START_MODE_COLD           /**< warm mode */
 #define SX1262_LORA_DEFAULT_RTC_WAKE_UP                 SX1262_BOOL_TRUE                  /**< enable rtc wake up */
 
 /**

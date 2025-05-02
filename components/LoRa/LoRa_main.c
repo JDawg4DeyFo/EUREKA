@@ -65,7 +65,7 @@ uint8_t sx1262_lora_begin(sx1262_handle_t *LoRa_handle)
     uint32_t reg;
     uint8_t modulation;
     uint8_t config;
-    
+    uint8_t enable = 1;
     
     /* init the sx1262 */
     res = sx1262_device_init(LoRa_handle);
@@ -308,6 +308,27 @@ uint8_t sx1262_lora_begin(sx1262_handle_t *LoRa_handle)
         
         return 1;
     }
+
+    /* get dio output enable */
+    res = sx1262_get_dio_output_enable(LoRa_handle, (uint8_t *)&enable);
+    if (res != 0)
+    {
+        sx1262_interface_debug_print("sx1262: get dio output enable failed.\n");
+        sx1262_deinit(LoRa_handle);
+        
+        return 1;
+    }
+    modulation |= 0x04;
+    
+    /* set dio output enable */
+    res = sx1262_set_dio_output_enable(LoRa_handle, enable);
+    if (res != 0)
+    {
+        sx1262_interface_debug_print("sx1262: set dio output enable failed.\n");
+        sx1262_deinit(LoRa_handle);
+        
+        return 1;
+    }
     
 
     return 0;
@@ -500,13 +521,6 @@ uint8_t sx1262_lora_set_shot_receive_mode(sx1262_handle_t *LoRa_handle, double u
  * @note   none
  */
 uint8_t sx1262_lora_set_continuous_transmit_mode(sx1262_handle_t *LoRa_handle){
-    /* set lora packet params */
-    if (sx1262_set_lora_packet_params(LoRa_handle, SX1262_LORA_DEFAULT_PREAMBLE_LENGTH,
-        SX1262_LORA_DEFAULT_HEADER, SX1262_LORA_DEFAULT_BUFFER_SIZE,
-        SX1262_LORA_DEFAULT_CRC_TYPE, SX1262_LORA_DEFAULT_INVERT_IQ) != 0)
-    {
-        return 1;
-    }
     
     /* set dio irq */
     if (sx1262_set_dio_irq_params(LoRa_handle, SX1262_IRQ_TX_DONE | SX1262_IRQ_TIMEOUT | SX1262_IRQ_CAD_DONE | SX1262_IRQ_CAD_DETECTED,
@@ -520,7 +534,15 @@ uint8_t sx1262_lora_set_continuous_transmit_mode(sx1262_handle_t *LoRa_handle){
     {
         return 1;
     }
-        
+    
+    /* set lora packet params */
+    if (sx1262_set_lora_packet_params(LoRa_handle, SX1262_LORA_DEFAULT_PREAMBLE_LENGTH,
+        SX1262_LORA_DEFAULT_HEADER, SX1262_LORA_DEFAULT_BUFFER_SIZE,
+        SX1262_LORA_DEFAULT_CRC_TYPE, SX1262_LORA_DEFAULT_INVERT_IQ) != 0)
+    {
+        return 1;
+    }
+
     /* start transmit*/
     if (sx1262_set_tx_continuous_wave(LoRa_handle) != 0)
     {
