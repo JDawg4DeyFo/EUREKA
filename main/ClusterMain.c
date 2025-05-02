@@ -17,6 +17,7 @@
 #include "esp_timer.h"
 
 #include "../include/LoRa_main.h"
+// #include "../include/Memory.h"
 
 // Defines
 /******************************************************************************/
@@ -35,31 +36,73 @@ typedef enum {
 /******************************************************************************/
 typedef struct {
 	unsigned char *Payload;
-	LORA_Packets *next_pkt;
-	LORA_Packets *last_pkt;
 	PacketIDs_t Pkt_Type;
-} LORA_Packets;
+	bool Ready;
+} LORA_Packet_t;
 
 // Variables
 /******************************************************************************/
 static const char *TAG = "ClusterMain.c";
 
+static LORA_Packet_t MainPacket;
+
+static bool Sending, Timeout; // to check in main loop
+
 // Functions
 /******************************************************************************/
 // LORA ISR
 
-// function parser
+
+// Parse any packets
+bool ParsePacket(void) {
+	// switch(packet id)
+
+	// update period info
+
+	// send info
+
+	// request data
+
+	// send data
+
+	// if sending:
+		// set sending = true
+		// log start time
+
+	return true;
+}
+
+// Could add lora send functions here if needed.
 
 // main()
 /******************************************************************************/
 void app_main(void) {
 	// config and initialize
+	Sending = false;
 		// init sensors
 		// init lora
 		// init power monitor
 
 	// main program
 	while (1) {
-		// parse new packet
+		// Poll packets and parse
+		if (MainPacket.Ready == true) {
+			ParsePacket();
+		}
+
+		// If transmitting, check for timeout or response
+		while (Sending && !Timeout) {
+			// if duration > timeout time
+				// timeout = true
+				// stop sending
+				// sending = false
+				// store data
+
+			// if response
+				// stop sending
+				// sending = false
+		}
+
+		Timeout = false;
 	}
 }
