@@ -2,7 +2,7 @@
 ## April 7th, 2025
 
 # Define source files
-set(srcs LoRa_driver.c LoRa_interface.c LoRa_main.c)
+set(srcs LoRa_driver.c LoRa_interface.c LoRa_main.c driver_sx1262_send_receive_test.c driver_sx1262_cad_test.c)
 
 # Declare public dependencies
 set(requires esp_driver_spi esp_driver_gpio)

@@ -17,6 +17,7 @@ static DeviceRole device = RESPONDER;
 
 void app_main(void)
 {
+    PingPong(device, pong_msg);
 	while(1);
 }
 

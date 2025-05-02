@@ -7,7 +7,10 @@
         "timer.h": "c",
         "lora_main.h": "c",
         "cstdint": "c",
-        "pingpong.h": "c"
+        "pingpong.h": "c",
+        "stdint.h": "c",
+        "driver_sx1262_send_receive_test.h": "c",
+        "driver_sx1262_cad_test.h": "c"
     },
     "C_Cpp.dimInactiveRegions": false
 }

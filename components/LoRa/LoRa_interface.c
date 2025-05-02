@@ -24,15 +24,7 @@
 #define GPIO_RESET 8
 #define GPIO_DIO1 33
 
-gpio_num_t GPIO_BUSY_PIN_NUM = GPIO_BUSY;
-gpio_num_t GPIO_RESET_PIN_NUM = GPIO_RESET;
-gpio_num_t GPIO_DIO1_PIN_NUM = GPIO_DIO1;
-
 static spi_device_handle_t slave_handle; 
-
-
-spi_common_dma_t DMA_channel = SPI_DMA_CH_AUTO;
-spi_host_device_t spi_bus1 = SPI3_HOST;
 
 //Config spi bus between the master (ESP32-S3) and slave (Semtech SX1262)
 spi_bus_config_t bus_pins = {
@@ -76,10 +68,10 @@ gpio_config_t Busy_GPIO = {
 
 gpio_config_t DIO1_GPIO = {
    .pin_bit_mask = 1ULL << GPIO_DIO1,        
-   .mode = GPIO_MODE_DEF_OUTPUT,               
+   .mode = GPIO_MODE_DEF_INPUT,               
    .pull_up_en = GPIO_PULLUP_DISABLE ,       
    .pull_down_en = GPIO_PULLDOWN_DISABLE ,   
-   .intr_type = GPIO_INTR_DISABLE,
+   .intr_type = GPIO_INTR_HIGH_LEVEL,
 };
 
   /**
@@ -92,7 +84,7 @@ gpio_config_t DIO1_GPIO = {
 
  uint8_t esp32_SPI_bus_init(void){
 
-   esp_err_t check_result = spi_bus_initialize(spi_bus1, &bus_pins, DMA_channel);
+   esp_err_t check_result = spi_bus_initialize(SPI3_HOST, &bus_pins, SPI_DMA_CH_AUTO);
 
    if (check_result  != ESP_OK){
       printf("spi_bus_initalize failed due to: %d\n", check_result);
@@ -101,7 +93,7 @@ gpio_config_t DIO1_GPIO = {
 
    printf("spi_bus_initalize is a success\n");
 
-   check_result = spi_bus_add_device(spi_bus1, &dev_config, &slave_handle);
+   check_result = spi_bus_add_device(SPI3_HOST, &dev_config, &slave_handle);
 
    if (check_result != ESP_OK){
       printf("spi_bus_add_device failed due to: %d\n", check_result);
@@ -131,14 +123,13 @@ uint8_t esp32_SPI_bus_deinit(void){
 
    printf("spi_bus_remove_device is a success\n");
 
-   check_result2 = spi_bus_free(spi_bus1);
+   check_result2 = spi_bus_free(SPI3_HOST);
    if (check_result2 != ESP_OK){
       printf("spi_bus_add_device failed due to: %d\n", check_result2);
       return 1;
    } 
 
-   printf("spi_bus_free is a success\n");
-   printf("Successful deinitialization!\n");
+   printf("spi_bus_free is a success, successful deinitialization! \n");
 
    return 0;
 }
@@ -167,14 +158,12 @@ uint8_t esp32_SPI_WRITE_READ(uint8_t *in_buf, uint32_t in_len, uint8_t *out_buf,
       return 1;
    } 
 
-   printf("spi_device_transmit is a success\n");
-
     // Print out each opcode and the value stored in that buffer
    for (int i = 0; i < in_len; i++) {
       ESP_LOGI(TAG_SPI, "tx_data :0x%02X, ", in_buf[i]);
    }
    for (int j = 0; j < out_len; j++){
-      ESP_LOGI(TAG_SPI, "rx_data :0x%02X", out_buf[j]);
+      ESP_LOGI(TAG_SPI, "rx_data :0x%02X", transaction_mes.rx_data[j]);
    }
    
    return 0;
@@ -213,11 +202,11 @@ uint8_t sx1262_interface_reset_gpio_init(void){
 uint8_t sx1262_interface_reset_gpio_deinit(void){
 
    gpio_mode_t gpio_reset_disable = GPIO_MODE_DISABLE;
-   esp_err_t gpio_reset_func_test = gpio_reset_pin(GPIO_RESET_PIN_NUM);
-   esp_err_t gpio_reset_disable_func = gpio_set_direction(GPIO_RESET_PIN_NUM, gpio_reset_disable);
-   
-   gpio_reset_pin(GPIO_DIO1_PIN_NUM);
-   gpio_set_direction(GPIO_DIO1_PIN_NUM, gpio_reset_disable);
+   esp_err_t gpio_reset_func_test = gpio_reset_pin(GPIO_RESET);
+   esp_err_t gpio_reset_disable_func = gpio_set_direction(GPIO_RESET, gpio_reset_disable);
+
+   gpio_reset_pin(GPIO_DIO1);
+   gpio_set_direction(GPIO_DIO1, gpio_reset_disable);
 
    if(((gpio_reset_func_test) || (gpio_reset_disable_func)) != ESP_OK){
       printf("GPIO Reset Pin has failed to deinitialize, here are the results\n"); 
@@ -249,14 +238,13 @@ void sx1262_interface_delay_ms(uint32_t ms){
  * @note      none
  */
 
-static uint32_t logic_low = 0;
-static uint32_t logic_high = 1;
+
 
 uint8_t sx1262_interface_reset_gpio_write(uint8_t data){
    if(data != 0) {
-      gpio_set_level(GPIO_RESET_PIN_NUM, logic_high);
+      gpio_set_level(GPIO_RESET, 1);
    } else {
-      gpio_set_level(GPIO_RESET_PIN_NUM, logic_low);
+      gpio_set_level(GPIO_RESET, 0);
    }
    uint32_t hundred_us_in_ms = 0.1;
    sx1262_interface_delay_ms(hundred_us_in_ms);
@@ -290,8 +278,8 @@ uint8_t sx1262_interface_busy_gpio_init(void){
  */
 uint8_t sx1262_interface_busy_gpio_deinit(void){
    gpio_mode_t gpio_busy_disable = GPIO_MODE_DISABLE;
-   esp_err_t gpio_busy_func_test = gpio_reset_pin(GPIO_BUSY_PIN_NUM);
-   esp_err_t gpio_busy_disable_func = gpio_set_direction(GPIO_BUSY_PIN_NUM, gpio_busy_disable);
+   esp_err_t gpio_busy_func_test = gpio_reset_pin(GPIO_BUSY);
+   esp_err_t gpio_busy_disable_func = gpio_set_direction(GPIO_BUSY, gpio_busy_disable);
 
    if(((gpio_busy_func_test) || (gpio_busy_disable_func)) != ESP_OK){
       printf("GPIO Busy Pin has failed to deinitialize, here are the results\n"); 
@@ -314,7 +302,7 @@ uint8_t sx1262_interface_busy_gpio_deinit(void){
  * @note       none
  */
 uint8_t sx1262_interface_busy_gpio_read(uint8_t *value){
-   int gpio_current_level = gpio_get_level(GPIO_BUSY_PIN_NUM);
+   int gpio_current_level = gpio_get_level(GPIO_BUSY);
    if (gpio_current_level != 1){
       printf("The SX1262 is ready to accept a command (NOT BUSY)\n");
    } else {

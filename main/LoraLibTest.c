@@ -9,24 +9,15 @@
  * 
  */
 
-#include "../include/LoRa_main.h"
+#include "../../include/driver_sx1262_send_receive_test.h"
+#include "../../include/driver_sx1262_cad_test.h"
+#include "../../include/LoRa_main.h"
 
-static sx1262_handle_t LoRa_1;
-uint8_t enable;
-
+static sx1262_handle_t LoRa;
+//static const uint32_t rx_timeout = 10;
 void app_main(void){
-
-  const char *test_msg = "Test";
-  uint8_t test_buf[15];
-  uint16_t test_buf_len;
-  
-  strcpy((char *)test_buf, test_msg);
-  test_buf_len = sizeof(test_buf);
-
-  sx1262_lora_begin(&LoRa_1);
-  sx1262_set_dio_output_enable(&LoRa_1, enable);
-  sx1262_lora_set_send_mode(&LoRa_1);
-  sx1262_lora_send(&LoRa_1, test_buf, test_buf_len);
-  sx1262_lora_deinit(&LoRa_1);
-   //while(1);
+  sx1262_lora_begin(&LoRa);
+  sx1262_lora_send(&LoRa, (uint8_t *)"123", strlen("123"));
+  //sx1262_send_test();
+  //sx1262_receive_test(rx_timeout);
  }
