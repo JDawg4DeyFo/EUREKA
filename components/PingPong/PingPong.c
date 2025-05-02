@@ -67,8 +67,8 @@ void PingPong(DeviceRole device_role, const char *tx_msg){
 
                 sx1262_lora_set_shot_receive_mode(&LoRa,receive_delay);
                 sx1262_get_rx_buffer_status(&LoRa, &rx_buffer_len, rx_buffer);
-                ESP_LOGI(RX_LENGTH_TAG, "Length of the packet received:\n", rx_buffer_len);
-                ESP_LOGI(first_byte_TAG, "First Byte of the \n", rx_buffer);
+                ESP_LOGI(RX_LENGTH_TAG, "Length of the packet received:\n");
+                ESP_LOGI(first_byte_TAG, "First Byte of the buffer:\n");
                 current_state = TRANSMIT;
                 break;
             }

@@ -5,7 +5,7 @@
 set(srcs PingPong.c)
 
 # Declare public dependencies
-set(requires)
+set(requires LoRa)
 
 # Declare private dependencies
 set(priv_requires esp_driver_spi esp_driver_gpio)
