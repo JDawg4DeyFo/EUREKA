@@ -1,4 +1,25 @@
 /**
+ * Copyright (c) 2015 - present LibDriver All rights reserved
+ * 
+ * The MIT License (MIT)
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE. 
  * @file LoRa_main.c
  * @author Edouard Valenzuela (ecvalenz@ucsc.edu)
  * @brief Consolidation of LoRa functions
@@ -520,8 +541,10 @@ uint8_t sx1262_lora_set_continuous_transmit_mode(sx1262_handle_t *LoRa_handle){
 uint8_t sx1262_lora_set_send_mode(sx1262_handle_t *LoRa_handle)
 {
     
-    /* set dio irq */
-    if (sx1262_set_dio_irq_params(LoRa_handle, SX1262_IRQ_TX_DONE, SX1262_IRQ_TX_DONE, 0x0000, 0x0000) != 0)
+     /* set dio irq */
+     if (sx1262_set_dio_irq_params(LoRa_handle, SX1262_IRQ_RX_DONE | SX1262_IRQ_TIMEOUT | SX1262_IRQ_CRC_ERR | SX1262_IRQ_CAD_DONE | SX1262_IRQ_CAD_DETECTED,
+        SX1262_IRQ_RX_DONE | SX1262_IRQ_TIMEOUT | SX1262_IRQ_CRC_ERR | SX1262_IRQ_CAD_DONE | SX1262_IRQ_CAD_DETECTED,
+        0x0000, 0x0000) != 0)
     {
         return 1;
     }

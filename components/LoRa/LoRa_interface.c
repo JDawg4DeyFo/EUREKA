@@ -114,18 +114,18 @@ gpio_config_t DIO1_GPIO = {
  */
 uint8_t esp32_SPI_bus_deinit(void){
 
-   esp_err_t check_result2 = spi_bus_remove_device(slave_handle);
+   esp_err_t check_result = spi_bus_remove_device(slave_handle);
 
-   if (check_result2 != ESP_OK){
-      printf("spi_bus_add_device failed due to: %d\n", check_result2);
+   if (check_result != ESP_OK){
+      printf("spi_bus_add_device failed due to: %d\n", check_result);
       return 1;
    } 
 
    printf("spi_bus_remove_device is a success\n");
 
-   check_result2 = spi_bus_free(SPI3_HOST);
-   if (check_result2 != ESP_OK){
-      printf("spi_bus_add_device failed due to: %d\n", check_result2);
+   check_result = spi_bus_free(SPI3_HOST);
+   if (check_result != ESP_OK){
+      printf("spi_bus_add_device failed due to: %d\n", check_result);
       return 1;
    } 
 
@@ -152,9 +152,9 @@ uint8_t esp32_SPI_WRITE_READ(uint8_t *in_buf, uint32_t in_len, uint8_t *out_buf,
       .rxlength = out_len * 8,
    };
 
-   esp_err_t check_result3 = spi_device_transmit(slave_handle, &transaction_mes);
-   if (check_result3 != ESP_OK){
-      printf("spi_device_transmit failed due to: %d\n", check_result3);
+   esp_err_t check_result = spi_device_transmit(slave_handle, &transaction_mes);
+   if (check_result != ESP_OK){
+      printf("spi_device_transmit failed due to: %d\n", check_result);
       return 1;
    } 
 
@@ -179,15 +179,15 @@ uint8_t esp32_SPI_WRITE_READ(uint8_t *in_buf, uint32_t in_len, uint8_t *out_buf,
  * @note   none
  */
 uint8_t sx1262_interface_reset_gpio_init(void){
-   esp_err_t check_result4 = gpio_config(&Reset_GPIO);
-   gpio_config(&DIO1_GPIO);
+   esp_err_t check_result = gpio_config(&Reset_GPIO);
 
-   if(check_result4 != ESP_OK){
-      printf("GPIO Reset Pin has failed to initialize due to: %d\n", check_result4);
+   if(check_result != ESP_OK){
+      printf("GPIO Reset Pin has failed to initialize due to: %d\n", check_result);
       return 1;
+   } else{
+      printf("GPIO Reset Pin has been initalized succesfully\n");
    }
    
-   printf("GPIO Reset Pin has been initalized succesfully\n");
    return 0;
 }
 
@@ -201,17 +201,13 @@ uint8_t sx1262_interface_reset_gpio_init(void){
  */
 uint8_t sx1262_interface_reset_gpio_deinit(void){
 
-   gpio_mode_t gpio_reset_disable = GPIO_MODE_DISABLE;
-   esp_err_t gpio_reset_func_test = gpio_reset_pin(GPIO_RESET);
-   esp_err_t gpio_reset_disable_func = gpio_set_direction(GPIO_RESET, gpio_reset_disable);
+   esp_err_t gpio_reset_rst = gpio_reset_pin(GPIO_RESET);
+   esp_err_t gpio_rst_io_disable = gpio_set_direction(GPIO_RESET, GPIO_MODE_DISABLE);
 
-   gpio_reset_pin(GPIO_DIO1);
-   gpio_set_direction(GPIO_DIO1, gpio_reset_disable);
-
-   if(((gpio_reset_func_test) || (gpio_reset_disable_func)) != ESP_OK){
+   if(((gpio_reset_rst) || (gpio_rst_io_disable)) != ESP_OK){
       printf("GPIO Reset Pin has failed to deinitialize, here are the results\n"); 
-      printf("gpio_reset_device result: %d\n", gpio_reset_func_test);
-      printf("gpio_set_direction result: %d\n", gpio_reset_disable_func);
+      printf("gpio_reset_device result: %d\n", gpio_reset_rst );
+      printf("gpio_set_direction result: %d\n", gpio_rst_io_disable);
       return 1;
    }
    
@@ -246,6 +242,7 @@ uint8_t sx1262_interface_reset_gpio_write(uint8_t data){
    } else {
       gpio_set_level(GPIO_RESET, 0);
    }
+   
    uint32_t hundred_us_in_ms = 0.1;
    sx1262_interface_delay_ms(hundred_us_in_ms);
    return 0;
@@ -258,10 +255,13 @@ uint8_t sx1262_interface_reset_gpio_write(uint8_t data){
  *         - 1 init failed
  * @note   none
  */
-uint8_t sx1262_interface_busy_gpio_init(void){
-   esp_err_t check_result6 = gpio_config(&Busy_GPIO);
-   if(check_result6 != ESP_OK){
-      printf("GPIO Busy Pin has failed to initialize due to: %d\n", check_result6);
+uint8_t sx1262_interface_busy_dio1_gpios_init(void){
+   esp_err_t check_result = gpio_config(&Busy_GPIO);
+   esp_err_t check_res2 = gpio_config(&DIO1_GPIO);
+   esp_err_t check_res3 = gpio_intr_enable(GPIO_DIO1);
+
+   if((check_result || check_res2 || check_res3) != ESP_OK){
+      printf("GPIO Busy Pin has failed to initialize due to: %d\n", check_result);
       return 1;
    }
    
@@ -276,19 +276,30 @@ uint8_t sx1262_interface_busy_gpio_init(void){
  *         - 1 deinit failed
  * @note   none
  */
-uint8_t sx1262_interface_busy_gpio_deinit(void){
-   gpio_mode_t gpio_busy_disable = GPIO_MODE_DISABLE;
-   esp_err_t gpio_busy_func_test = gpio_reset_pin(GPIO_BUSY);
-   esp_err_t gpio_busy_disable_func = gpio_set_direction(GPIO_BUSY, gpio_busy_disable);
+uint8_t sx1262_interface_busy_dio1_gpios_deinit(void){
 
-   if(((gpio_busy_func_test) || (gpio_busy_disable_func)) != ESP_OK){
+   esp_err_t gpio_reset_busy = gpio_reset_pin(GPIO_BUSY);
+   esp_err_t gpio_busy_io_disable = gpio_set_direction(GPIO_BUSY, GPIO_MODE_DISABLE);
+
+   esp_err_t gpio_intr_disable_func = gpio_intr_disable(GPIO_DIO1);
+   esp_err_t gpio_reset_dio1 = gpio_reset_pin(GPIO_DIO1);
+   esp_err_t gpio_dio1_io_disable = gpio_set_direction(GPIO_DIO1, GPIO_MODE_DISABLE);
+
+   esp_err_t gpio_pins_deinit_check = gpio_reset_busy || gpio_busy_io_disable || gpio_intr_disable_func ||
+   gpio_reset_dio1 || gpio_dio1_io_disable;
+
+   if((gpio_pins_deinit_check) != ESP_OK){
       printf("GPIO Busy Pin has failed to deinitialize, here are the results\n"); 
-      printf("gpio_busy_device result: %d\n", gpio_busy_func_test);
-      printf("gpio_set_direction result: %d\n", gpio_busy_disable_func);
+      printf("gpio_reset_busy result: %d\n", gpio_reset_busy);
+      printf("gpio_set_direction_busy result: %d\n", gpio_busy_io_disable);
+      printf("gpio_intr_disable_dio1 result: %d\n", gpio_intr_disable_func);
+      printf("gpio_reset_dio1 result: %d\n", gpio_reset_dio1);
+      printf("gpio_set_direction_dio1 result: %d\n", gpio_dio1_io_disable);
       return 1;
+   } else {
+      printf("GPIO Busy Pin has been deinitalized succesfully\n");
    }
    
-   printf("GPIO Busy Pin has been deinitalized succesfully\n");
    return 0;
 
 }
@@ -430,8 +441,8 @@ uint8_t sx1262_device_init(sx1262_handle_t *LoRa_handle){
    DRIVER_SX1262_LINK_RESET_GPIO_INIT(LoRa_handle, sx1262_interface_reset_gpio_init);
    DRIVER_SX1262_LINK_RESET_GPIO_DEINIT(LoRa_handle, sx1262_interface_reset_gpio_deinit);
    DRIVER_SX1262_LINK_RESET_GPIO_WRITE(LoRa_handle, sx1262_interface_reset_gpio_write);
-   DRIVER_SX1262_LINK_BUSY_GPIO_INIT(LoRa_handle, sx1262_interface_busy_gpio_init);
-   DRIVER_SX1262_LINK_BUSY_GPIO_DEINIT(LoRa_handle, sx1262_interface_busy_gpio_deinit);
+   DRIVER_SX1262_LINK_BUSY_GPIO_INIT(LoRa_handle, sx1262_interface_busy_dio1_gpios_init);
+   DRIVER_SX1262_LINK_BUSY_GPIO_DEINIT(LoRa_handle, sx1262_interface_busy_dio1_gpios_deinit);
    DRIVER_SX1262_LINK_BUSY_GPIO_READ(LoRa_handle, sx1262_interface_busy_gpio_read);
    DRIVER_SX1262_LINK_DELAY_MS(LoRa_handle, sx1262_interface_delay_ms);
    DRIVER_SX1262_LINK_DEBUG_PRINT(LoRa_handle, sx1262_interface_debug_print);
