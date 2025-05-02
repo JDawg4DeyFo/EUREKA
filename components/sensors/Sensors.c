@@ -60,9 +60,6 @@ static float WindDirection_LookupTable[NUMBER_OF_KEYS] = {
 // ADC max reading
 static float Max_ADC_Reading = pow(2, ADC_BITWIDTH);
 
-// Timer duration
-static int Duration = 0;
-
 // Handles and configurations
 /******************************************************************************/
 // Master i2c bus configuration
@@ -121,23 +118,25 @@ static pcnt_chan_config_t PCNT_Channel_cfg = {
 // DATA STRUCTURES
 /******************************************************************************/
 static PCNT_State_t PCNT_State = {
-	.IterationCount = 0,
+	.Duration = 0,
 	.StartTime = 0,
 	.EndTime = 0,
 	.PCNTHandle = &PCNT_Unit,
+	.TotalIterations = 0,
 };
 
 static bool PCNT_CallbackLogic(pcnt_unit_handle_t unit, const pcnt_watch_event_data_t *edata, void *user_ctx) {
 	// Pass context to internal variable
 	PCNT_State_t *state = (PCNT_State_t *)user_ctx;
 
-	if(state->IterationCount == 0) {
-		state->IterationCount++;
+	state->TotalIterations++;
+
+	if(edata->watch_point_value == 1) {
 		state->StartTime = esp_timer_get_time();
 	} else {
-		state->IterationCount = 0;
 		state->EndTime = esp_timer_get_time();
-		ESP_ERROR_CHECK_WITHOUT_ABORT(pcnt_unit_stop(*(state->PCNTHandle)));
+		state->Duration = state->EndTime - state->StartTime;
+		// ESP_ERROR_CHECK_WITHOUT_ABORT(pcnt_unit_stop(*(state->PCNTHandle)));
 		ESP_ERROR_CHECK_WITHOUT_ABORT(pcnt_unit_clear_count(*(state->PCNTHandle)));
 	}
 
@@ -205,15 +204,17 @@ SensorsIDs_t Sensors_Init(SensorsIDs_t Sensors)
 		ESP_ERROR_CHECK_WITHOUT_ABORT(pcnt_new_channel(PCNT_Unit, &PCNT_Channel_cfg, &PCNT_Channel));
 
 		// Configure channel behavior
-		ESP_ERROR_CHECK_WITHOUT_ABORT(pcnt_channel_set_edge_action(PCNT_Channel, PCNT_CHANNEL_EDGE_ACTION_INCREASE, PCNT_CHANNEL_LEVEL_ACTION_HOLD));
+		ESP_ERROR_CHECK_WITHOUT_ABORT(pcnt_channel_set_edge_action(PCNT_Channel, PCNT_CHANNEL_EDGE_ACTION_INCREASE, PCNT_CHANNEL_EDGE_ACTION_DECREASE));
 		ESP_ERROR_CHECK_WITHOUT_ABORT(pcnt_unit_add_watch_point(PCNT_Unit, 1));	// log start
-		ESP_ERROR_CHECK_WITHOUT_ABORT(pcnt_unit_add_watch_point(PCNT_Unit, 2));	// log time elapsed
+		ESP_ERROR_CHECK_WITHOUT_ABORT(pcnt_unit_add_watch_point(PCNT_Unit, 0));	// log time elapsed
 		ESP_ERROR_CHECK_WITHOUT_ABORT(pcnt_unit_register_event_callbacks(PCNT_Unit, &PCNT_Callbacks, &PCNT_State));
 
 		// Start channel up
 		ESP_ERROR_CHECK_WITHOUT_ABORT(pcnt_unit_enable(PCNT_Unit));
 		ESP_ERROR_CHECK_WITHOUT_ABORT(pcnt_unit_stop(PCNT_Unit));
 		ESP_ERROR_CHECK_WITHOUT_ABORT(pcnt_unit_clear_count(PCNT_Unit));
+		ESP_ERROR_CHECK_WITHOUT_ABORT(pcnt_unit_start(PCNT_Unit));
+
 
 		ReturnStatus |= ANEMOMETER;
 	}
@@ -327,22 +328,11 @@ float Get_Wind_Direction() {
 
 float Get_Wind_Speed(void) {
 	float Speed;
-	// if iteration  = 1, then system is currently measuring speed. in that case
-	// just return previous measurement
-	if (PCNT_State.IterationCount == 1) {
-		// conversion code
-		Speed = Duration - 1;
-		return Speed;
-	}
-	
-	// Otherwise, return previous measurement and start a new measurement
-	// also update duration
-	Duration = PCNT_State.EndTime - PCNT_State.StartTime;
-	
-	ESP_ERROR_CHECK_WITHOUT_ABORT(pcnt_unit_clear_count(PCNT_Unit));
-	ESP_ERROR_CHECK_WITHOUT_ABORT(pcnt_unit_start(PCNT_Unit));
+	ESP_LOGW(TAG, "Total Iterations: %d", PCNT_State.TotalIterations);
 
-	return 0;
+	Speed = ANEMOMETER_VELOCITY_CONSTANT / PCNT_State.Duration;
+
+	return Speed;
 }
 
 bool Deinitialize_Sensors(void) {

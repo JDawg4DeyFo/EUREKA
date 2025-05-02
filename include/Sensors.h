@@ -38,6 +38,8 @@
 #define KEY_TO_DEG 22.5
 #define ANEMOMETER_GPIO	CONFIG_ANEMOMETER_GPIO
 #define WINDVANE_GPIO	CONFIG_WINDVANE_GPIO
+// #define ANEMOMETER_VELOCITY_CONSTANT 0.6666 // m/s
+#define ANEMOMETER_VELOCITY_CONSTANT 2.4 // km/h
 
 //	 ADC defines
 #define ADC_BITWIDTH 12.0
@@ -69,10 +71,11 @@ typedef enum {
 } SesnorErrors_t;
 
 typedef struct {
-	int IterationCount;
+	uint64_t Duration;
 	uint64_t StartTime;
 	uint64_t EndTime;
 	pcnt_unit_handle_t *PCNTHandle;
+	int TotalIterations;
 } PCNT_State_t;
 
 /*******************************************************************************
@@ -125,7 +128,7 @@ float Get_Wind_Direction(void);
 /**
  * @brief Get wind speed from anemometer pulse width
  * 
- * @return float wind speed
+ * @return float wind speed, in meters per second
  */
 float Get_Wind_Speed(void);
 
