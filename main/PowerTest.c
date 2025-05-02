@@ -58,8 +58,7 @@ void app_main(void)
 	// Initialize sensor module
 	Sensors_Init(ALL_SENSORS);
 
-	// Initialize timer and get start time
-	esp_timer_init();
+	// Get start time
 	start_time = esp_timer_get_time();
 
 	// Main loop
@@ -113,6 +112,16 @@ void app_main(void)
 	if (!sx1262_lora_begin(&LORA_Handle)) {
 		ESP_LOGI(TAG, "LoRa Initialized correctly");
 		ESP_LOGI(TAG, "Beginning continous wave output...");
+
+		// Set LoRa to send mode
+		ret = sx1262_lora_set_send_mode(&LORA_Handle);
+		if (ret) {
+			// If fail, set hold time to 0
+			ESP_LOGE(TAG, "Error setting send mode!");
+			TX_time_sec = 0;
+		} else {
+			ESP_LOGI(TAG, "Testing TX state for %d seconds", TX_time_sec);
+		}
 
 		// Set continous wave output
 		ret = sx1262_set_tx_continuous_wave(&LORA_Handle);

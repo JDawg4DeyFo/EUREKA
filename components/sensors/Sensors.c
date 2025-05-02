@@ -23,11 +23,11 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_log.h"
+#include "esp_timer.h"
 
 
 #include "driver/i2c_master.h"
 #include "esp_adc/adc_oneshot.h"
-#include "driver/gptimer.h"
 
 // VARIABLES
 /******************************************************************************/
@@ -106,9 +106,6 @@ static adc_oneshot_chan_cfg_t ADC_cfg = {
 	.atten = ADC_ATTEN_DB_12,
 };
 
-// Timer Handle
-extern gptimer_handle_t GPT_Handle;
-
 static pcnt_unit_handle_t PCNT_Unit = NULL;
 static pcnt_unit_config_t PCNT_Unit_cfg = {
 	.high_limit = PCNT_HIGH_LIMIT,
@@ -127,7 +124,6 @@ static PCNT_State_t PCNT_State = {
 	.IterationCount = 0,
 	.StartTime = 0,
 	.EndTime = 0,
-	.TimerHandle = &GPT_Handle,
 	.PCNTHandle = &PCNT_Unit,
 };
 
@@ -137,10 +133,10 @@ static bool PCNT_CallbackLogic(pcnt_unit_handle_t unit, const pcnt_watch_event_d
 
 	if(state->IterationCount == 0) {
 		state->IterationCount++;
-		gptimer_get_raw_count(*(state->TimerHandle), &state->StartTime);
+		state->StartTime = esp_timer_get_time();
 	} else {
 		state->IterationCount = 0;
-		gptimer_get_raw_count(*(state->TimerHandle), &state->EndTime);
+		state->EndTime = esp_timer_get_time();
 		ESP_ERROR_CHECK_WITHOUT_ABORT(pcnt_unit_stop(*(state->PCNTHandle)));
 		ESP_ERROR_CHECK_WITHOUT_ABORT(pcnt_unit_clear_count(*(state->PCNTHandle)));
 	}
