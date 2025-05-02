@@ -7,3 +7,11 @@ config SENSOR_LIB_TEST
 config LORA_LIB_TEST
 	bool "Build LoRa test harness"
 	default n
+
+config TX_PINGPONG_TEST
+	bool "Build TX_Ping for PingPong Test"
+	default n
+
+config RX_PINGPONG_TEST
+	bool "Build RX_Ping for PingPong Test"
+	default n
