@@ -11,7 +11,6 @@
 #include "I2C.h"
 #include <math.h>
 
-#include "../../include/Timer.h"
 #include "driver/pulse_cnt.h"
 
 /*******************************************************************************
@@ -73,7 +72,6 @@ typedef struct {
 	int IterationCount;
 	uint64_t StartTime;
 	uint64_t EndTime;
-	gptimer_handle_t *TimerHandle;
 	pcnt_unit_handle_t *PCNTHandle;
 } PCNT_State_t;
 

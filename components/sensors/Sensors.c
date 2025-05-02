@@ -197,7 +197,7 @@ SensorsIDs_t Sensors_Init(SensorsIDs_t Sensors)
 	if (Sensors && ANEMOMETER)
 	{
 		// Initialize free running timer
-		FreeRunningTimer_Init();
+		esp_timer_init();
 
 		
 		// Initialize PCNT
