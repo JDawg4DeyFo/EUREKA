@@ -33,6 +33,7 @@
  */
 #include "../../include/LoRa_main.h"
 
+
 /**
  * @brief  sx1262 lora irq
  * @return status code
@@ -66,6 +67,7 @@ uint8_t sx1262_lora_begin(sx1262_handle_t *LoRa_handle)
     uint8_t modulation;
     uint8_t config;
     uint8_t enable = 1;
+
     
     /* init the sx1262 */
     res = sx1262_device_init(LoRa_handle);
@@ -197,15 +199,6 @@ uint8_t sx1262_lora_begin(sx1262_handle_t *LoRa_handle)
         return 1;
     }
     
-    /* set base address */
-    res = sx1262_set_buffer_base_address(LoRa_handle, 0x00, 0x00);
-    if (res != 0)
-    {
-        sx1262_interface_debug_print("sx1262: set buffer base address failed.\n");
-        sx1262_deinit(LoRa_handle);
-        
-        return 1;
-    }
     
     /* set lora symb num */
     res = sx1262_set_lora_symb_num_timeout(LoRa_handle, SX1262_LORA_DEFAULT_SYMB_NUM_TIMEOUT);
@@ -562,10 +555,17 @@ uint8_t sx1262_lora_set_continuous_transmit_mode(sx1262_handle_t *LoRa_handle){
 
 uint8_t sx1262_lora_set_send_mode(sx1262_handle_t *LoRa_handle)
 {
-    
+    /* set lora packet params */
+    if (sx1262_set_lora_packet_params(LoRa_handle, SX1262_LORA_DEFAULT_PREAMBLE_LENGTH,
+        SX1262_LORA_DEFAULT_HEADER, SX1262_LORA_DEFAULT_BUFFER_SIZE,
+        SX1262_LORA_DEFAULT_CRC_TYPE, SX1262_LORA_DEFAULT_INVERT_IQ) != 0)
+    {
+        return 1;
+    }
+
      /* set dio irq */
-     if (sx1262_set_dio_irq_params(LoRa_handle, SX1262_IRQ_RX_DONE | SX1262_IRQ_TIMEOUT | SX1262_IRQ_CRC_ERR | SX1262_IRQ_CAD_DONE | SX1262_IRQ_CAD_DETECTED,
-        SX1262_IRQ_RX_DONE | SX1262_IRQ_TIMEOUT | SX1262_IRQ_CRC_ERR | SX1262_IRQ_CAD_DONE | SX1262_IRQ_CAD_DETECTED,
+     if (sx1262_set_dio_irq_params(LoRa_handle, SX1262_IRQ_TX_DONE | SX1262_IRQ_TIMEOUT | SX1262_IRQ_CRC_ERR | SX1262_IRQ_CAD_DONE | SX1262_IRQ_CAD_DETECTED,
+        SX1262_IRQ_TX_DONE | SX1262_IRQ_TIMEOUT | SX1262_IRQ_CRC_ERR | SX1262_IRQ_CAD_DONE | SX1262_IRQ_CAD_DETECTED,
         0x0000, 0x0000) != 0)
     {
         return 1;

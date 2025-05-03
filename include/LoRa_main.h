@@ -54,7 +54,7 @@
 #define SX1262_LORA_DEFAULT_OCP                         0x38                              /**< 140 mA */
 #define SX1262_LORA_DEFAULT_PREAMBLE_LENGTH             12                                /**< 12 */
 #define SX1262_LORA_DEFAULT_HEADER                      SX1262_LORA_HEADER_EXPLICIT       /**< explicit header */
-#define SX1262_LORA_DEFAULT_BUFFER_SIZE                 255                               /**< 255 */
+#define SX1262_LORA_DEFAULT_BUFFER_SIZE                 5                                /**< 5 */
 #define SX1262_LORA_DEFAULT_CRC_TYPE                    SX1262_LORA_CRC_TYPE_ON           /**< crc on */
 #define SX1262_LORA_DEFAULT_INVERT_IQ                   SX1262_BOOL_FALSE                 /**< disable invert iq */
 #define SX1262_LORA_DEFAULT_CAD_SYMBOL_NUM              SX1262_LORA_CAD_SYMBOL_NUM_2      /**< 2 symbol */
