@@ -78,7 +78,7 @@ uint8_t sx1262_interface_reset_gpio_write(uint8_t data);
  *         - 1 init failed
  * @note   none
  */
-uint8_t sx1262_interface_busy_dio1_gpios_init(void);
+uint8_t sx1262_interface_busy_gpio_init(void);
 
 /**
  * @brief  interface busy gpio deinit
@@ -87,7 +87,7 @@ uint8_t sx1262_interface_busy_dio1_gpios_init(void);
  *         - 1 deinit failed
  * @note   none
  */
-uint8_t sx1262_interface_busy_dio1_gpios_deinit(void);
+uint8_t sx1262_interface_busy_gpio_deinit(void);
 
 /**
  * @brief      interface busy gpio read
@@ -100,10 +100,30 @@ uint8_t sx1262_interface_busy_dio1_gpios_deinit(void);
 uint8_t sx1262_interface_busy_gpio_read(uint8_t *value);
 
 /**
+ * @brief  interface busy gpio init
+ * @return status code
+ *         - 0 success
+ *         - 1 init failed
+ * @note   none
+ */
+esp_err_t sx1262_interface_dio1_gpio_init(sx1262_handle_t *LoRa_handle);
+
+/**
+ * @brief  interface busy gpio deinit
+ * @return status code
+ *         - 0 success
+ *         - 1 deinit failed
+ * @note   none
+ */
+esp_err_t sx1262_interface_dio1_gpio_deinit(void);
+
+/**
  * @brief     interface delay ms
  * @param[in] ms time
  * @note      none
  */
+
+ 
 void sx1262_interface_delay_ms(uint32_t ms);
 
 /**

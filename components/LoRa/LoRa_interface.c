@@ -41,7 +41,7 @@ spi_device_interface_config_t dev_config = {
    .address_bits = 0,
    .dummy_bits = 0,     
    .mode = 0,
-   .clock_speed_hz = SPI_MASTER_FREQ_26M, //clk_speed = 26 MHz
+   .clock_speed_hz = SPI_MASTER_FREQ_8M, //clk_speed = 8 MHz
    .duty_cycle_pos = 128, //Duty cycle = 50%
    .spics_io_num = GPIO_CS,
    .queue_size = 1,
@@ -71,7 +71,7 @@ gpio_config_t DIO1_GPIO = {
    .mode = GPIO_MODE_DEF_INPUT,               
    .pull_up_en = GPIO_PULLUP_DISABLE ,       
    .pull_down_en = GPIO_PULLDOWN_DISABLE ,   
-   .intr_type = GPIO_INTR_HIGH_LEVEL,
+   .intr_type = GPIO_INTR_POSEDGE,
 };
 
   /**
@@ -243,8 +243,10 @@ uint8_t sx1262_interface_reset_gpio_write(uint8_t data){
       gpio_set_level(GPIO_RESET, 0);
    }
    
-   uint32_t hundred_us_in_ms = 0.1;
+   uint32_t hundred_us_in_ms = 0.2;
    sx1262_interface_delay_ms(hundred_us_in_ms);
+   gpio_set_level(GPIO_RESET, 1);
+
    return 0;
 }
 
@@ -255,12 +257,10 @@ uint8_t sx1262_interface_reset_gpio_write(uint8_t data){
  *         - 1 init failed
  * @note   none
  */
-uint8_t sx1262_interface_busy_dio1_gpios_init(void){
+uint8_t sx1262_interface_busy_gpio_init(void){
    esp_err_t check_result = gpio_config(&Busy_GPIO);
-   esp_err_t check_res2 = gpio_config(&DIO1_GPIO);
-   esp_err_t check_res3 = gpio_intr_enable(GPIO_DIO1);
 
-   if((check_result || check_res2 || check_res3) != ESP_OK){
+   if((check_result) != ESP_OK){
       printf("GPIO Busy Pin has failed to initialize due to: %d\n", check_result);
       return 1;
    }
@@ -276,25 +276,16 @@ uint8_t sx1262_interface_busy_dio1_gpios_init(void){
  *         - 1 deinit failed
  * @note   none
  */
-uint8_t sx1262_interface_busy_dio1_gpios_deinit(void){
+uint8_t sx1262_interface_busy_gpio_deinit(void){
 
    esp_err_t gpio_reset_busy = gpio_reset_pin(GPIO_BUSY);
    esp_err_t gpio_busy_io_disable = gpio_set_direction(GPIO_BUSY, GPIO_MODE_DISABLE);
+   esp_err_t gpio_pin_deinit_check = gpio_reset_busy || gpio_busy_io_disable;
 
-   esp_err_t gpio_intr_disable_func = gpio_intr_disable(GPIO_DIO1);
-   esp_err_t gpio_reset_dio1 = gpio_reset_pin(GPIO_DIO1);
-   esp_err_t gpio_dio1_io_disable = gpio_set_direction(GPIO_DIO1, GPIO_MODE_DISABLE);
-
-   esp_err_t gpio_pins_deinit_check = gpio_reset_busy || gpio_busy_io_disable || gpio_intr_disable_func ||
-   gpio_reset_dio1 || gpio_dio1_io_disable;
-
-   if((gpio_pins_deinit_check) != ESP_OK){
+   if((gpio_pin_deinit_check) != ESP_OK){
       printf("GPIO Busy Pin has failed to deinitialize, here are the results\n"); 
       printf("gpio_reset_busy result: %d\n", gpio_reset_busy);
       printf("gpio_set_direction_busy result: %d\n", gpio_busy_io_disable);
-      printf("gpio_intr_disable_dio1 result: %d\n", gpio_intr_disable_func);
-      printf("gpio_reset_dio1 result: %d\n", gpio_reset_dio1);
-      printf("gpio_set_direction_dio1 result: %d\n", gpio_dio1_io_disable);
       return 1;
    } else {
       printf("GPIO Busy Pin has been deinitalized succesfully\n");
@@ -321,6 +312,101 @@ uint8_t sx1262_interface_busy_gpio_read(uint8_t *value){
    }
    *value = (uint8_t)gpio_current_level;
    return 0;
+}
+
+/**
+ * @brief  instantiate the irq_handler from LoRa_driver so that the ESP32 can run it
+ * @param[in] arg 
+ *      
+ */
+
+extern uint8_t sx1262_irq_handler(sx1262_handle_t *LoRa_handle);
+
+static void gpio_isr_handler(void* arg)
+{
+    // Cast the argument to the handle type or relevant data
+    sx1262_handle_t *LoRa_handle = (sx1262_handle_t*) arg;
+    
+    // Call your preexisting IRQ handler
+    uint8_t res = sx1262_irq_handler(LoRa_handle);
+    if (res != 0) {
+        ESP_LOGE("GPIO_ISR", "IRQ Handler failed with error %d", res);
+    } else {
+      ESP_LOGI("DIO1 PIN", "IRQ Handler instantiation is a success");
+    }
+}
+
+/**
+ * @brief  interface DIO1 gpio init
+ * @return status code
+ *         - 0 success
+ *         - 1 init failed
+ * @note   none
+ */
+esp_err_t sx1262_interface_dio1_gpio_init(sx1262_handle_t *LoRa_handle){
+   esp_err_t res = gpio_config(&DIO1_GPIO);
+   if (res != ESP_OK) {
+      ESP_LOGE("GPIO_DIO1", "Failed to config");
+      return res;
+   }
+
+   res = gpio_intr_enable(GPIO_DIO1);
+   if (res != ESP_OK) {
+      ESP_LOGE("GPIO_DIO1", "Failed to intr_enable");
+      return res;
+   }
+
+   res = gpio_install_isr_service(ESP_INTR_FLAG_EDGE);
+   if (res != ESP_OK) {
+      ESP_LOGE("GPIO_DIO1", "Failed to install isr service");
+      return res;
+   }
+   
+   res = gpio_isr_handler_add(GPIO_DIO1, gpio_isr_handler, LoRa_handle);
+   if (res != ESP_OK) {
+      ESP_LOGE("GPIO_DIO1", "Failed to add irq_handler from LoRa_driver");
+      return res;
+   }
+   ESP_LOGI("DIO1 PIN", "Initialization is a success");
+   return ESP_OK;
+}
+
+/**
+ * @brief  interface busy gpio deinit
+ * @return status code
+ *         - 0 success
+ *         - 1 deinit failed
+ * @note   none
+ */
+esp_err_t sx1262_interface_dio1_gpio_deinit(void){
+
+   esp_err_t res = gpio_isr_handler_remove(GPIO_DIO1);
+   if (res != ESP_OK) {
+      ESP_LOGE("GPIO_DIO1", "Failed to remove isr handler");
+      return res;
+   }
+   gpio_uninstall_isr_service();
+
+   res = gpio_intr_disable(GPIO_DIO1);
+   if (res != ESP_OK) {
+      ESP_LOGE("GPIO_DIO1", "Failed to intr_disable");
+      return res;
+   }
+
+   res = gpio_reset_pin(GPIO_DIO1);
+   if (res != ESP_OK) {
+      ESP_LOGE("GPIO_DIO1", "Failed to reset pin");
+      return res;
+   }
+
+   res = gpio_set_direction(GPIO_DIO1, GPIO_MODE_DISABLE);
+   if (res != ESP_OK) {
+      ESP_LOGE("GPIO_DIO1", "Failed to disable direction of pin");
+      return res;
+   }
+   
+   ESP_LOGI("DIO1 PIN", "Deinitialization is a success");
+   return ESP_OK;
 }
 
 /**
@@ -441,8 +527,8 @@ uint8_t sx1262_device_init(sx1262_handle_t *LoRa_handle){
    DRIVER_SX1262_LINK_RESET_GPIO_INIT(LoRa_handle, sx1262_interface_reset_gpio_init);
    DRIVER_SX1262_LINK_RESET_GPIO_DEINIT(LoRa_handle, sx1262_interface_reset_gpio_deinit);
    DRIVER_SX1262_LINK_RESET_GPIO_WRITE(LoRa_handle, sx1262_interface_reset_gpio_write);
-   DRIVER_SX1262_LINK_BUSY_GPIO_INIT(LoRa_handle, sx1262_interface_busy_dio1_gpios_init);
-   DRIVER_SX1262_LINK_BUSY_GPIO_DEINIT(LoRa_handle, sx1262_interface_busy_dio1_gpios_deinit);
+   DRIVER_SX1262_LINK_BUSY_GPIO_INIT(LoRa_handle, sx1262_interface_busy_gpio_init);
+   DRIVER_SX1262_LINK_BUSY_GPIO_DEINIT(LoRa_handle, sx1262_interface_busy_gpio_deinit);
    DRIVER_SX1262_LINK_BUSY_GPIO_READ(LoRa_handle, sx1262_interface_busy_gpio_read);
    DRIVER_SX1262_LINK_DELAY_MS(LoRa_handle, sx1262_interface_delay_ms);
    DRIVER_SX1262_LINK_DEBUG_PRINT(LoRa_handle, sx1262_interface_debug_print);

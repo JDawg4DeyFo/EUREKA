@@ -70,7 +70,7 @@ uint8_t sx1262_cad_test(void)
     uint32_t reg;
     uint8_t modulation;
     uint8_t config;
-    sx1262_bool_t enable = SX1262_BOOL_TRUE;
+    sx1262_bool_t enable;
     
     
     /* start cad test */
@@ -339,7 +339,6 @@ uint8_t sx1262_cad_test(void)
         
         return 1;
     }
-    
     /* output the result */
     if (enable == SX1262_BOOL_TRUE)
     {
