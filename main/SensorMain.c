@@ -23,6 +23,7 @@
 /******************************************************************************/
 #define DEFAULT_PERIOD 10					// Default period in seconds
 #define MICROSECOND_TO_SECOND 1000000
+#define TIMEOUT_PERIOD 30					// timeout period in seconds
 
 // Data types
 /******************************************************************************/
@@ -106,5 +107,23 @@ void app_main(void)
 		}
 
 		// If transmitting, transmit untill timeout or TX ack
+		while(Sending) {
+			// timeout condition
+			if ((esp_timer_get_time() - Sending_StartTime) > (TIMEOUT_PERIOD * MICROSECOND_TO_SECOND)) {
+				// lora stop sending();
+				Sending = false;
+			}
+
+			// Response condition
+			if (Response) {
+				// lora stop sending();
+				Sending = false;
+				Response = false;
+			}
+		}
+
+		// Go to sleep for period
+		esp_sleep_enable_timer_wakeup(Period * MICROSECOND_TO_SECOND);
+		esp_deep_sleep_start();
 	}
 }
