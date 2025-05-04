@@ -40,7 +40,7 @@ uint8_t esp32_SPI_bus_deinit(void);
  *         - 0 spi read and write asynch failed
  * @note   none
  */
-uint8_t esp32_SPI_WRITE_READ_test(uint8_t *in_buf, uint32_t in_len, uint8_t *out_buf, uint32_t out_len);
+uint8_t esp32_SPI_WRITE_READ(uint8_t *in_buf, uint32_t in_len, uint8_t *out_buf, uint32_t out_len);
 
 
  /**

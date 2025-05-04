@@ -141,7 +141,7 @@ uint8_t esp32_SPI_bus_deinit(void){
  *         - 1 spi read and write asynch failed
  * @note   none
  */
-static const char *TAG_SPI = "SPI_WRITE_READ_TEST";
+static const char *TAG_SPI = "SPI_WRITE_READ";
 
 uint8_t esp32_SPI_WRITE_READ(uint8_t *in_buf, uint32_t in_len, uint8_t *out_buf, uint32_t out_len){
    //Transaction example to be sent via SPI
@@ -238,13 +238,14 @@ void sx1262_interface_delay_ms(uint32_t ms){
 
 uint8_t sx1262_interface_reset_gpio_write(uint8_t data){
    if(data != 0) {
-      gpio_set_level(GPIO_RESET, 1);
-   } else {
       gpio_set_level(GPIO_RESET, 0);
+      vTaskDelay(pdMS_TO_TICKS(1)); 
+      gpio_set_level(GPIO_RESET, 1);
+      vTaskDelay(pdMS_TO_TICKS(10));
+   } else {
+      gpio_set_level(GPIO_RESET, 1);
+      return 1;
    }
-   
-   sx1262_interface_delay_ms(1); //1 ms delay
-   gpio_set_level(GPIO_RESET, 1);
 
    return 0;
 }
@@ -337,33 +338,6 @@ esp_err_t sx1262_interface_dio1_gpio_init(sx1262_handle_t *LoRa_handle){
       ESP_LOGE("GPIO_DIO1", "Failed to intr_enable");
       return res;
    }
-   /*
-   res = gpio_install_isr_service(ESP_INTR_FLAG_EDGE);
-   if (res != ESP_OK) {
-      ESP_LOGE("GPIO_DIO1", "Failed to install isr service");
-      return res;
-   }
-   
-   res = gpio_isr_handler_add(GPIO_DIO1, gpio_isr_handler, NULL);
-   if (res != ESP_OK) {
-      ESP_LOGE("GPIO_DIO1", "Failed to add irq_handler from LoRa_driver");
-      return res;
-   }
-
-   if (lora_task_handle == NULL) {
-      BaseType_t task_created = xTaskCreate(
-          lora_irq_task,
-          "LoRa IRQ Task",
-          4096,
-          (void *)LoRa_handle,
-          10,
-          &lora_task_handle
-      );
-      if (task_created != pdPASS) {
-          ESP_LOGE("GPIO_DIO1", "Failed to create IRQ task");
-      }
-   }
-   */
 
    ESP_LOGI("DIO1 PIN", "Initialization is a success");
    return ESP_OK;
@@ -379,14 +353,6 @@ esp_err_t sx1262_interface_dio1_gpio_init(sx1262_handle_t *LoRa_handle){
  */
  
 esp_err_t sx1262_interface_dio1_gpio_deinit(void){
-   /*
-   esp_err_t res = gpio_isr_handler_remove(GPIO_DIO1);
-   if (res != ESP_OK) {
-      ESP_LOGE("GPIO_DIO1", "Failed to remove isr handler");
-      return res;
-   }
-   gpio_uninstall_isr_service();
-   */
 
    esp_err_t res = gpio_intr_disable(GPIO_DIO1);
    if (res != ESP_OK) {
@@ -416,7 +382,7 @@ esp_err_t sx1262_interface_dio1_gpio_deinit(void){
  * @param[in] fmt format data
  * @note      none
  */
-static const char *TAG = "LoRa Chip Status Update";
+static const char *TAG = "LoRa Chip Debug";
 
 void sx1262_interface_debug_print(const char *const fmt, ...){
    va_list args;
