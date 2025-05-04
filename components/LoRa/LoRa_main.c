@@ -66,9 +66,7 @@ uint8_t sx1262_lora_begin(sx1262_handle_t *LoRa_handle)
     uint32_t reg;
     uint8_t modulation;
     uint8_t config;
-    uint8_t enable = 1;
 
-    
     /* init the sx1262 */
     res = sx1262_device_init(LoRa_handle);
     if (res != 0)
@@ -188,25 +186,6 @@ uint8_t sx1262_lora_begin(sx1262_handle_t *LoRa_handle)
         return 1;
     }
     
-     /* get dio output enable */
-     res = sx1262_get_dio_output_enable(LoRa_handle, (uint8_t *)&enable);
-     if (res != 0)
-     {
-         sx1262_interface_debug_print("sx1262: get dio output enable failed.\n");
-         sx1262_deinit(LoRa_handle);
-         
-         return 1;
-     }
-     
-     /* set dio output enable */
-     res = sx1262_set_dio_output_enable(LoRa_handle, enable);
-     if (res != 0)
-     {
-         sx1262_interface_debug_print("sx1262: set dio output enable failed.\n");
-         sx1262_deinit(LoRa_handle);
-         
-         return 1;
-     }
 
     /* set dio irq */
     res = sx1262_set_dio_irq_params(LoRa_handle, 0x03FF, 0x03FF, 0x0000, 0x0000);
@@ -335,6 +314,15 @@ uint8_t sx1262_lora_begin(sx1262_handle_t *LoRa_handle)
         return 1;
     }
     
+     // Calibrate all main blocks (RC64K, RC13M, PLL, ADC, PAs - Analog/Digital)
+    res = sx1262_set_calibration(LoRa_handle, 0x7F); 
+    if (res != 0)
+    {
+        sx1262_interface_debug_print("sx1262: set calibration failed.\n");
+        sx1262_deinit(LoRa_handle);
+
+         return 1;
+    }
 
     return 0;
 }
@@ -565,51 +553,24 @@ uint8_t sx1262_lora_set_continuous_transmit_mode(sx1262_handle_t *LoRa_handle){
  * @note   none
  */
 
-uint8_t sx1262_lora_set_send_mode(sx1262_handle_t *LoRa_handle)
-{
-    uint8_t setup;
-
-    /* set lora packet params */
-    if (sx1262_set_lora_packet_params(LoRa_handle, SX1262_LORA_DEFAULT_PREAMBLE_LENGTH,
-        SX1262_LORA_DEFAULT_HEADER, SX1262_LORA_DEFAULT_BUFFER_SIZE,
-        SX1262_LORA_DEFAULT_CRC_TYPE, SX1262_LORA_DEFAULT_INVERT_IQ) != 0)
-    {
-        return 1;
-    }
-
+ uint8_t sx1262_lora_set_send_mode(sx1262_handle_t *LoRa_handle)
+ {
      /* set dio irq */
      if (sx1262_set_dio_irq_params(LoRa_handle, SX1262_IRQ_TX_DONE | SX1262_IRQ_TIMEOUT | SX1262_IRQ_CAD_DONE | SX1262_IRQ_CAD_DETECTED,
-        SX1262_IRQ_TX_DONE | SX1262_IRQ_TIMEOUT | SX1262_IRQ_CAD_DONE | SX1262_IRQ_CAD_DETECTED,0x0000, 0x0000)  != 0)
-    {
-        return 1;
-    }
-
-    /* get iq polarity */
-    if (sx1262_get_iq_polarity(LoRa_handle, (uint8_t *)&setup) != 0)
-    {
-        return 1;
-    }
-
-#if SX1262_LORA_DEFAULT_INVERT_IQ == SX1262_BOOL_FALSE
-    setup |= 1 << 2;
-#else
-    setup &= ~(1 << 2);
-#endif
-    
-    /* set the iq polarity */
-    if (sx1262_set_iq_polarity(LoRa_handle, setup) != 0)
-    {
-        return 1;
-    }
-    
-    /* clear irq status */
-    if (sx1262_clear_irq_status(LoRa_handle, 0x03FFU) != 0)
-    {
-        return 1;
-    }
-    
-    return 0;
-}
+                                   SX1262_IRQ_TX_DONE | SX1262_IRQ_TIMEOUT | SX1262_IRQ_CAD_DONE | SX1262_IRQ_CAD_DETECTED,
+                                   0x0000, 0x0000) != 0)
+     {
+         return 1;
+     }
+     
+     /* clear irq status */
+     if (sx1262_clear_irq_status(LoRa_handle, 0x03FFU) != 0)
+     {
+         return 1;
+     }
+     
+     return 0;
+ }
 
 /**
  * @brief     lora example send lora data

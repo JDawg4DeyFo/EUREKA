@@ -241,12 +241,9 @@ uint8_t sx1262_interface_reset_gpio_write(uint8_t data){
       gpio_set_level(GPIO_RESET, 0);
       vTaskDelay(pdMS_TO_TICKS(1)); 
       gpio_set_level(GPIO_RESET, 1);
-      vTaskDelay(pdMS_TO_TICKS(10));
    } else {
       gpio_set_level(GPIO_RESET, 1);
-      return 1;
    }
-
    return 0;
 }
 

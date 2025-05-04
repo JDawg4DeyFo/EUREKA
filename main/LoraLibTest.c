@@ -11,14 +11,8 @@
 
 #include "../../include/LoRa_main.h"
 #include "../../include/driver_sx1262_cad_test.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "esp_log.h"
 
 #define tx_timeout 9000
-
-uint16_t status;
-uint8_t (*g_gpio_irq)(sx1262_handle_t *) = NULL;
 
 static sx1262_handle_t LoRa;
 static uint8_t test_buf[5] = "Test";
@@ -27,8 +21,6 @@ static uint8_t test_buf[5] = "Test";
 void app_main(void){
   sx1262_lora_begin(&LoRa);
   sx1262_interface_dio1_gpio_init(&LoRa);
-
-  g_gpio_irq = sx1262_lora_irq_handler;
   sx1262_lora_set_send_mode(&LoRa);
 
   
@@ -37,7 +29,6 @@ void app_main(void){
   
     sx1262_interface_dio1_gpio_deinit();
     sx1262_lora_deinit(&LoRa);
-    g_gpio_irq = NULL;
 
   } else {
     sx1262_interface_delay_ms(tx_timeout);
@@ -45,7 +36,6 @@ void app_main(void){
 
     sx1262_interface_dio1_gpio_deinit();
     sx1262_lora_deinit(&LoRa);
-    g_gpio_irq = NULL;
 
   }
 }
