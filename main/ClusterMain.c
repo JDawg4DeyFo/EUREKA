@@ -30,6 +30,7 @@ typedef enum {
 	PERIOD_UPDATE,
 	REQUEST_SENSOR_DATA,
 	PROCESSED_SENSOR_DATA,
+	TX_ACK
 } PacketIDs_t
 
 // Typedefs

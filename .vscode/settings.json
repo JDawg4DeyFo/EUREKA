@@ -6,7 +6,8 @@
 		"lora_driver.h": "c",
 		"timer.h": "c",
 		"lora_main.h": "c",
-		"i2c.h": "c"
+		"i2c.h": "c",
+		"stddef.h": "c"
 	},
     "C_Cpp.dimInactiveRegions": false
 }
