@@ -43,31 +43,69 @@ typedef struct {
 // Variables
 /******************************************************************************/
 static const char *TAG = "ClusterMain.c";
-
+static sx1262_handle_t LORA_Handle;
 static LORA_Packet_t MainPacket;
-
 static bool Sending, Timeout; // to check in main loop
+static int Send_StartTime;
+static float Period;
 
 // Functions
 /******************************************************************************/
 // LORA ISR
 
+// Send
 
 // Parse any packets
 bool ParsePacket(void) {
-	// switch(packet id)
+	// Switch case depending on packet type
+	// NOTE: All cases should verify integrity of packet
+	switch (MainPacket.Pkt_Type) {
+		case NOTHING:
+			break;
+		
+		// Packet contains raw sensor data
+		case RAW_SENSOR_DATA:
+			// process data
+			// ProcessRawSensorData();
+			
+			// send data
+			Sending = true;
+			Send_StartTime = esp_timer_get_time();
+			// SendSensorData();
+			break;
 
-	// update period info
+		// Packet contains a period update for sensor nodes
+		case PERIOD_UPDATE:
+			// Update period
+			// Period = some value, extracted from payload;
 
-	// send info
+			// send new period
+			Sending = true;
+			Send_StartTime = esp_timer_get_time();
+			// SendNewPeriod();
+			break;
 
-	// request data
+		// Packet contains sensor data request
+		// packet shoudn't have any payload
+		// all cluster head has to do is send a sense request to sensor nodes
+		// response will be handled just like any other raw sensor data packet
+		case REQUEST_SENSOR_DATA:
+			// Send data request
+			Sending = true;
+			Send_StartTime = esp_timer_get_time();
+			// SendDataRequest();
+			break;
 
-	// send data
+		// Packet contains processed sensor data
+		// here, the cluster head should act as a relay.
+		case PROCESSED_SENSOR_DATA:
 
-	// if sending:
-		// set sending = true
-		// log start time
+			// Foward data
+			Sending = true;
+			Send_StartTime = esp_timer_get_time();
+			// Sensordata();
+			break;
+	}
 
 	return true;
 }
@@ -77,11 +115,14 @@ bool ParsePacket(void) {
 // main()
 /******************************************************************************/
 void app_main(void) {
-	// config and initialize
+	// Configuration and initialization
+	esp_timer_init();
 	Sending = false;
-		// init sensors
-		// init lora
-		// init power monitor
+	
+	sx1262_lora_begin(LORA_Handle);
+	sx1262_lora_set_continuous_receive_mode(LORA_Handle);
+	
+	// init power monitor
 
 	// main program
 	while (1) {
