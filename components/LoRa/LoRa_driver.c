@@ -1264,7 +1264,7 @@ uint8_t sx1262_lora_transmit(sx1262_handle_t *handle, sx1262_clock_source_t stan
     while ((ms != 0) && (handle->tx_done == 0) && (handle->timeout == 0))                                  /* check timeout */
     {
         handle->delay_ms(1);                                                                               /* delay 1 ms */
-        ms--;                                                                                             /* ms-- */
+        ms--;                                                                                               /* ms-- */
     }
     if ((ms != 0) && (handle->tx_done == 1))                                                               /* check the result */
     {

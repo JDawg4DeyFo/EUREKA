@@ -53,7 +53,7 @@ spi_device_interface_config_t dev_config = {
 gpio_config_t Reset_GPIO = {
    .pin_bit_mask = 1ULL << GPIO_RESET,        
    .mode = GPIO_MODE_DEF_OUTPUT,               
-   .pull_up_en = GPIO_PULLUP_DISABLE ,       
+   .pull_up_en = GPIO_PULLUP_ENABLE ,       
    .pull_down_en = GPIO_PULLDOWN_DISABLE ,   
    .intr_type = GPIO_INTR_DISABLE, 
 };
@@ -243,8 +243,7 @@ uint8_t sx1262_interface_reset_gpio_write(uint8_t data){
       gpio_set_level(GPIO_RESET, 0);
    }
    
-   uint32_t hundred_us_in_ms = 0.2;
-   sx1262_interface_delay_ms(hundred_us_in_ms);
+   sx1262_interface_delay_ms(1); //1 ms delay
    gpio_set_level(GPIO_RESET, 1);
 
    return 0;
@@ -305,36 +304,17 @@ uint8_t sx1262_interface_busy_gpio_deinit(void){
  */
 uint8_t sx1262_interface_busy_gpio_read(uint8_t *value){
    int gpio_current_level = gpio_get_level(GPIO_BUSY);
-   if (gpio_current_level != 1){
+   
+   if (!gpio_current_level){
       printf("The SX1262 is ready to accept a command (NOT BUSY)\n");
    } else {
       printf("The SX1262 is not ready to accept a command (BUSY)\n");
    }
+
    *value = (uint8_t)gpio_current_level;
    return 0;
 }
 
-/**
- * @brief  instantiate the irq_handler from LoRa_driver so that the ESP32 can run it
- * @param[in] arg 
- *      
- */
-
-extern uint8_t sx1262_irq_handler(sx1262_handle_t *LoRa_handle);
-
-static void gpio_isr_handler(void* arg)
-{
-    // Cast the argument to the handle type or relevant data
-    sx1262_handle_t *LoRa_handle = (sx1262_handle_t*) arg;
-    
-    // Call your preexisting IRQ handler
-    uint8_t res = sx1262_irq_handler(LoRa_handle);
-    if (res != 0) {
-        ESP_LOGE("GPIO_ISR", "IRQ Handler failed with error %d", res);
-    } else {
-      ESP_LOGI("DIO1 PIN", "IRQ Handler instantiation is a success");
-    }
-}
 
 /**
  * @brief  interface DIO1 gpio init
@@ -343,6 +323,8 @@ static void gpio_isr_handler(void* arg)
  *         - 1 init failed
  * @note   none
  */
+
+ 
 esp_err_t sx1262_interface_dio1_gpio_init(sx1262_handle_t *LoRa_handle){
    esp_err_t res = gpio_config(&DIO1_GPIO);
    if (res != ESP_OK) {
@@ -355,21 +337,38 @@ esp_err_t sx1262_interface_dio1_gpio_init(sx1262_handle_t *LoRa_handle){
       ESP_LOGE("GPIO_DIO1", "Failed to intr_enable");
       return res;
    }
-
+   /*
    res = gpio_install_isr_service(ESP_INTR_FLAG_EDGE);
    if (res != ESP_OK) {
       ESP_LOGE("GPIO_DIO1", "Failed to install isr service");
       return res;
    }
    
-   res = gpio_isr_handler_add(GPIO_DIO1, gpio_isr_handler, LoRa_handle);
+   res = gpio_isr_handler_add(GPIO_DIO1, gpio_isr_handler, NULL);
    if (res != ESP_OK) {
       ESP_LOGE("GPIO_DIO1", "Failed to add irq_handler from LoRa_driver");
       return res;
    }
+
+   if (lora_task_handle == NULL) {
+      BaseType_t task_created = xTaskCreate(
+          lora_irq_task,
+          "LoRa IRQ Task",
+          4096,
+          (void *)LoRa_handle,
+          10,
+          &lora_task_handle
+      );
+      if (task_created != pdPASS) {
+          ESP_LOGE("GPIO_DIO1", "Failed to create IRQ task");
+      }
+   }
+   */
+
    ESP_LOGI("DIO1 PIN", "Initialization is a success");
    return ESP_OK;
 }
+
 
 /**
  * @brief  interface busy gpio deinit
@@ -378,16 +377,18 @@ esp_err_t sx1262_interface_dio1_gpio_init(sx1262_handle_t *LoRa_handle){
  *         - 1 deinit failed
  * @note   none
  */
+ 
 esp_err_t sx1262_interface_dio1_gpio_deinit(void){
-
+   /*
    esp_err_t res = gpio_isr_handler_remove(GPIO_DIO1);
    if (res != ESP_OK) {
       ESP_LOGE("GPIO_DIO1", "Failed to remove isr handler");
       return res;
    }
    gpio_uninstall_isr_service();
+   */
 
-   res = gpio_intr_disable(GPIO_DIO1);
+   esp_err_t res = gpio_intr_disable(GPIO_DIO1);
    if (res != ESP_OK) {
       ESP_LOGE("GPIO_DIO1", "Failed to intr_disable");
       return res;
@@ -408,6 +409,7 @@ esp_err_t sx1262_interface_dio1_gpio_deinit(void){
    ESP_LOGI("DIO1 PIN", "Deinitialization is a success");
    return ESP_OK;
 }
+
 
 /**
  * @brief     interface print format data
