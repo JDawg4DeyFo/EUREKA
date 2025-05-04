@@ -21,7 +21,7 @@
 
 // Defines
 /******************************************************************************/
-
+#define SENDING_TIMEOUT_TIME 100 				// ACCURATE VALUE NEEDED. timeout for tx transmissions
 // Datatypes
 /******************************************************************************/
 typedef enum {
@@ -45,7 +45,7 @@ typedef struct {
 static const char *TAG = "ClusterMain.c";
 static sx1262_handle_t LORA_Handle;
 static LORA_Packet_t MainPacket;
-static bool Sending, Timeout; // to check in main loop
+static bool Sending, Response; // to check in main loop
 static int Send_StartTime;
 static float Period;
 
@@ -53,7 +53,7 @@ static float Period;
 /******************************************************************************/
 // LORA ISR
 
-// Send
+// Send_Packet
 
 // Parse any packets
 bool ParsePacket(void) {
@@ -99,12 +99,12 @@ bool ParsePacket(void) {
 		// Packet contains processed sensor data
 		// here, the cluster head should act as a relay.
 		case PROCESSED_SENSOR_DATA:
-
-			// Foward data
+			// Forward data
 			Sending = true;
 			Send_StartTime = esp_timer_get_time();
 			// Sensordata();
 			break;
+			
 	}
 
 	return true;
@@ -132,18 +132,24 @@ void app_main(void) {
 		}
 
 		// If transmitting, check for timeout or response
-		while (Sending && !Timeout) {
-			// if duration > timeout time
-				// timeout = true
-				// stop sending
-				// sending = false
-				// store data
+		while (Sending) {
+			// Timeout condition
+			// here we will store data in memory for later transmission
+			if((esp_timer_get_time() - Sending_StartTime) > SENDING_TIMEOUT_TIME) {
+				// lora stop sending();
+				sending = false;
+				// memory store data();
+			}
+			
 
-			// if response
-				// stop sending
-				// sending = false
+			if(Response) {
+				// if more TX packets
+					// send and reset start time
+				// else{}: code below
+				// lora stop sending();
+				sending = false;
+			}
+
 		}
-
-		Timeout = false;
 	}
 }
