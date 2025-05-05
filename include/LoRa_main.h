@@ -42,7 +42,7 @@
 #define SX1262_LORA_DEFAULT_PA_CONFIG_DUTY_CYCLE        0x04                              /**< set +22dBm power */
 #define SX1262_LORA_DEFAULT_PA_CONFIG_HP_MAX            0x07                              /**< set +22dBm power */
 #define SX1262_LORA_DEFAULT_TX_DBM                      22                                /**< +22dBm */
-#define SX1262_LORA_DEFAULT_RAMP_TIME                   SX1262_RAMP_TIME_10US             /**< set ramp time 10 us */
+#define SX1262_LORA_DEFAULT_RAMP_TIME                   SX1262_RAMP_TIME_800US             /**< set ramp time 10 us */
 #define SX1262_LORA_DEFAULT_SF                          SX1262_LORA_SF_12                 /**< sf12 */
 #define SX1262_LORA_DEFAULT_BANDWIDTH                   SX1262_LORA_BANDWIDTH_125_KHZ     /**< 125khz */
 #define SX1262_LORA_DEFAULT_CR                          SX1262_LORA_CR_4_5                /**< cr4/5 */
@@ -50,7 +50,7 @@
 #define SX1262_LORA_DEFAULT_RF_FREQUENCY                915000000U                        /**< 915000000Hz */
 #define SX1262_LORA_DEFAULT_SYMB_NUM_TIMEOUT            0                                 /**< 0 */
 #define SX1262_LORA_DEFAULT_SYNC_WORD                   0x3444U                           /**< public network */
-#define SX1262_LORA_DEFAULT_RX_GAIN                     0x94                              /**< common rx gain */
+#define SX1262_LORA_DEFAULT_RX_GAIN                     0x96                              /**< boosted rx gain */
 #define SX1262_LORA_DEFAULT_OCP                         0x38                              /**< 140 mA */
 #define SX1262_LORA_DEFAULT_PREAMBLE_LENGTH             12                               /**< 12 */
 #define SX1262_LORA_DEFAULT_HEADER                      SX1262_LORA_HEADER_EXPLICIT       /**< explicit header */
