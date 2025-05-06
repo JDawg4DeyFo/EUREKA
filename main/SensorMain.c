@@ -135,6 +135,7 @@ void Calculate_CRC(LORA_Packet_t *Packet) {
 
 bool SendPacket() {
 	uint8_t buffer[MAX_PACKET_LENGTH];
+	uint8_t len;
 	
 	// convert packet to array of chars
 	buffer[0] = MainPacket.NodeID;
@@ -144,13 +145,15 @@ bool SendPacket() {
 	memcpy(buffer[2], MainPacket.Timestamp, 4);
 
 	// convert length
-	buffer[4] = MainPacket.Length;
+	buffer[6] = MainPacket.Length;
 
 	// convert length
-	memcpy(buffer[5], MainPacket.Payload, MainPacket.Length);
+	memcpy(buffer[7], MainPacket.Payload, MainPacket.Length);
 
-	*(buffer + 5 + MainPacket.Legnth) = MainPacket.CRC;
+	*(buffer + 7 + MainPacket.Legnth) = MainPacket.CRC;
 	
+	// send packet and set flags
+	sx1262_lora_send(&LORA_Handle, buffer, len);
 	Sending = true;
 	Sending_StartTime = esp_timer_get_time();
 

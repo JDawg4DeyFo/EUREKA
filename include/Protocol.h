@@ -15,6 +15,7 @@
 #define MAX_PACKET_LENGTH 100
 #define MAX_PAYLOAD_LENGTH 100
 #define TIMESTAMP_LENGTH 4
+#define BASE_PACKET_LEGNTH 8
 
 // payload lengths
 #define RAW_SENSOR_DATA_LEN 22
@@ -22,7 +23,6 @@
 #define REQUEST_SENSOR_DATA_LEN 0
 #define PROCESSED_SENSOR_DATA_LEN 22 // may not need this...
 #define TX_ACK_LEN 0
-
 // Typedefs
 /******************************************************************************/
 
