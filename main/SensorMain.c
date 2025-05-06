@@ -25,6 +25,8 @@
 #define DEFAULT_PERIOD 10					// Default period in seconds
 #define MICROSECOND_TO_SECOND 1000000
 #define TIMEOUT_PERIOD 30					// timeout period in seconds
+#define BYTE_SHIFT 8						
+#define BYTE_MASK 0xFF
 
 // Data types
 /******************************************************************************/
@@ -36,6 +38,11 @@ typedef struct {
 	short Soil_Moisture;
 	float Soil_Temperature;
 } SensorData_t;
+
+union {
+	float f;
+	uint8_t b[4];
+} float_converter;
 
 // Variables
 /******************************************************************************/
@@ -126,6 +133,30 @@ void Calculate_CRC(LORA_Packet_t *Packet) {
 	Packet->CRC = Iterative_CRC(false, *(Packet->Payload + Packet->Length - 1));
 }
 
+bool SendPacket() {
+	uint8_t buffer[MAX_PACKET_LENGTH];
+	
+	// convert packet to array of chars
+	buffer[0] = MainPacket.NodeID;
+	buffer[1] = MainPacket.Pkt_Type;
+	
+	// timestamp copy
+	memcpy(buffer[2], MainPacket.Timestamp, 4);
+
+	// convert length
+	buffer[4] = MainPacket.Length;
+
+	// convert length
+	memcpy(buffer[5], MainPacket.Payload, MainPacket.Length);
+
+	*(buffer + 5 + MainPacket.Legnth) = MainPacket.CRC;
+	
+	Sending = true;
+	Sending_StartTime = esp_timer_get_time();
+
+	return true;
+}
+
 
 bool ParsePacket() {
 	// The sensor node only has to respond to a few packet types
@@ -133,7 +164,8 @@ bool ParsePacket() {
 		case PERIOD_UPDATE:
 			// Access new period from payload
 			//update period
-			// Period = Newperiod;
+			Period = MainPacket.Payload[0] << BYTE_SHIFT;
+			Period += MainPacket.Payload[1];
 			break;
 
 		case REQUEST_SENSOR_DATA:
@@ -145,12 +177,33 @@ bool ParsePacket() {
 			MainPacket.Pkt_Type = RAW_SENSOR_DATA;
 			MainPacket.Timestamp = 100; // PLACEHOLDER!! REPLACE WITH REAL TIME
 			MainPacket.Length = RAW_SENSOR_DATA_LEN;
-			Calculate_CRC(&MainPacket);
 
-			// send packet
-			// SendLoraPacket();
-			Sending = true;
-			Sending_StartTime = esp_timer_get_time();
+			// Store payload
+			// structure is in pag 104 of jacob's eng notebook
+			MainPacket.Payload[0] = SensorData.Soil_Moisture >> BYTE_SHIFT;
+			MainPacket.Payload[1] = SensorData.Soil_Moisture & BYTE_MASK;
+			
+			// float conversion for soil temperature
+			float_converter.f = SensorData.Soil_Temperature;
+			memcpy(MainPacket.Payload[2], float_converter.b, 4);
+
+			// float conversion for humidity
+			float_converter.f = SensorData.Humidity;
+			memcpy(MainPacket.Payload[6], float_converter.b, 4);
+
+			// float conversion for temperature
+			float_converter.f = SensorData.Temperature;
+			memcpy(MainPacket.Payload[10], float_converter.b, 4);
+
+			// float conversion of wind speed
+			float_converter.f = SensorData.WindSpeed;
+			memcpy(MainPacket.Payload[14], float_converter.b, 4);
+
+			// float conversion of wind direction
+			float_converter.f = SensorData.WindSpeed;
+			memcpy(MainPacket.Payload[18], float_converter.b, 4);
+
+			return Send_MainPacket();
 
 		// for all other cases, break
 		default:
@@ -159,6 +212,8 @@ bool ParsePacket() {
 
 	// Reset ready flag
 	MainPacket_Ready = false;
+
+	return true;
 }
 
 

@@ -12,7 +12,7 @@
 
 // #defines
 /******************************************************************************/
-// Biggest payload size in chars
+#define MAX_PACKET_LENGTH 100
 #define MAX_PAYLOAD_LENGTH 100
 #define TIMESTAMP_LENGTH 4
 
@@ -33,6 +33,7 @@ typedef enum {
 	REQUEST_SENSOR_DATA,
 	PROCESSED_SENSOR_DATA,
 	TIME_UPDATE,	// relay and update time across nodes
+	BATTERY_DATA,
 	TX_ACK
 } PacketIDs_t
 
@@ -42,5 +43,5 @@ typedef struct {
 	unsigned char Timestamp[TIMESTAMP_LENGTH];
 	unsigned char Length;
 	unsigned char Payload[MAX_PAYLOAD_LENGTH];
-	uint16_t CRC;
+	uint8_t CRC;
 } LORA_Packet_t;
