@@ -1,0 +1,38 @@
+/**
+ * @file Protocol.h
+ * @author Jacob Dennon (jdennon@ucsc.edu)
+ * @brief File that includes the protocol information for EUREKA packet system
+ * 			not RoCa
+ * @version 0.1
+ * @date 2025-05-05
+ * 
+ * @copyright Copyright (c) 2025
+ * 
+ */
+
+// #defines
+/******************************************************************************/
+// Biggest payload size in chars
+#define MAX_PAYLOAD_LENGTH 100
+#define TIMESTAMP_LENGTH 4
+
+// Typedefs
+/******************************************************************************/
+
+typedef enum {
+	NOTHING,
+	RAW_SENSOR_DATA,
+	PERIOD_UPDATE,
+	REQUEST_SENSOR_DATA,
+	PROCESSED_SENSOR_DATA,
+	TX_ACK
+} PacketIDs_t
+
+typedef struct {
+	unsigned char NodeID;
+	PacketIDs_t Pkt_Type;
+	unsigned char Timestamp[TIMESTAMP_LENGTH];
+	unsigned char Length;
+	unsigned char Payload[MAX_PAYLOAD_LENGTH];
+	uint16_t CRC;
+} LORA_Packet_t;

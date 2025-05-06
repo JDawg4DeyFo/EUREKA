@@ -18,6 +18,7 @@
 
 #include "../include/Sensors.h"
 #include "../include/LoRa_main.h"
+#include "../include/Protocol.h"
 
 // #defines
 /******************************************************************************/
@@ -27,33 +28,54 @@
 
 // Data types
 /******************************************************************************/
-typedef enum {
-	NOTHING,
-	RAW_SENSOR_DATA,
-	PERIOD_UPDATE,
-	REQUEST_SENSOR_DATA,
-	PROCESSED_SENSOR_DATA,
-	TX_ACK
-} PacketIDs_t
-// NOTE: this typedef and lora packet def might be consolidated into one header file
-
 typedef struct {
-	unsigned char *Payload;
-	PacketIDs_t Pkt_Type;
-	bool Ready;
-} LORA_Packet_t;
+	float WindDirection;
+	float Temperature;
+	float Humidity;
+	float WindSpeed;
+	short Soil_Moisture;
+	float Soil_Temperature;
+} SensorData_t;
 
 // Variables
 /******************************************************************************/
 static float Period;
 static sx1262_handle_t LORA_Handle;
 static LORA_Packet_t MainPacket;
-static bool Sending, Response;
+static bool Sending, Response, MainPacket_Ready;
 static int Sending_StartTime;
+SensorData_t SensorData;
 
 
 // Functions
 /******************************************************************************/
+// Return: true for sucess
+// 		   false for fail
+bool SenseData() {
+	float TempFloat1, TempFloat2;
+	short TempShort;
+	// Initialize return value to true... will be set false on first fail
+	bool ret = true;
+
+	// Try reading soil moisture
+	if(Read_SoilMoisture(&TempShort) != ESP_OK) {
+		ret = false;
+	}
+	SensorData.Soil_Moisture = TempShort;
+
+	// Read wind speed and direction. No fail condition for these functions
+	SensorData.Soil_Moisture = Get_Wind_Speed();
+	SensorData.WindDirection = Get_Wind_Direction();
+
+	// Read humidity and temperature
+	if(!Read_SHT30_HumidityTemperature(&TempFloat1, &TempFloat2)) {
+		ret = false;
+	}
+
+	return ret;
+}
+
+
 bool ParsePacket() {
 	// The sensor node only has to respond to a few packet types
 	switch (MainPacket.Pkt_Type) {
@@ -79,7 +101,7 @@ bool ParsePacket() {
 	}
 
 	// Reset ready flag
-	MainPacket.Ready = false;
+	MainPacket_Ready = false;
 }
 
 
@@ -102,7 +124,7 @@ void app_main(void)
 	
 	while(1) {
 		// check incoming packets
-		if (MainPacket.Ready) {
+		if (MainPacket_Ready) {
 			ParsePacket();
 		}
 

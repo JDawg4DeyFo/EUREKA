@@ -18,28 +18,13 @@
 
 #include "../include/LoRa_main.h"
 // #include "../include/Memory.h"
+#include "../include/Protocol.h"
 
 // Defines
 /******************************************************************************/
 #define SENDING_TIMEOUT_TIME 100 				// ACCURATE VALUE NEEDED. timeout for tx transmissions
 // Datatypes
 /******************************************************************************/
-typedef enum {
-	NOTHING,
-	RAW_SENSOR_DATA,
-	PERIOD_UPDATE,
-	REQUEST_SENSOR_DATA,
-	PROCESSED_SENSOR_DATA,
-	TX_ACK
-} PacketIDs_t
-
-// Typedefs
-/******************************************************************************/
-typedef struct {
-	unsigned char *Payload;
-	PacketIDs_t Pkt_Type;
-	bool Ready;
-} LORA_Packet_t;
 
 // Variables
 /******************************************************************************/
@@ -128,7 +113,7 @@ void app_main(void) {
 	// main program
 	while (1) {
 		// Poll packets and parse
-		if (MainPacket.Ready == true) {
+		if (MainPacket_Ready == true) {
 			ParsePacket();
 		}
 
