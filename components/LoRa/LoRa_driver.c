@@ -138,7 +138,7 @@
 #define SX1262_REG_XTB_TRIM                              0x0912      /**< xtb trim register */
 #define SX1262_REG_DIO3_OUTPUT_CONTROL                   0x0920      /**< dio3 output voltage control register */
 #define SX1262_REG_EVENT_MASK                            0x0944      /**< event mask register */
-
+#define GPIO_38 38
 /**
  * @brief      read bytes
  * @param[in]  *handle pointer to an sx1262 handle structure
@@ -416,7 +416,10 @@ uint8_t sx1262_irq_handler(sx1262_handle_t *handle)
     {
         return 3;                                                                                              /* return error */
     }
+
+    gpio_set_level(GPIO_38, 0);
     
+    handle->debug_print("sx1262: irq handler has been entered\n");
     memset(buf, 0, sizeof(uint8_t) * 3);                                                                       /* clear the buffer */
     res = a_sx1262_spi_read(handle, SX1262_COMMAND_GET_IRQ_STATUS, (uint8_t *)buf, 3);                         /* read command */
     if (res != 0)                                                                                              /* check result */

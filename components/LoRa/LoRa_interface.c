@@ -82,14 +82,16 @@ void lora_task(void *pvParameters){
    }
 }
 
-xTaskCreate(
-   lora_task,
-   "LoRa Task",
-   4096,
-   NULL,
-   10,
-   &lora_task_handle
-);
+void init_lora_task(void){
+   xTaskCreate(
+      lora_task,
+      "LoRa Task",
+      4096,
+      NULL,
+      10,
+      &lora_task_handle
+   );
+}
 
 // Adapter to match gpio_isr_register signature
 static void IRAM_ATTR gpio_isr_handler(void* arg)

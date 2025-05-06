@@ -15,6 +15,8 @@
  #include "driver/spi_master.h"
  #include "driver/gpio.h"
 
+ 
+ void init_lora_task(void);
  /**
  * @brief  interface the spi bus with the sx1262 and add the device with respect to the ESP32 
  * @return status code
