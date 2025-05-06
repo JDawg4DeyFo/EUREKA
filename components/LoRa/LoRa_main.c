@@ -373,16 +373,29 @@ uint8_t sx1262_lora_sleep(sx1262_handle_t *LoRa_handle)
  */
 uint8_t sx1262_lora_wake_up(sx1262_handle_t *LoRa_handle)
 {
-    uint8_t status;
-    
-    if (sx1262_get_status(LoRa_handle, (uint8_t *)&status) != 0)
+    gpio_set_level(7, 0); //Set CS pin on SPI bus low
+
+    sx1262_interface_delay_ms(10); //10 ms delay
+
+    gpio_set_level(7, 1); //Set CS pin on SPI bus back to high
+
+    // Set standby mode
+    uint8_t res = sx1262_set_standby(handle, SX1262_CLOCK_SOURCE_XTAL_32MHZ);
+    if (res != 0)
     {
+        handle->debug_print("sx1262: failed to set standby.\n");
         return 1;
     }
-    else
+
+    res = a_sx1262_check_busy(&LoRa);                                                           /* check busy */
+    if (res != 0)                                                                               /* check result */
     {
-        return 0;
+        handle->debug_print("sx1262: chip is busy.\n");                                         /* chip is busy */
+       
+        return 1;                                                                               /* return error */
     }
+
+    return 0;
 }
 
 /**
