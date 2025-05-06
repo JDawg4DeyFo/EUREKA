@@ -22,24 +22,26 @@
 static sx1262_handle_t LoRa;
 static uint8_t test_buf[5] = "Test";
 
+static const char *TAG = "LoraLibTest.c";
 
 void app_main(void){
-
   sx1262_lora_begin(&LoRa);
-  sx1262_interface_dio1_gpio_init(&LoRa); // Pass the address of the static handle
- 
-  if(sx1262_lora_set_send_mode(&LoRa)){
-    ESP_LOGE("ERROR", "Set send mode failed.");
-  }
+  sx1262_interface_dio1_gpio_init(&LoRa);
 
-  if(sx1262_lora_send(&LoRa, test_buf, sizeof(test_buf))){
-    ESP_LOGE("ERROR", "transmit failed.");
-  } else{
-    ESP_LOGI("RESULT", "TX DONE");
-    sx1262_interface_debug_print("Test Done\n");
+  if (sx1262_lora_set_send_mode(&LoRa))
+  {
+    sx1262_interface_debug_print("Set send mode failed\n");
     sx1262_interface_dio1_gpio_deinit();
-    sx1262_lora_deinit(&LoRa); 
+    sx1262_lora_deinit(&LoRa);
+  } 
+
+  if(sx1262_lora_set_send_mode(&LoRa, test_buf, sizeof(test_buf))){
+    sx1262_interface_dio1_gpio_deinit();
+    sx1262_lora_deinit(&LoRa);
+  }else{
+    sx1262_interface_debug_print("Transmission is a success\n");
+    sx1262_interface_dio1_gpio_deinit();
+    sx1262_lora_deinit(&LoRa);
   }
-
-
+  
 }
