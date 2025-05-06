@@ -16,6 +16,13 @@
 #define MAX_PAYLOAD_LENGTH 100
 #define TIMESTAMP_LENGTH 4
 
+// payload lengths
+#define RAW_SENSOR_DATA_LEN 22
+#define PERIOD_UPDATE_LEN	2
+#define REQUEST_SENSOR_DATA_LEN 0
+#define PROCESSED_SENSOR_DATA_LEN 22 // may not need this...
+#define TX_ACK_LEN 0
+
 // Typedefs
 /******************************************************************************/
 
@@ -25,6 +32,7 @@ typedef enum {
 	PERIOD_UPDATE,
 	REQUEST_SENSOR_DATA,
 	PROCESSED_SENSOR_DATA,
+	TIME_UPDATE,	// relay and update time across nodes
 	TX_ACK
 } PacketIDs_t
 
