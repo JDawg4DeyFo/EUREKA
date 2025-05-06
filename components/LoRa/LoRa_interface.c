@@ -13,7 +13,6 @@
 #include "../../include/LoRa_interface.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "freertos/semphr.h"
 #include "esp_log.h"
 
 //GPIO numbers on the ESP32 
@@ -26,10 +25,10 @@
 #define GPIO_DIO1 33
 
 static spi_device_handle_t slave_handle; 
-SemaphoreHandle_t sx1262_irq_semaphore = NULL;
+TaskHandle_t lora_task_handle = NULL;
 
 //Config spi bus between the master (ESP32-S3) and slave (Semtech SX1262)
-spi_bus_config_t bus_pins = {
+const spi_bus_config_t bus_pins = {
    .miso_io_num = GPIO_MISO,
    .mosi_io_num = GPIO_MOSI,
    .sclk_io_num = GPIO_SCK,
@@ -38,7 +37,7 @@ spi_bus_config_t bus_pins = {
    .quadhd_io_num = -1,
 };
 
-spi_device_interface_config_t dev_config = {
+const spi_device_interface_config_t dev_config = {
    .command_bits = 0,
    .address_bits = 0,
    .dummy_bits = 0,     
@@ -52,7 +51,7 @@ spi_device_interface_config_t dev_config = {
 
 //Definitions of the GPIO Reset and Busy Pins on the ESP32-S3
 
-gpio_config_t Reset_GPIO = {
+const gpio_config_t Reset_GPIO = {
    .pin_bit_mask = 1ULL << GPIO_RESET,        
    .mode = GPIO_MODE_DEF_OUTPUT,               
    .pull_up_en = GPIO_PULLUP_ENABLE ,       
@@ -60,7 +59,7 @@ gpio_config_t Reset_GPIO = {
    .intr_type = GPIO_INTR_DISABLE, 
 };
 
-gpio_config_t Busy_GPIO = {
+const gpio_config_t Busy_GPIO = {
    .pin_bit_mask = 1ULL << GPIO_BUSY,        
    .mode = GPIO_MODE_DEF_INPUT,               
    .pull_up_en = GPIO_PULLUP_DISABLE ,       
@@ -68,13 +67,35 @@ gpio_config_t Busy_GPIO = {
    .intr_type = GPIO_INTR_DISABLE,
 };
 
-gpio_config_t DIO1_GPIO = {
+const gpio_config_t DIO1_GPIO = {
    .pin_bit_mask = 1ULL << GPIO_DIO1,        
    .mode = GPIO_MODE_DEF_INPUT,               
    .pull_up_en = GPIO_PULLUP_ENABLE ,       
    .pull_down_en = GPIO_PULLDOWN_DISABLE ,   
    .intr_type = GPIO_INTR_POSEDGE,
 };
+
+void lora_task(void *pvParameters){
+   for(;;){
+      ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+      sx1262_irq_handler((sx1262_handle_t*) pvParameters);
+   }
+}
+
+xTaskCreate(
+   lora_task,
+   "LoRa Task",
+   4096,
+   NULL,
+   10,
+   &lora_task_handle
+);
+
+// Adapter to match gpio_isr_register signature
+static void IRAM_ATTR gpio_isr_handler(void* arg)
+{
+   xTaskNotifyFromISR(lora_task_handle, 0, eNoAction, NULL);
+}   
 
   /**
  * @brief  interface the spi bus with the sx1262 and add the device
@@ -316,12 +337,7 @@ uint8_t sx1262_interface_busy_gpio_read(uint8_t *value){
    return 0;
 }
 
-// Adapter to match gpio_isr_register signature
-static void IRAM_ATTR gpio_isr_handler(void* arg)
-{
-   sx1262_handle_t *handle = (sx1262_handle_t*) arg;  
-   sx1262_irq_handler(handle);
-}
+
 
 /**
  * @brief  interface DIO1 gpio init
@@ -345,7 +361,12 @@ esp_err_t sx1262_interface_dio1_gpio_init(sx1262_handle_t *LoRa_handle){
       return res;
    }
 
-   gpio_install_isr_service(ESP_INTR_FLAG_EDGE | ESP_INTR_FLAG_IRAM);
+   res = gpio_install_isr_service(0);
+   if (res != ESP_OK) {
+      ESP_LOGE("IRQ Handler", "Failed to install necessary flags pin");
+      return res;
+   }
+
    res = gpio_isr_handler_add(GPIO_DIO1, gpio_isr_handler, LoRa_handle);
    if (res != ESP_OK) {
       ESP_LOGE("IRQ Handler", "Failed to add irq_handler to pin");

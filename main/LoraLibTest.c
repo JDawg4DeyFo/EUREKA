@@ -10,12 +10,7 @@
  */
 
 #include "../../include/LoRa_main.h"
-#include "../../include/LoRa_interface.h"
 #include "../../include/driver_sx1262_cad_test.h"
-#include "freertos/semphr.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "esp_log.h"
 
 #define tx_timeout 9000
  
@@ -34,6 +29,7 @@ void app_main(void){
     sx1262_lora_deinit(&LoRa);
   } 
 
+
   if(sx1262_lora_send(&LoRa, test_buf, sizeof(test_buf))){
     sx1262_interface_dio1_gpio_deinit();
     sx1262_lora_deinit(&LoRa);
@@ -42,5 +38,6 @@ void app_main(void){
     sx1262_interface_dio1_gpio_deinit();
     sx1262_lora_deinit(&LoRa);
   }
+  */
   
 }

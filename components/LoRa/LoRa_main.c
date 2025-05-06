@@ -336,12 +336,11 @@ uint8_t sx1262_lora_begin(sx1262_handle_t *LoRa_handle)
  */
 
  uint8_t sx1262_lora_deinit(sx1262_handle_t *LoRa_handle){
-    if (sx1262_deinit(LoRa_handle) != 0) {
-       printf("LoRa chip failed to deinitialize\n");
+    if (sx1262_deinit(LoRa_handle) != 0) 
+    {
        return 1;
     }
- 
-    printf("LoRa chip successfully deinitialized\n");
+
     return 0;
  }
 
