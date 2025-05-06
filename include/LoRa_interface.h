@@ -98,6 +98,13 @@ uint8_t sx1262_interface_busy_gpio_deinit(void);
  * @note       none
  */
 uint8_t sx1262_interface_busy_gpio_read(uint8_t *value);
+// Function to set up LoRa interrupt handling and task (called from main.c)
+// This function takes the handle address from main.c and uses it to create the task and hook the ISR.
+void setup_lora_interrupt_handling(sx1262_handle_t *handle);
+
+// Declare your sx1262_irq_handler function
+// This function contains your complex logic and is called by the processing task.
+uint8_t sx1262_irq_handler(sx1262_handle_t *handle);
 
 /**
  * @brief  interface busy gpio init

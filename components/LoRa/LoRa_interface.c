@@ -13,6 +13,7 @@
 #include "../../include/LoRa_interface.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "freertos/semphr.h"
 #include "esp_log.h"
 
 //GPIO numbers on the ESP32 
@@ -25,6 +26,7 @@
 #define GPIO_DIO1 33
 
 static spi_device_handle_t slave_handle; 
+SemaphoreHandle_t sx1262_irq_semaphore = NULL;
 
 //Config spi bus between the master (ESP32-S3) and slave (Semtech SX1262)
 spi_bus_config_t bus_pins = {
@@ -69,7 +71,7 @@ gpio_config_t Busy_GPIO = {
 gpio_config_t DIO1_GPIO = {
    .pin_bit_mask = 1ULL << GPIO_DIO1,        
    .mode = GPIO_MODE_DEF_INPUT,               
-   .pull_up_en = GPIO_PULLUP_DISABLE ,       
+   .pull_up_en = GPIO_PULLUP_ENABLE ,       
    .pull_down_en = GPIO_PULLDOWN_DISABLE ,   
    .intr_type = GPIO_INTR_POSEDGE,
 };
@@ -313,6 +315,12 @@ uint8_t sx1262_interface_busy_gpio_read(uint8_t *value){
    return 0;
 }
 
+// Adapter to match gpio_isr_register signature
+static void IRAM_ATTR gpio_isr_handler(void* arg)
+{
+   sx1262_handle_t *handle = (sx1262_handle_t*) arg;  
+   sx1262_irq_handler(handle);
+}
 
 /**
  * @brief  interface DIO1 gpio init
@@ -336,6 +344,12 @@ esp_err_t sx1262_interface_dio1_gpio_init(sx1262_handle_t *LoRa_handle){
       return res;
    }
 
+   gpio_isr_handle_t isr_handle;
+   res = gpio_isr_register(gpio_isr_handler, (void*)LoRa_handle, ESP_INTR_FLAG_EDGE, &isr_handle);
+   if (res != ESP_OK) {
+      ESP_LOGE("IRQ Handler", "Failed to register irq_handler");
+      return res;
+   }
    ESP_LOGI("DIO1 PIN", "Initialization is a success");
    return ESP_OK;
 }
@@ -351,7 +365,16 @@ esp_err_t sx1262_interface_dio1_gpio_init(sx1262_handle_t *LoRa_handle){
  
 esp_err_t sx1262_interface_dio1_gpio_deinit(void){
 
-   esp_err_t res = gpio_intr_disable(GPIO_DIO1);
+   esp_err_t res = gpio_isr_handler_remove(GPIO_DIO1);
+   if (res != ESP_OK) {
+      ESP_LOGE("GPIO_DIO1", "Failed to remove irq_handler");
+      return res;
+   }
+
+   gpio_uninstall_isr_service();
+
+
+   res = gpio_intr_disable(GPIO_DIO1);
    if (res != ESP_OK) {
       ESP_LOGE("GPIO_DIO1", "Failed to intr_disable");
       return res;
@@ -510,4 +533,6 @@ uint8_t sx1262_device_init(sx1262_handle_t *LoRa_handle){
    return 0;
 
 }
+
+
 
