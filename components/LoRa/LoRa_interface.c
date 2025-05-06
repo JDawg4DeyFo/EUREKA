@@ -309,6 +309,7 @@ uint8_t sx1262_interface_busy_gpio_read(uint8_t *value){
       printf("The SX1262 is ready to accept a command (NOT BUSY)\n");
    } else {
       printf("The SX1262 is not ready to accept a command (BUSY)\n");
+      return 1;
    }
 
    *value = (uint8_t)gpio_current_level;
@@ -345,7 +346,7 @@ esp_err_t sx1262_interface_dio1_gpio_init(sx1262_handle_t *LoRa_handle){
    }
 
    gpio_install_isr_service(ESP_INTR_FLAG_EDGE | ESP_INTR_FLAG_IRAM);
-   res = gpio_isr_handler_add(GPIO_DIO1, gpio_isr_handle, (void*)LoRa_handle);
+   res = gpio_isr_handler_add(GPIO_DIO1, gpio_isr_handler, LoRa_handle);
    if (res != ESP_OK) {
       ESP_LOGE("IRQ Handler", "Failed to add irq_handler to pin");
       return res;

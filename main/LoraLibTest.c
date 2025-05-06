@@ -22,7 +22,6 @@
 static sx1262_handle_t LoRa;
 static uint8_t test_buf[5] = "Test";
 
-static const char *TAG = "LoraLibTest.c";
 
 void app_main(void){
   sx1262_lora_begin(&LoRa);
@@ -35,7 +34,7 @@ void app_main(void){
     sx1262_lora_deinit(&LoRa);
   } 
 
-  if(sx1262_lora_set_send_mode(&LoRa, test_buf, sizeof(test_buf))){
+  if(sx1262_lora_send(&LoRa, test_buf, sizeof(test_buf))){
     sx1262_interface_dio1_gpio_deinit();
     sx1262_lora_deinit(&LoRa);
   }else{
