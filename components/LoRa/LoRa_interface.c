@@ -76,14 +76,16 @@ const gpio_config_t DIO1_GPIO = {
 };
 
 void lora_task(void *pvParameters){
+   sx1262_handle_t *handle = (sx1262_handle_t*) pvParameters;
    for(;;){
       ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-      sx1262_irq_handler((sx1262_handle_t*) pvParameters);
+      sx1262_irq_handler(handle);
+      printf("DIO1 Level: %d\n", gpio_get_level(GPIO_DIO1));
    }
 }
 
 void init_lora_task(void){
-   xTaskCreate(
+   BaseType_t ret = xTaskCreate(
       lora_task,
       "LoRa Task",
       4096,
@@ -91,12 +93,24 @@ void init_lora_task(void){
       10,
       &lora_task_handle
    );
+   if (ret != pdPASS) {
+      ESP_LOGE("LoRa Task Init", "Failed to create LoRa task: %d", ret);
+      // Handle error appropriately (e.g., report fatal error)
+   } else {
+      ESP_LOGI("LoRa Task Init", "LoRa task created successfully. Handle: %p", lora_task_handle);
+   }
 }
 
 // Adapter to match gpio_isr_register signature
 static void IRAM_ATTR gpio_isr_handler(void* arg)
 {
-   xTaskNotifyFromISR(lora_task_handle, 0, eNoAction, NULL);
+   BaseType_t xHigherPriorityTaskWoken = pdFALSE; // Declare the variable
+
+    xTaskNotifyFromISR(lora_task_handle, 0, eNoAction, &xHigherPriorityTaskWoken);
+
+    if (xHigherPriorityTaskWoken) {
+        portYIELD_FROM_ISR(); // Request context switch
+    }
 }   
 
   /**
@@ -109,7 +123,7 @@ static void IRAM_ATTR gpio_isr_handler(void* arg)
 
  uint8_t esp32_SPI_bus_init(void){
 
-   esp_err_t check_result = spi_bus_initialize(SPI3_HOST, &bus_pins, SPI_DMA_CH_AUTO);
+   esp_err_t check_result = spi_bus_initialize(SPI2_HOST, &bus_pins, SPI_DMA_CH_AUTO);
 
    if (check_result  != ESP_OK){
       printf("spi_bus_initalize failed due to: %d\n", check_result);
@@ -118,7 +132,7 @@ static void IRAM_ATTR gpio_isr_handler(void* arg)
 
    printf("spi_bus_initalize is a success\n");
 
-   check_result = spi_bus_add_device(SPI3_HOST, &dev_config, &slave_handle);
+   check_result = spi_bus_add_device(SPI2_HOST, &dev_config, &slave_handle);
 
    if (check_result != ESP_OK){
       printf("spi_bus_add_device failed due to: %d\n", check_result);
@@ -148,7 +162,7 @@ uint8_t esp32_SPI_bus_deinit(void){
 
    printf("spi_bus_remove_device is a success\n");
 
-   check_result = spi_bus_free(SPI3_HOST);
+   check_result = spi_bus_free(SPI2_HOST);
    if (check_result != ESP_OK){
       printf("spi_bus_add_device failed due to: %d\n", check_result);
       return 1;
@@ -357,13 +371,7 @@ esp_err_t sx1262_interface_dio1_gpio_init(sx1262_handle_t *LoRa_handle){
       return res;
    }
 
-   res = gpio_intr_enable(GPIO_DIO1);
-   if (res != ESP_OK) {
-      ESP_LOGE("GPIO_DIO1", "Failed to intr_enable");
-      return res;
-   }
-
-   res = gpio_install_isr_service(0);
+   res = gpio_install_isr_service(ESP_INTR_FLAG_IRAM | ESP_INTR_FLAG_EDGE);
    if (res != ESP_OK) {
       ESP_LOGE("IRQ Handler", "Failed to install necessary flags pin");
       return res;
@@ -374,6 +382,14 @@ esp_err_t sx1262_interface_dio1_gpio_init(sx1262_handle_t *LoRa_handle){
       ESP_LOGE("IRQ Handler", "Failed to add irq_handler to pin");
       return res;
    }
+
+   res = gpio_intr_enable(GPIO_DIO1);
+   if (res != ESP_OK) {
+        ESP_LOGE("GPIO_SETUP", "Failed to enable interrupt for GPIO %d: %s", GPIO_DIO1, esp_err_to_name(res));
+        // Consider removing handler and uninstalling service on critical failure
+        return res;
+   }
+   ESP_LOGI("GPIO_SETUP", "Interrupt enabled for GPIO %d", GPIO_DIO1);
    ESP_LOGI("DIO1 PIN", "Initialization is a success");
    return ESP_OK;
 }

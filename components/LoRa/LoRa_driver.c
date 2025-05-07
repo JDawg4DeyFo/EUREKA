@@ -416,8 +416,6 @@ uint8_t sx1262_irq_handler(sx1262_handle_t *handle)
     {
         return 3;                                                                                              /* return error */
     }
-
-    gpio_set_level(GPIO_38, 0);
     
     handle->debug_print("sx1262: irq handler has been entered\n");
     memset(buf, 0, sizeof(uint8_t) * 3);                                                                       /* clear the buffer */
