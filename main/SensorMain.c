@@ -160,6 +160,23 @@ bool SendPacket() {
 	return true;
 }
 
+// Get packet from RX buffer and store into main packet
+bool GetPacket() {
+	// return false if handle isn't initialized
+	if (LORA_Handle == NULL) {
+		return false;
+	}
+
+	// Transfer bytes from lora buffer into main packet structure
+	MainPacket.NodeID = LORA_Handle.receive_buf[0];
+	MainPacket.Pkt_Type = LORA_Handle.receive_buf[1];
+	memcpy(MainPacket.Timestamp, LORA_Handle.receive_buf + 2, TIMESTAMP_LENGTH);
+	MainPacket.Length = LORA_Handle.receive_buf[6];
+	memcpy(MainPacket.Payload, LORA_Handle.receive_buf + 7, MainPacket.Length);
+	MainPacket.CRC = *(LORA_Handle.receive_buf + MainPacket.Length + 7);
+
+	return true;
+}
 
 bool ParsePacket() {
 	// The sensor node only has to respond to a few packet types
@@ -243,6 +260,7 @@ void app_main(void)
 	while(1) {
 		// check incoming packets
 		if (MainPacket_Ready) {
+			GetPacket();
 			ParsePacket();
 		}
 
@@ -250,13 +268,15 @@ void app_main(void)
 		while(Sending) {
 			// timeout condition
 			if ((esp_timer_get_time() - Sending_StartTime) > (TIMEOUT_PERIOD * MICROSECOND_TO_SECOND)) {
-				// lora stop sending();
+				// Stop sending
+				sx1262_lora_set_continuous_receive_mode(&LORA_Handle);
 				Sending = false;
 			}
 
 			// Response condition
 			if (Response) {
-				// lora stop sending();
+				// Stop sending
+				sx1262_lora_set_continuous_receive_mode(&LORA_Handle);
 				Sending = false;
 				Response = false;
 			}

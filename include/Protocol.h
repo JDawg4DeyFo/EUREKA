@@ -22,6 +22,8 @@
 #define PERIOD_UPDATE_LEN	2
 #define REQUEST_SENSOR_DATA_LEN 0
 #define PROCESSED_SENSOR_DATA_LEN 22 // may not need this...
+#define TIME_UPDATE_LEN 4
+#define BATTER_DATA_LEN 4
 #define TX_ACK_LEN 0
 // Typedefs
 /******************************************************************************/
@@ -36,6 +38,17 @@ typedef enum {
 	BATTERY_DATA,
 	TX_ACK
 } PacketIDs_t
+
+unsigned char PayloadLength_Lookup[] = {
+	0,							// NOTHING
+	RAW_SENSOR_DATA_LEN,		// RAW_SENSOR_DATA
+	PERIOD_UPDATE_LEN,			// period update
+	0,							// REQUEST_SENSOR_DATA
+	PROCESSED_SENSOR_DATA_LEN,	// PROCESSED SENSOR DATA
+	TIME_UPDATE_LEN,			// time update
+	BATTERY_DATA_LEN,			// battery data
+	0,							// TX ACK
+};
 
 typedef struct {
 	unsigned char NodeID;
