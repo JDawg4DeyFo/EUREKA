@@ -46,13 +46,14 @@ union {
 
 // Variables
 /******************************************************************************/
-static short Period;
+static uint16_t Period;
 static sx1262_handle_t LORA_Handle;
 static LORA_Packet_t MainPacket;
 static bool Sending, Response, MainPacket_Ready;
 static int Sending_StartTime;
 SensorData_t SensorData;
 static uint8_t Unique_NodeID;
+static uint32_t TempTimestamp;
 
 
 // Functions
@@ -133,7 +134,7 @@ void Calculate_CRC(LORA_Packet_t *Packet) {
 	Packet->CRC = Iterative_CRC(false, *(Packet->Payload + Packet->Length - 1));
 }
 
-bool SendPacket() {
+bool SendMainPacket() {
 	uint8_t buffer[MAX_PACKET_LENGTH];
 	uint8_t len;
 	
@@ -195,7 +196,9 @@ bool ParsePacket() {
 			// build packet
 			MainPacket.NodeID = Unique_NodeID;
 			MainPacket.Pkt_Type = RAW_SENSOR_DATA;
-			MainPacket.Timestamp = 100; // PLACEHOLDER!! REPLACE WITH REAL TIME
+
+			TempTimestamp = 100;		// replace with actual stamp later
+			memcpy(MainPacket.Timestamp, TempTimestamp, 4);
 			MainPacket.Length = RAW_SENSOR_DATA_LEN;
 
 			// Store payload
@@ -222,6 +225,9 @@ bool ParsePacket() {
 			// float conversion of wind direction
 			float_converter.f = SensorData.WindSpeed;
 			memcpy(MainPacket.Payload[18], float_converter.b, 4);
+
+			// Calculate and store CRC
+			Calculate_CRC(&MainPacket);
 
 			return Send_MainPacket();
 
