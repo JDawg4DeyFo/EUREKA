@@ -1,16 +1,38 @@
 /**
-  * @file LoRa.c
+ * Copyright (c) 2015 - present LibDriver All rights reserved
+ * 
+ * The MIT License (MIT)
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE. 
+  * @file LoRa_driver.c
  * @author Edouard Valenzuela (ecvalenz@ucsc.edu)
  * @brief LoRa library for ESP32.
  * @version 1.0
  * @date 2025-04-12
  * 
- * Last Edited: 4/12/2025, 2:20 pm
+ *
  * 
  * @copyright Copyright (c) 2025
  * 
  */
 #include "LoRa_driver.h"
+#include "driver/gpio.h"
 #include <math.h>
 
 /**
@@ -116,7 +138,7 @@
 #define SX1262_REG_XTB_TRIM                              0x0912      /**< xtb trim register */
 #define SX1262_REG_DIO3_OUTPUT_CONTROL                   0x0920      /**< dio3 output voltage control register */
 #define SX1262_REG_EVENT_MASK                            0x0944      /**< event mask register */
-
+#define GPIO_38 38
 /**
  * @brief      read bytes
  * @param[in]  *handle pointer to an sx1262 handle structure
@@ -380,8 +402,7 @@ static uint8_t a_sx1262_check_busy(sx1262_handle_t *handle)
  *            - 3 handle is not initialized
  * @note      none
  */
-
- uint8_t sx1262_irq_handler(sx1262_handle_t *handle)
+uint8_t sx1262_irq_handler(sx1262_handle_t *handle)
 {
     uint8_t res;
     uint8_t buf[3]; 
@@ -396,6 +417,7 @@ static uint8_t a_sx1262_check_busy(sx1262_handle_t *handle)
         return 3;                                                                                              /* return error */
     }
     
+    handle->debug_print("sx1262: irq handler has been entered\n");
     memset(buf, 0, sizeof(uint8_t) * 3);                                                                       /* clear the buffer */
     res = a_sx1262_spi_read(handle, SX1262_COMMAND_GET_IRQ_STATUS, (uint8_t *)buf, 3);                         /* read command */
     if (res != 0)                                                                                              /* check result */
@@ -507,7 +529,7 @@ static uint8_t a_sx1262_check_busy(sx1262_handle_t *handle)
     {
         if (handle->receive_callback != NULL)                                                                  /* if receive callback */
         {
-            handle->receive_callback(SX1262_IRQ_TX_DONE, NULL, 0);                                             /* run callback */
+            handle->receive_callback(SX1262_IRQ_TX_DONE, NULL, 0);                                               /* run callback */
         }
         handle->tx_done = 1;                                                                                   /* flag tx done */
     }
@@ -1016,6 +1038,7 @@ uint8_t sx1262_lora_cad(sx1262_handle_t *handle, sx1262_bool_t *enable)
     
     return 0;                                                                                   /* success return 0 */
 }
+
 /**
  * @brief      check the packet error
  * @param[in]  *handle pointer to an sx1262 handle structure
@@ -1238,11 +1261,11 @@ uint8_t sx1262_lora_transmit(sx1262_handle_t *handle, sx1262_clock_source_t stan
        
         return 1;                                                                                          /* return error */
     }
-    ms = us / 1000 + 10000;                                                                                /* set timeout */
+    ms = us / 1000 + 10000;                                                                               /* set timeout */
     while ((ms != 0) && (handle->tx_done == 0) && (handle->timeout == 0))                                  /* check timeout */
     {
         handle->delay_ms(1);                                                                               /* delay 1 ms */
-        ms--;                                                                                              /* ms-- */
+        ms--;                                                                                               /* ms-- */
     }
     if ((ms != 0) && (handle->tx_done == 1))                                                               /* check the result */
     {
@@ -2053,6 +2076,7 @@ uint8_t sx1262_set_calibration(sx1262_handle_t *handle, uint8_t settings)
     
     return 0;                                                                                  /* success return 0 */
 }
+
 /**
  * @brief     set the calibration image frequency
  * @param[in] *handle pointer to an sx1262 handle structure
@@ -2652,7 +2676,6 @@ uint8_t sx1262_get_packet_type(sx1262_handle_t *handle, sx1262_packet_type_t *ty
  *            - 4 chip is busy
  * @note      none
  */
-
 uint8_t sx1262_set_tx_params(sx1262_handle_t *handle, int8_t dbm, sx1262_ramp_time_t t)
 {
     uint8_t res;
@@ -2689,6 +2712,171 @@ uint8_t sx1262_set_tx_params(sx1262_handle_t *handle, int8_t dbm, sx1262_ramp_ti
 }
 
 /**
+ * @brief     set the modulation params in GFSK mode
+ * @param[in] *handle pointer to an sx1262 handle structure
+ * @param[in] br bit rate
+ * @param[in] shape pulse shape
+ * @param[in] bw bandwidth
+ * @param[in] fdev frequency deviation
+ * @return    status code
+ *            - 0 success
+ *            - 1 set gfsk modulation params failed
+ *            - 2 handle is NULL
+ *            - 3 handle is not initialized
+ *            - 4 chip is busy
+ * @note      none
+ */
+uint8_t sx1262_set_gfsk_modulation_params(sx1262_handle_t *handle, uint32_t br, sx1262_gfsk_pulse_shape_t shape, 
+                                          sx1262_gfsk_bandwidth_t bw, uint32_t fdev)
+{
+    uint8_t res;
+    uint8_t buf[8];
+    
+    if (handle == NULL)                                                                              /* check handle */
+    {
+        return 2;                                                                                    /* return error */
+    }
+    if (handle->inited != 1)                                                                         /* check handle initialization */
+    {
+        return 3;                                                                                    /* return error */
+    }
+
+    res = a_sx1262_check_busy(handle);                                                               /* check busy */
+    if (res != 0)                                                                                    /* check result */
+    {
+        handle->debug_print("sx1262: chip is busy.\n");                                              /* chip is busy */
+       
+        return 4;                                                                                    /* return error */
+    }
+    
+    buf[0] = (br >> 16) & 0xFF;                                                                      /* set param */
+    buf[1] = (br >> 8) & 0xFF;                                                                       /* set param */
+    buf[2] = (br >> 0) & 0xFF;                                                                       /* set param */
+    buf[3] = shape;                                                                                  /* set param */
+    buf[4] = bw;                                                                                     /* set param */
+    buf[5] = (fdev >> 16) & 0xFF;                                                                    /* set param */
+    buf[6] = (fdev >> 8) & 0xFF;                                                                     /* set param */
+    buf[7] = (fdev >> 0) & 0xFF;                                                                     /* set param */ 
+    res = a_sx1262_spi_write(handle, SX1262_COMMAND_SET_MODULATION_PARAMS, (uint8_t *)buf, 8);       /* write command */
+    if (res != 0)                                                                                    /* check result */
+    {
+        handle->debug_print("sx1262: set gfsk modulation params failed.\n");                         /* set gfsk modulation params failed */
+       
+        return 1;                                                                                    /* return error */
+    }
+    
+    return 0;                                                                                        /* success return 0 */
+}
+
+/**
+ * @brief      convert the bit rate to the register raw data
+ * @param[in]  *handle pointer to an sx1262 handle structure
+ * @param[in]  br bit rate
+ * @param[out] *reg pointer to a register raw buffer
+ * @return     status code
+ *             - 0 success
+ *             - 2 handle is NULL
+ *             - 3 handle is not initialized
+ * @note       none
+ */
+uint8_t sx1262_gfsk_bit_rate_convert_to_register(sx1262_handle_t *handle, uint32_t br, uint32_t *reg)
+{
+    if (handle == NULL)                                             /* check handle */
+    {
+        return 2;                                                   /* return error */
+    }
+    if (handle->inited != 1)                                        /* check handle initialization */
+    {
+        return 3;                                                   /* return error */
+    }
+    
+    *reg = (uint32_t)(32 * (32 * powf(10.f, 6.0f))) / br;           /* convert real data to register data */
+    
+    return 0;                                                       /* success return 0 */
+}
+
+/**
+ * @brief      convert the register raw data to the bit rate
+ * @param[in]  *handle pointer to an sx1262 handle structure
+ * @param[in]  reg register raw data
+ * @param[out] *br pointer to a bit rate buffer
+ * @return     status code
+ *             - 0 success
+ *             - 2 handle is NULL
+ *             - 3 handle is not initialized
+ * @note       none
+ */
+uint8_t sx1262_gfsk_bit_rate_convert_to_data(sx1262_handle_t *handle, uint32_t reg, uint32_t *br)
+{
+    if (handle == NULL)                                          /* check handle */
+    {
+        return 2;                                                /* return error */
+    }
+    if (handle->inited != 1)                                     /* check handle initialization */
+    {
+        return 3;                                                /* return error */
+    }
+    
+    *br = (uint32_t)(32 * 32 * powf(10.f, 6.0f) / reg);          /* convert real data to register data */
+    
+    return 0;                                                    /* success return 0 */
+}
+
+/**
+ * @brief      convert the frequency deviation to the register raw data
+ * @param[in]  *handle pointer to an sx1262 handle structure
+ * @param[in]  freq frequency deviation
+ * @param[out] *reg pointer to a register raw buffer
+ * @return     status code
+ *             - 0 success
+ *             - 2 handle is NULL
+ *             - 3 handle is not initialized
+ * @note       none
+ */
+uint8_t sx1262_gfsk_frequency_deviation_convert_to_register(sx1262_handle_t *handle, uint32_t freq, uint32_t *reg)
+{
+    if (handle == NULL)                                                           /* check handle */
+    {
+        return 2;                                                                 /* return error */
+    }
+    if (handle->inited != 1)                                                      /* check handle initialization */
+    {
+        return 3;                                                                 /* return error */
+    }
+    
+    *reg = (uint32_t)(powf(2.0f, 25.0f) * freq / (32 * powf(10.f, 6.0f)));        /* convert real data to register data */
+    
+    return 0;                                                                     /* success return 0 */
+}
+
+/**
+ * @brief      convert the register raw data to the frequency deviation
+ * @param[in]  *handle pointer to an sx1262 handle structure
+ * @param[in]  reg register raw data
+ * @param[out] *freq pointer to a frequency deviation buffer
+ * @return     status code
+ *             - 0 success
+ *             - 2 handle is NULL
+ *             - 3 handle is not initialized
+ * @note       none
+ */
+uint8_t sx1262_gfsk_frequency_deviation_convert_to_data(sx1262_handle_t *handle, uint32_t reg, uint32_t *freq)
+{
+    if (handle == NULL)                                                           /* check handle */
+    {
+        return 2;                                                                 /* return error */
+    }
+    if (handle->inited != 1)                                                      /* check handle initialization */
+    {
+        return 3;                                                                 /* return error */
+    }
+    
+    *freq = (uint32_t)(32 * powf(10.f, 6.0f) / powf(2.0f, 25.0f) * reg);          /* convert real data to register data */
+    
+    return 0;                                                                     /* success return 0 */
+}
+
+/**
  * @brief     set the modulation params in LoRa mode
  * @param[in] *handle pointer to an sx1262 handle structure
  * @param[in] sf spreading factor
@@ -2704,42 +2892,115 @@ uint8_t sx1262_set_tx_params(sx1262_handle_t *handle, int8_t dbm, sx1262_ramp_ti
  * @note      none
  */
 uint8_t sx1262_set_lora_modulation_params(sx1262_handle_t *handle, sx1262_lora_sf_t sf, sx1262_lora_bandwidth_t bw, 
-    sx1262_lora_cr_t cr, sx1262_bool_t low_data_rate_optimize_enable)
+                                          sx1262_lora_cr_t cr, sx1262_bool_t low_data_rate_optimize_enable)
 {
-uint8_t res;
-uint8_t buf[4];
+    uint8_t res;
+    uint8_t buf[4];
+    
+    if (handle == NULL)                                                                              /* check handle */
+    {
+        return 2;                                                                                    /* return error */
+    }
+    if (handle->inited != 1)                                                                         /* check handle initialization */
+    {
+        return 3;                                                                                    /* return error */
+    }
 
-if (handle == NULL)                                                                              /* check handle */
+    res = a_sx1262_check_busy(handle);                                                               /* check busy */
+    if (res != 0)                                                                                    /* check result */
+    {
+        handle->debug_print("sx1262: chip is busy.\n");                                              /* chip is busy */
+       
+        return 4;                                                                                    /* return error */
+    }
+    
+    buf[0] = sf;                                                                                     /* set param */
+    buf[1] = bw;                                                                                     /* set param */
+    buf[2] = cr;                                                                                     /* set param */
+    buf[3] = low_data_rate_optimize_enable;                                                          /* set param */
+    res = a_sx1262_spi_write(handle, SX1262_COMMAND_SET_MODULATION_PARAMS, (uint8_t *)buf, 4);       /* write command */
+    if (res != 0)                                                                                    /* check result */
+    {
+        handle->debug_print("sx1262: set lora modulation params failed.\n");                         /* set lora modulation params failed */
+       
+        return 1;                                                                                    /* return error */
+    }
+    
+    return 0;                                                                                        /* success return 0 */
+}
+
+/**
+ * @brief     set the packet params in GFSK mode
+ * @param[in] *handle pointer to an sx1262 handle structure
+ * @param[in] preamble_length preamble length
+ * @param[in] detector_length preamble detector length
+ * @param[in] sync_word_length sync word length
+ * @param[in] filter address filter
+ * @param[in] packet_type packet type
+ * @param[in] payload_length length of the payload
+ * @param[in] crc_type crc type
+ * @param[in] whitening_enable bool value
+ * @return    status code
+ *            - 0 success
+ *            - 1 set gfsk packet params failed
+ *            - 2 handle is NULL
+ *            - 3 handle is not initialized
+ *            - 4 chip is busy
+ *            - 5 sync word length is over 0x40
+ * @note      none
+ */
+uint8_t sx1262_set_gfsk_packet_params(sx1262_handle_t *handle, uint16_t preamble_length,
+                                      sx1262_gfsk_preamble_detector_length_t detector_length,
+                                      uint8_t sync_word_length, sx1262_gfsk_addr_filter_t filter,
+                                      sx1262_gfsk_packet_type_t packet_type, uint8_t payload_length,
+                                      sx1262_gfsk_crc_type_t crc_type, sx1262_bool_t whitening_enable)
 {
-return 2;                                                                                    /* return error */
-}
-if (handle->inited != 1)                                                                         /* check handle initialization */
-{
-return 3;                                                                                    /* return error */
+    uint8_t res;
+    uint8_t buf[9];
+    
+    if (handle == NULL)                                                                              /* check handle */
+    {
+        return 2;                                                                                    /* return error */
+    }
+    if (handle->inited != 1)                                                                         /* check handle initialization */
+    {
+        return 3;                                                                                    /* return error */
+    }
+    if (sync_word_length > 0x40)                                                                     /* check sync word length */
+    {
+        handle->debug_print("sx1262: sync word length is over 0x40.\n");                             /* chip is busy */
+       
+        return 5;                                                                                    /* return error */
+    }
+    
+    res = a_sx1262_check_busy(handle);                                                               /* check busy */
+    if (res != 0)                                                                                    /* check result */
+    {
+        handle->debug_print("sx1262: chip is busy.\n");                                              /* chip is busy */
+       
+        return 4;                                                                                    /* return error */
+    }
+    
+    buf[0] = (preamble_length >> 8) & 0xFF;                                                          /* set param */
+    buf[1] = (preamble_length >> 0) & 0xFF;                                                          /* set param */
+    buf[2] = detector_length;                                                                        /* set param */
+    buf[3] = sync_word_length;                                                                       /* set param */
+    buf[4] = filter;                                                                                 /* set param */
+    buf[5] = packet_type;                                                                            /* set param */
+    buf[6] = payload_length;                                                                         /* set param */
+    buf[7] = crc_type;                                                                               /* set param */
+    buf[8] = whitening_enable;                                                                       /* set param */ 
+    res = a_sx1262_spi_write(handle, SX1262_COMMAND_SET_PACKET_PARAMS, (uint8_t *)buf, 9);           /* write command */
+    if (res != 0)                                                                                    /* check result */
+    {
+        handle->debug_print("sx1262: set gfsk modulation params failed.\n");                         /* set gfsk modulation params failed */
+       
+        return 1;                                                                                    /* return error */
+    }
+    
+    return 0;                                                                                        /* success return 0 */
 }
 
-res = a_sx1262_check_busy(handle);                                                               /* check busy */
-if (res != 0)                                                                                    /* check result */
-{
-handle->debug_print("sx1262: chip is busy.\n");                                              /* chip is busy */
-
-return 4;                                                                                    /* return error */
-}
-
-buf[0] = sf;                                                                                     /* set param */
-buf[1] = bw;                                                                                     /* set param */
-buf[2] = cr;                                                                                     /* set param */
-buf[3] = low_data_rate_optimize_enable;                                                          /* set param */
-res = a_sx1262_spi_write(handle, SX1262_COMMAND_SET_MODULATION_PARAMS, (uint8_t *)buf, 4);       /* write command */
-if (res != 0)                                                                                    /* check result */
-{
-handle->debug_print("sx1262: set lora modulation params failed.\n");                         /* set lora modulation params failed */
-
-return 1;                                                                                    /* return error */
-}
-
-return 0;                                                                                        /* success return 0 */
-}
 /**
  * @brief     set the packet params in LoRa mode
  * @param[in] *handle pointer to an sx1262 handle structure
@@ -2757,45 +3018,46 @@ return 0;                                                                       
  * @note      none
  */
 uint8_t sx1262_set_lora_packet_params(sx1262_handle_t *handle, uint16_t preamble_length,
-    sx1262_lora_header_t header_type, uint8_t payload_length,
-    sx1262_lora_crc_type_t crc_type, sx1262_bool_t invert_iq_enable)
+                                      sx1262_lora_header_t header_type, uint8_t payload_length,
+                                      sx1262_lora_crc_type_t crc_type, sx1262_bool_t invert_iq_enable)
 {
-uint8_t res;
-uint8_t buf[6];
-
-if (handle == NULL)                                                                          /* check handle */
-{
-return 2;                                                                                /* return error */
+    uint8_t res;
+    uint8_t buf[6];
+    
+    if (handle == NULL)                                                                          /* check handle */
+    {
+        return 2;                                                                                /* return error */
+    }
+    if (handle->inited != 1)                                                                     /* check handle initialization */
+    {
+        return 3;                                                                                /* return error */
+    }
+    
+    res = a_sx1262_check_busy(handle);                                                           /* check busy */
+    if (res != 0)                                                                                /* check result */
+    {
+        handle->debug_print("sx1262: chip is busy.\n");                                          /* chip is busy */
+       
+        return 4;                                                                                /* return error */
+    }
+    
+    buf[0] = (preamble_length >> 8) & 0xFF;                                                      /* set param */
+    buf[1] = (preamble_length >> 0) & 0xFF;                                                      /* set param */
+    buf[2] = header_type;                                                                        /* set param */
+    buf[3] = payload_length;                                                                     /* set param */
+    buf[4] = crc_type;                                                                           /* set param */
+    buf[5] = invert_iq_enable;                                                                   /* set param */
+    res = a_sx1262_spi_write(handle, SX1262_COMMAND_SET_PACKET_PARAMS, (uint8_t *)buf, 6);       /* write command */
+    if (res != 0)                                                                                /* check result */
+    {
+        handle->debug_print("sx1262: set lora modulation params failed.\n");                     /* set lora modulation params failed */
+       
+        return 1;                                                                                /* return error */
+    }
+    
+    return 0;                                                                                    /* success return 0 */
 }
-if (handle->inited != 1)                                                                     /* check handle initialization */
-{
-return 3;                                                                                /* return error */
-}
 
-res = a_sx1262_check_busy(handle);                                                           /* check busy */
-if (res != 0)                                                                                /* check result */
-{
-handle->debug_print("sx1262: chip is busy.\n");                                          /* chip is busy */
-
-return 4;                                                                                /* return error */
-}
-
-buf[0] = (preamble_length >> 8) & 0xFF;                                                      /* set param */
-buf[1] = (preamble_length >> 0) & 0xFF;                                                      /* set param */
-buf[2] = header_type;                                                                        /* set param */
-buf[3] = payload_length;                                                                     /* set param */
-buf[4] = crc_type;                                                                           /* set param */
-buf[5] = invert_iq_enable;                                                                   /* set param */
-res = a_sx1262_spi_write(handle, SX1262_COMMAND_SET_PACKET_PARAMS, (uint8_t *)buf, 6);       /* write command */
-if (res != 0)                                                                                /* check result */
-{
-handle->debug_print("sx1262: set lora modulation params failed.\n");                     /* set lora modulation params failed */
-
-return 1;                                                                                /* return error */
-}
-
-return 0;                                                                                    /* success return 0 */
-}
 /**
  * @brief     set the cad params
  * @param[in] *handle pointer to an sx1262 handle structure
@@ -2813,140 +3075,141 @@ return 0;                                                                       
  * @note      none
  */
 uint8_t sx1262_set_cad_params(sx1262_handle_t *handle, sx1262_lora_cad_symbol_num_t num,
-    uint8_t cad_det_peak, uint8_t cad_det_min, sx1262_lora_cad_exit_mode_t mode,
-    uint32_t timeout)
+                              uint8_t cad_det_peak, uint8_t cad_det_min, sx1262_lora_cad_exit_mode_t mode,
+                              uint32_t timeout)
 {
-uint8_t res;
-uint8_t buf[7];
-
-if (handle == NULL)                                                                       /* check handle */
-{
-return 2;                                                                             /* return error */
-}
-if (handle->inited != 1)                                                                  /* check handle initialization */
-{
-return 3;                                                                             /* return error */
-}
-
-res = a_sx1262_check_busy(handle);                                                        /* check busy */
-if (res != 0)                                                                             /* check result */
-{
-handle->debug_print("sx1262: chip is busy.\n");                                       /* chip is busy */
-
-return 4;                                                                             /* return error */
-}
-
-buf[0] = num;                                                                             /* set param */
-buf[1] = cad_det_peak;                                                                    /* set param */
-buf[2] = cad_det_min;                                                                     /* set param */
-buf[3] = mode;                                                                            /* set param */
-buf[4] = (timeout >> 16) & 0xFF;                                                          /* set param */
-buf[5] = (timeout >> 8) & 0xFF;                                                           /* set param */
-buf[6] = (timeout >> 0) & 0xFF;                                                           /* set param */
-res = a_sx1262_spi_write(handle, SX1262_COMMAND_SET_CAD_PARAMS, (uint8_t *)buf, 7);       /* write command */
-if (res != 0)                                                                             /* check result */
-{
-handle->debug_print("sx1262: set cad params failed.\n");                              /* set cad params failed */
-
-return 1;                                                                             /* return error */
-}
-
-return 0;                                                                                 /* success return 0 */
+    uint8_t res;
+    uint8_t buf[7];
+    
+    if (handle == NULL)                                                                       /* check handle */
+    {
+        return 2;                                                                             /* return error */
+    }
+    if (handle->inited != 1)                                                                  /* check handle initialization */
+    {
+        return 3;                                                                             /* return error */
+    }
+    
+    res = a_sx1262_check_busy(handle);                                                        /* check busy */
+    if (res != 0)                                                                             /* check result */
+    {
+        handle->debug_print("sx1262: chip is busy.\n");                                       /* chip is busy */
+       
+        return 4;                                                                             /* return error */
+    }
+    
+    buf[0] = num;                                                                             /* set param */
+    buf[1] = cad_det_peak;                                                                    /* set param */
+    buf[2] = cad_det_min;                                                                     /* set param */
+    buf[3] = mode;                                                                            /* set param */
+    buf[4] = (timeout >> 16) & 0xFF;                                                          /* set param */
+    buf[5] = (timeout >> 8) & 0xFF;                                                           /* set param */
+    buf[6] = (timeout >> 0) & 0xFF;                                                           /* set param */
+    res = a_sx1262_spi_write(handle, SX1262_COMMAND_SET_CAD_PARAMS, (uint8_t *)buf, 7);       /* write command */
+    if (res != 0)                                                                             /* check result */
+    {
+        handle->debug_print("sx1262: set cad params failed.\n");                              /* set cad params failed */
+       
+        return 1;                                                                             /* return error */
+    }
+    
+    return 0;                                                                                 /* success return 0 */
 }
 
 /**
-* @brief     set the buffer base address
-* @param[in] *handle pointer to an sx1262 handle structure
-* @param[in] tx_base_addr tx base address
-* @param[in] rx_base_addr rx base address
-* @return    status code
-*            - 0 success
-*            - 1 set buffer base address failed
-*            - 2 handle is NULL
-*            - 3 handle is not initialized
-*            - 4 chip is busy
-* @note      none
-*/
+ * @brief     set the buffer base address
+ * @param[in] *handle pointer to an sx1262 handle structure
+ * @param[in] tx_base_addr tx base address
+ * @param[in] rx_base_addr rx base address
+ * @return    status code
+ *            - 0 success
+ *            - 1 set buffer base address failed
+ *            - 2 handle is NULL
+ *            - 3 handle is not initialized
+ *            - 4 chip is busy
+ * @note      none
+ */
 uint8_t sx1262_set_buffer_base_address(sx1262_handle_t *handle, uint8_t tx_base_addr, uint8_t rx_base_addr)
 {
-uint8_t res;
-uint8_t buf[2];
-
-if (handle == NULL)                                                                                /* check handle */
-{
-return 2;                                                                                      /* return error */
-}
-if (handle->inited != 1)                                                                           /* check handle initialization */
-{
-return 3;                                                                                      /* return error */
-}
-
-res = a_sx1262_check_busy(handle);                                                                 /* check busy */
-if (res != 0)                                                                                      /* check result */
-{
-handle->debug_print("sx1262: chip is busy.\n");                                                /* chip is busy */
-
-return 4;                                                                                      /* return error */
-}
-
-buf[0] = tx_base_addr;                                                                             /* set param */
-buf[1] = rx_base_addr;                                                                             /* set param */
-res = a_sx1262_spi_write(handle, SX1262_COMMAND_SET_BUFFER_BASE_ADDRESS, (uint8_t *)buf, 2);       /* write command */
-if (res != 0)                                                                                      /* check result */
-{
-handle->debug_print("sx1262: set buffer base address failed.\n");                              /* set buffer base address failed */
-
-return 1;                                                                                      /* return error */
-}
-
-return 0;                                                                                          /* success return 0 */
+    uint8_t res;
+    uint8_t buf[2];
+    
+    if (handle == NULL)                                                                                /* check handle */
+    {
+        return 2;                                                                                      /* return error */
+    }
+    if (handle->inited != 1)                                                                           /* check handle initialization */
+    {
+        return 3;                                                                                      /* return error */
+    }
+    
+    res = a_sx1262_check_busy(handle);                                                                 /* check busy */
+    if (res != 0)                                                                                      /* check result */
+    {
+        handle->debug_print("sx1262: chip is busy.\n");                                                /* chip is busy */
+       
+        return 4;                                                                                      /* return error */
+    }
+    
+    buf[0] = tx_base_addr;                                                                             /* set param */
+    buf[1] = rx_base_addr;                                                                             /* set param */
+    res = a_sx1262_spi_write(handle, SX1262_COMMAND_SET_BUFFER_BASE_ADDRESS, (uint8_t *)buf, 2);       /* write command */
+    if (res != 0)                                                                                      /* check result */
+    {
+        handle->debug_print("sx1262: set buffer base address failed.\n");                              /* set buffer base address failed */
+       
+        return 1;                                                                                      /* return error */
+    }
+    
+    return 0;                                                                                          /* success return 0 */
 }
 
 /**
-* @brief     set the lora symbol number timeout
-* @param[in] *handle pointer to an sx1262 handle structure
-* @param[in] symb_num symbol number
-* @return    status code
-*            - 0 success
-*            - 1 set lora symb num timeout failed
-*            - 2 handle is NULL
-*            - 3 handle is not initialized
-*            - 4 chip is busy
-* @note      none
-*/
+ * @brief     set the lora symbol number timeout
+ * @param[in] *handle pointer to an sx1262 handle structure
+ * @param[in] symb_num symbol number
+ * @return    status code
+ *            - 0 success
+ *            - 1 set lora symb num timeout failed
+ *            - 2 handle is NULL
+ *            - 3 handle is not initialized
+ *            - 4 chip is busy
+ * @note      none
+ */
 uint8_t sx1262_set_lora_symb_num_timeout(sx1262_handle_t *handle, uint8_t symb_num)
 {
-uint8_t res;
-uint8_t prev;
-
-if (handle == NULL)                                                                                    /* check handle */
-{
-return 2;                                                                                          /* return error */
+    uint8_t res;
+    uint8_t prev;
+    
+    if (handle == NULL)                                                                                    /* check handle */
+    {
+        return 2;                                                                                          /* return error */
+    }
+    if (handle->inited != 1)                                                                               /* check handle initialization */
+    {
+        return 3;                                                                                          /* return error */
+    }
+    
+    res = a_sx1262_check_busy(handle);                                                                     /* check busy */
+    if (res != 0)                                                                                          /* check result */
+    {
+        handle->debug_print("sx1262: chip is busy.\n");                                                    /* chip is busy */
+       
+        return 4;                                                                                          /* return error */
+    }
+    
+    prev = symb_num;                                                                                       /* set param */
+    res = a_sx1262_spi_write(handle, SX1262_COMMAND_SET_LORA_SYMB_NUM_TIMEOUT, (uint8_t *)&prev, 1);       /* write command */
+    if (res != 0)                                                                                          /* check result */
+    {
+        handle->debug_print("sx1262: set lora symb num timeout failed.\n");                                /* set lora symb num timeout failed */
+       
+        return 1;                                                                                          /* return error */
+    }
+    
+    return 0;                                                                                              /* success return 0 */
 }
-if (handle->inited != 1)                                                                               /* check handle initialization */
-{
-return 3;                                                                                          /* return error */
-}
 
-res = a_sx1262_check_busy(handle);                                                                     /* check busy */
-if (res != 0)                                                                                          /* check result */
-{
-handle->debug_print("sx1262: chip is busy.\n");                                                    /* chip is busy */
-
-return 4;                                                                                          /* return error */
-}
-
-prev = symb_num;                                                                                       /* set param */
-res = a_sx1262_spi_write(handle, SX1262_COMMAND_SET_LORA_SYMB_NUM_TIMEOUT, (uint8_t *)&prev, 1);       /* write command */
-if (res != 0)                                                                                          /* check result */
-{
-handle->debug_print("sx1262: set lora symb num timeout failed.\n");                                /* set lora symb num timeout failed */
-
-return 1;                                                                                          /* return error */
-}
-
-return 0;                                                                                              /* success return 0 */
-}
 /**
  * @brief      get the status
  * @param[in]  *handle pointer to an sx1262 handle structure
@@ -3201,6 +3464,7 @@ uint8_t sx1262_get_instantaneous_rssi(sx1262_handle_t *handle, uint8_t *rssi_ins
     
     return 0;                                                                               /* success return 0 */
 }
+
 /**
  * @brief      get the stats
  * @param[in]  *handle pointer to an sx1262 handle structure
@@ -3395,6 +3659,550 @@ uint8_t sx1262_clear_device_errors(sx1262_handle_t *handle)
     
     return 0;                                                                                       /* success return 0 */
 }
+
+/**
+ * @brief     set the whitening initial value in FSK mode
+ * @param[in] *handle pointer to an sx1262 handle structure
+ * @param[in] value set value
+ * @return    status code
+ *            - 0 success
+ *            - 1 set fsk whitening initial value failed
+ *            - 2 handle is NULL
+ *            - 3 handle is not initialized
+ *            - 4 chip is busy
+ * @note      none
+ */
+uint8_t sx1262_set_fsk_whitening_initial_value(sx1262_handle_t *handle, uint16_t value)
+{
+    uint8_t res;
+    uint8_t buf[2];
+    
+    if (handle == NULL)                                                                                      /* check handle */
+    {
+        return 2;                                                                                            /* return error */
+    }
+    if (handle->inited != 1)                                                                                 /* check handle initialization */
+    {
+        return 3;                                                                                            /* return error */
+    }
+    
+    res = a_sx1262_check_busy(handle);                                                                       /* check busy */
+    if (res != 0)                                                                                            /* check result */
+    {
+        handle->debug_print("sx1262: chip is busy.\n");                                                      /* chip is busy */
+       
+        return 4;                                                                                            /* return error */
+    }
+    
+    buf[0] = (value >> 8) & 0xFF;                                                                            /* set msb */
+    buf[1] = (value >> 0) & 0xFF;                                                                            /* set lsb */
+    res = a_sx1262_spi_write_register(handle, SX1262_REG_WHITENING_INIT_VALUE_MSB, (uint8_t *)buf, 2);       /* write register */
+    if (res != 0)                                                                                            /* check result */
+    {
+        handle->debug_print("sx1262: write register failed.\n");                                             /* write register failed */
+       
+        return 1;                                                                                            /* return error */
+    }
+    
+    return 0;                                                                                                /* success return 0 */
+}
+
+/**
+ * @brief      get the whitening initial value in FSK mode
+ * @param[in]  *handle pointer to an sx1262 handle structure
+ * @param[out] *value pointer to a value buffer
+ * @return     status code
+ *             - 0 success
+ *             - 1 get fsk whitening initial value failed
+ *             - 2 handle is NULL
+ *             - 3 handle is not initialized
+ *             - 4 chip is busy
+ * @note       none
+ */
+uint8_t sx1262_get_fsk_whitening_initial_value(sx1262_handle_t *handle, uint16_t *value)
+{
+    uint8_t res;
+    uint8_t buf[2];
+    
+    if (handle == NULL)                                                                                      /* check handle */
+    {
+        return 2;                                                                                            /* return error */
+    }
+    if (handle->inited != 1)                                                                                 /* check handle initialization */
+    {
+        return 3;                                                                                            /* return error */
+    }
+    
+    res = a_sx1262_check_busy(handle);                                                                       /* check busy */
+    if (res != 0)                                                                                            /* check result */
+    {
+        handle->debug_print("sx1262: chip is busy.\n");                                                      /* chip is busy */
+       
+        return 4;                                                                                            /* return error */
+    }
+    
+    res = a_sx1262_spi_read_register(handle, SX1262_REG_WHITENING_INIT_VALUE_MSB, (uint8_t *)buf, 2);        /* read register */
+    if (res != 0)                                                                                            /* check result */
+    {
+        handle->debug_print("sx1262: read register failed.\n");                                              /* read register failed */
+       
+        return 1;                                                                                            /* return error */
+    }
+    *value = (uint16_t)((uint16_t)buf[0] << 8 | buf[1]);                                                     /* set value */
+    
+    return 0;                                                                                                /* success return 0 */
+}
+
+/**
+ * @brief     set the crc initial value in FSK mode
+ * @param[in] *handle pointer to an sx1262 handle structure
+ * @param[in] value set value
+ * @return    status code
+ *            - 0 success
+ *            - 1 set fsk crc initial value failed
+ *            - 2 handle is NULL
+ *            - 3 handle is not initialized
+ *            - 4 chip is busy
+ * @note      none
+ */
+uint8_t sx1262_set_fsk_crc_initical_value(sx1262_handle_t *handle, uint16_t value)
+{
+    uint8_t res;
+    uint8_t buf[2];
+    
+    if (handle == NULL)                                                                                /* check handle */
+    {
+        return 2;                                                                                      /* return error */
+    }
+    if (handle->inited != 1)                                                                           /* check handle initialization */
+    {
+        return 3;                                                                                      /* return error */
+    }
+    
+    res = a_sx1262_check_busy(handle);                                                                 /* check busy */
+    if (res != 0)                                                                                      /* check result */
+    {
+        handle->debug_print("sx1262: chip is busy.\n");                                                /* chip is busy */
+       
+        return 4;                                                                                      /* return error */
+    }
+    
+    buf[0] = (value >> 8) & 0xFF;                                                                      /* set msb */
+    buf[1] = (value >> 0) & 0xFF;                                                                      /* set lsb */
+    res = a_sx1262_spi_write_register(handle, SX1262_REG_CRC_INIT_VALUE_MSB, (uint8_t *)buf, 2);       /* write register */
+    if (res != 0)                                                                                      /* check result */
+    {
+        handle->debug_print("sx1262: write register failed.\n");                                       /* write register failed */
+       
+        return 1;                                                                                      /* return error */
+    }
+    
+    return 0;                                                                                          /* success return 0 */
+}
+
+/**
+ * @brief      get the crc initical value in FSK mode
+ * @param[in]  *handle pointer to an sx1262 handle structure
+ * @param[out] *value pointer to a value buffer
+ * @return     status code
+ *             - 0 success
+ *             - 1 get fsk crc initical value failed
+ *             - 2 handle is NULL
+ *             - 3 handle is not initialized
+ *             - 4 chip is busy
+ * @note       none
+ */
+uint8_t sx1262_get_fsk_crc_initical_value(sx1262_handle_t *handle, uint16_t *value)
+{
+    uint8_t res;
+    uint8_t buf[2];
+    
+    if (handle == NULL)                                                                                /* check handle */
+    {
+        return 2;                                                                                      /* return error */
+    }
+    if (handle->inited != 1)                                                                           /* check handle initialization */
+    {
+        return 3;                                                                                      /* return error */
+    }
+    
+    res = a_sx1262_check_busy(handle);                                                                 /* check busy */
+    if (res != 0)                                                                                      /* check result */
+    {
+        handle->debug_print("sx1262: chip is busy.\n");                                                /* chip is busy */
+       
+        return 4;                                                                                      /* return error */
+    }
+    
+    res = a_sx1262_spi_read_register(handle, SX1262_REG_CRC_INIT_VALUE_MSB, (uint8_t *)buf, 2);        /* read register */
+    if (res != 0)                                                                                      /* check result */
+    {
+        handle->debug_print("sx1262: read register failed.\n");                                        /* read register failed */
+       
+        return 1;                                                                                      /* return error */
+    }
+    *value = (uint16_t)((uint16_t)buf[0] << 8 | buf[1]);                                               /* set value */
+    
+    return 0;                                                                                          /* success return 0 */
+}
+
+/**
+ * @brief     set the crc polynomial value in FSK mode
+ * @param[in] *handle pointer to an sx1262 handle structure
+ * @param[in] value set value
+ * @return    status code
+ *            - 0 success
+ *            - 1 set fsk crc polynomial value failed
+ *            - 2 handle is NULL
+ *            - 3 handle is not initialized
+ *            - 4 chip is busy
+ * @note      none
+ */
+uint8_t sx1262_set_fsk_crc_polynomial_value(sx1262_handle_t *handle, uint16_t value)
+{
+    uint8_t res;
+    uint8_t buf[2];
+    
+    if (handle == NULL)                                                                                      /* check handle */
+    {
+        return 2;                                                                                            /* return error */
+    }
+    if (handle->inited != 1)                                                                                 /* check handle initialization */
+    {
+        return 3;                                                                                            /* return error */
+    }
+    
+    res = a_sx1262_check_busy(handle);                                                                       /* check busy */
+    if (res != 0)                                                                                            /* check result */
+    {
+        handle->debug_print("sx1262: chip is busy.\n");                                                      /* chip is busy */
+       
+        return 4;                                                                                            /* return error */
+    }
+    
+    buf[0] = (value >> 8) & 0xFF;                                                                            /* set msb */
+    buf[1] = (value >> 0) & 0xFF;                                                                            /* set lsb */
+    res = a_sx1262_spi_write_register(handle, SX1262_REG_CRC_POLYNOMIAL_VALUE_MSB, (uint8_t *)buf, 2);       /* write register */
+    if (res != 0)                                                                                            /* check result */
+    {
+        handle->debug_print("sx1262: write register failed.\n");                                             /* write register failed */
+       
+        return 1;                                                                                            /* return error */
+    }
+    
+    return 0;                                                                                                /* success return 0 */
+}
+
+/**
+ * @brief      get the crc polynomial value in FSK mode
+ * @param[in]  *handle pointer to an sx1262 handle structure
+ * @param[out] *value pointer to a value buffer
+ * @return     status code
+ *             - 0 success
+ *             - 1 get fsk crc polynomial value failed
+ *             - 2 handle is NULL
+ *             - 3 handle is not initialized
+ *             - 4 chip is busy
+ * @note       none
+ */
+uint8_t sx1262_get_fsk_crc_polynomial_value(sx1262_handle_t *handle, uint16_t *value)
+{
+    uint8_t res;
+    uint8_t buf[2];
+    
+    if (handle == NULL)                                                                                      /* check handle */
+    {
+        return 2;                                                                                            /* return error */
+    }
+    if (handle->inited != 1)                                                                                 /* check handle initialization */
+    {
+        return 3;                                                                                            /* return error */
+    }
+    
+    res = a_sx1262_check_busy(handle);                                                                       /* check busy */
+    if (res != 0)                                                                                            /* check result */
+    {
+        handle->debug_print("sx1262: chip is busy.\n");                                                      /* chip is busy */
+       
+        return 4;                                                                                            /* return error */
+    }
+    
+    res = a_sx1262_spi_read_register(handle, SX1262_REG_CRC_POLYNOMIAL_VALUE_MSB, (uint8_t *)buf, 2);        /* read register */
+    if (res != 0)                                                                                            /* check result */
+    {
+        handle->debug_print("sx1262: read register failed.\n");                                              /* read register failed */
+       
+        return 1;                                                                                            /* return error */
+    }
+    *value = (uint16_t)((uint16_t)buf[0] << 8 | buf[1]);                                                     /* set value */
+    
+    return 0;                                                                                                /* success return 0 */
+}
+
+/**
+ * @brief     set the sync word in FSK mode
+ * @param[in] *handle pointer to an sx1262 handle structure
+ * @param[in] *sync_word pointer to sync word buffer
+ * @return    status code
+ *            - 0 success
+ *            - 1 set fsk sync word failed
+ *            - 2 handle is NULL
+ *            - 3 handle is not initialized
+ *            - 4 chip is busy
+ * @note      none
+ */
+uint8_t sx1262_set_fsk_sync_word(sx1262_handle_t *handle, uint8_t sync_word[8])
+{
+    uint8_t res;
+    
+    if (handle == NULL)                                                                               /* check handle */
+    {
+        return 2;                                                                                     /* return error */
+    }
+    if (handle->inited != 1)                                                                          /* check handle initialization */
+    {
+        return 3;                                                                                     /* return error */
+    }
+    
+    res = a_sx1262_check_busy(handle);                                                                /* check busy */
+    if (res != 0)                                                                                     /* check result */
+    {
+        handle->debug_print("sx1262: chip is busy.\n");                                               /* chip is busy */
+       
+        return 4;                                                                                     /* return error */
+    }
+    
+    res = a_sx1262_spi_write_register(handle, SX1262_REG_SYNC_WORD_0, (uint8_t *)sync_word, 8);       /* write register */
+    if (res != 0)                                                                                     /* check result */
+    {
+        handle->debug_print("sx1262: write register failed.\n");                                      /* write register failed */
+       
+        return 1;                                                                                     /* return error */
+    }
+    
+    return 0;                                                                                         /* success return 0 */
+}
+
+/**
+ * @brief      get the sync word in FSK mode
+ * @param[in]  *handle pointer to an sx1262 handle structure
+ * @param[out] *sync_word pointer to sync word buffer
+ * @return     status code
+ *             - 0 success
+ *             - 1 get fsk sync word failed
+ *             - 2 handle is NULL
+ *             - 3 handle is not initialized
+ *             - 4 chip is busy
+ * @note       none
+ */
+uint8_t sx1262_get_fsk_sync_word(sx1262_handle_t *handle, uint8_t sync_word[8])
+{
+    uint8_t res;
+    
+    if (handle == NULL)                                                                              /* check handle */
+    {
+        return 2;                                                                                    /* return error */
+    }
+    if (handle->inited != 1)                                                                         /* check handle initialization */
+    {
+        return 3;                                                                                    /* return error */
+    }
+    
+    res = a_sx1262_check_busy(handle);                                                               /* check busy */
+    if (res != 0)                                                                                    /* check result */
+    {
+        handle->debug_print("sx1262: chip is busy.\n");                                              /* chip is busy */
+       
+        return 4;                                                                                    /* return error */
+    }
+    
+    res = a_sx1262_spi_read_register(handle, SX1262_REG_SYNC_WORD_0, (uint8_t *)sync_word, 8);       /* read register */
+    if (res != 0)                                                                                    /* check result */
+    {
+        handle->debug_print("sx1262: read register failed.\n");                                      /* read register failed */
+       
+        return 1;                                                                                    /* return error */
+    }
+    
+    return 0;                                                                                        /* success return 0 */
+}
+
+/**
+ * @brief     set the node address in FSK mode
+ * @param[in] *handle pointer to an sx1262 handle structure
+ * @param[in] addr node address
+ * @return    status code
+ *            - 0 success
+ *            - 1 set fsk node address failed
+ *            - 2 handle is NULL
+ *            - 3 handle is not initialized
+ *            - 4 chip is busy
+ * @note      none
+ */
+uint8_t sx1262_set_fsk_node_address(sx1262_handle_t *handle, uint8_t addr)
+{
+    uint8_t res;
+    
+    if (handle == NULL)                                                                            /* check handle */
+    {
+        return 2;                                                                                  /* return error */
+    }
+    if (handle->inited != 1)                                                                       /* check handle initialization */
+    {
+        return 3;                                                                                  /* return error */
+    }
+    
+    res = a_sx1262_check_busy(handle);                                                             /* check busy */
+    if (res != 0)                                                                                  /* check result */
+    {
+        handle->debug_print("sx1262: chip is busy.\n");                                            /* chip is busy */
+       
+        return 4;                                                                                  /* return error */
+    }
+    
+    res = a_sx1262_spi_write_register(handle, SX1262_REG_NODE_ADDRESS, (uint8_t *)&addr, 1);       /* write register */
+    if (res != 0)                                                                                  /* check result */
+    {
+        handle->debug_print("sx1262: write register failed.\n");                                   /* write register failed */
+       
+        return 1;                                                                                  /* return error */
+    }
+    
+    return 0;                                                                                      /* success return 0 */
+}
+
+/**
+ * @brief      get the node address in FSK mode
+ * @param[in]  *handle pointer to an sx1262 handle structure
+ * @param[out] *addr pointer to a node address buffer
+ * @return     status code
+ *             - 0 success
+ *             - 1 get fsk node address failed
+ *             - 2 handle is NULL
+ *             - 3 handle is not initialized
+ *             - 4 chip is busy
+ * @note       none
+ */
+uint8_t sx1262_get_fsk_node_address(sx1262_handle_t *handle, uint8_t *addr)
+{
+    uint8_t res;
+    
+    if (handle == NULL)                                                                          /* check handle */
+    {
+        return 2;                                                                                /* return error */
+    }
+    if (handle->inited != 1)                                                                     /* check handle initialization */
+    {
+        return 3;                                                                                /* return error */
+    }
+    
+    res = a_sx1262_check_busy(handle);                                                           /* check busy */
+    if (res != 0)                                                                                /* check result */
+    {
+        handle->debug_print("sx1262: chip is busy.\n");                                          /* chip is busy */
+       
+        return 4;                                                                                /* return error */
+    }
+    
+    res = a_sx1262_spi_read_register(handle, SX1262_REG_NODE_ADDRESS, (uint8_t *)addr, 1);       /* read register */
+    if (res != 0)                                                                                /* check result */
+    {
+        handle->debug_print("sx1262: read register failed.\n");                                  /* read register failed */
+       
+        return 1;                                                                                /* return error */
+    }
+    
+    return 0;                                                                                    /* success return 0 */
+}
+
+/**
+ * @brief     set the broadcast address in FSK mode
+ * @param[in] *handle pointer to an sx1262 handle structure
+ * @param[in] addr broadcast address
+ * @return    status code
+ *            - 0 success
+ *            - 1 set fsk broadcast address failed
+ *            - 2 handle is NULL
+ *            - 3 handle is not initialized
+ *            - 4 chip is busy
+ * @note      none
+ */
+uint8_t sx1262_set_fsk_broadcast_address(sx1262_handle_t *handle, uint8_t addr)
+{
+    uint8_t res;
+    
+    if (handle == NULL)                                                                                 /* check handle */
+    {
+        return 2;                                                                                       /* return error */
+    }
+    if (handle->inited != 1)                                                                            /* check handle initialization */
+    {
+        return 3;                                                                                       /* return error */
+    }
+    
+    res = a_sx1262_check_busy(handle);                                                                  /* check busy */
+    if (res != 0)                                                                                       /* check result */
+    {
+        handle->debug_print("sx1262: chip is busy.\n");                                                 /* chip is busy */
+       
+        return 4;                                                                                       /* return error */
+    }
+    
+    res = a_sx1262_spi_write_register(handle, SX1262_REG_BROADCAST_ADDRESS, (uint8_t *)&addr, 1);       /* write register */
+    if (res != 0)                                                                                       /* check result */
+    {
+        handle->debug_print("sx1262: write register failed.\n");                                        /* write register failed */
+       
+        return 1;                                                                                       /* return error */
+    }
+    
+    return 0;                                                                                           /* success return 0 */
+}
+
+/**
+ * @brief      get the broadcast address in FSK mode
+ * @param[in]  *handle pointer to an sx1262 handle structure
+ * @param[out] *addr pointer to a broadcast address buffer
+ * @return     status code
+ *             - 0 success
+ *             - 1 get fsk broadcast address failed
+ *             - 2 handle is NULL
+ *             - 3 handle is not initialized
+ *             - 4 chip is busy
+ * @note       none
+ */
+uint8_t sx1262_get_fsk_broadcast_address(sx1262_handle_t *handle, uint8_t *addr)
+{
+    uint8_t res;
+    
+    if (handle == NULL)                                                                               /* check handle */
+    {
+        return 2;                                                                                     /* return error */
+    }
+    if (handle->inited != 1)                                                                          /* check handle initialization */
+    {
+        return 3;                                                                                     /* return error */
+    }
+    
+    res = a_sx1262_check_busy(handle);                                                                /* check busy */
+    if (res != 0)                                                                                     /* check result */
+    {
+        handle->debug_print("sx1262: chip is busy.\n");                                               /* chip is busy */
+       
+        return 4;                                                                                     /* return error */
+    }
+    
+    res = a_sx1262_spi_read_register(handle, SX1262_REG_BROADCAST_ADDRESS, (uint8_t *)addr, 1);       /* read register */
+    if (res != 0)                                                                                     /* check result */
+    {
+        handle->debug_print("sx1262: read register failed.\n");                                       /* read register failed */
+       
+        return 1;                                                                                     /* return error */
+    }
+    
+    return 0;                                                                                         /* success return 0 */
+}
+
 /**
  * @brief     set the iq polarity
  * @param[in] *handle pointer to an sx1262 handle structure
@@ -3622,6 +4430,7 @@ uint8_t sx1262_get_random_number(sx1262_handle_t *handle, uint32_t *r)
     
     return 0;                                                                                          /* success return 0 */
 }
+
 /**
  * @brief     set the tx modulation
  * @param[in] *handle pointer to an sx1262 handle structure
@@ -4193,6 +5002,7 @@ uint8_t sx1262_set_xtb_trim(sx1262_handle_t *handle, uint8_t trim)
     
     return 0;                                                                                  /* success return 0 */
 }
+
 /**
  * @brief      get the xtb trim
  * @param[in]  *handle pointer to an sx1262 handle structure
@@ -4632,6 +5442,95 @@ uint8_t sx1262_set_pull_up_control(sx1262_handle_t *handle, uint8_t control)
     
     return 0;                                                                                                 /* success return 0 */
 }
+
+/**
+ * @brief      get the pull up control
+ * @param[in]  *handle pointer to an sx1262 handle structure
+ * @param[out] *control pointer to a pull up control buffer
+ * @return     status code
+ *             - 0 success
+ *             - 1 get pull up control failed
+ *             - 2 handle is NULL
+ *             - 3 handle is not initialized
+ *             - 4 chip is busy
+ * @note       none
+ */
+uint8_t sx1262_get_pull_up_control(sx1262_handle_t *handle, uint8_t *control)
+{
+    uint8_t res;
+    
+    if (handle == NULL)                                                                                     /* check handle */
+    {
+        return 2;                                                                                           /* return error */
+    }
+    if (handle->inited != 1)                                                                                /* check handle initialization */
+    {
+        return 3;                                                                                           /* return error */
+    }
+    
+    res = a_sx1262_check_busy(handle);                                                                      /* check busy */
+    if (res != 0)                                                                                           /* check result */
+    {
+        handle->debug_print("sx1262: chip is busy.\n");                                                     /* chip is busy */
+       
+        return 4;                                                                                           /* return error */
+    }
+    
+    res = a_sx1262_spi_read_register(handle, SX1262_REG_DIOX_PULL_UP_CONTROL, (uint8_t *)control, 1);       /* read register */
+    if (res != 0)                                                                                           /* check result */
+    {
+        handle->debug_print("sx1262: read register failed.\n");                                             /* read register failed */
+       
+        return 1;                                                                                           /* return error */
+    }
+    
+    return 0;                                                                                               /* success return 0 */
+}
+
+/**
+ * @brief     set the pull down control
+ * @param[in] *handle pointer to an sx1262 handle structure
+ * @param[in] control pull down control
+ * @return    status code
+ *            - 0 success
+ *            - 1 set pull down control failed
+ *            - 2 handle is NULL
+ *            - 3 handle is not initialized
+ *            - 4 chip is busy
+ * @note      none
+ */
+uint8_t sx1262_set_pull_down_control(sx1262_handle_t *handle, uint8_t control)
+{
+    uint8_t res;
+    
+    if (handle == NULL)                                                                                         /* check handle */
+    {
+        return 2;                                                                                               /* return error */
+    }
+    if (handle->inited != 1)                                                                                    /* check handle initialization */
+    {
+        return 3;                                                                                               /* return error */
+    }
+    
+    res = a_sx1262_check_busy(handle);                                                                          /* check busy */
+    if (res != 0)                                                                                               /* check result */
+    {
+        handle->debug_print("sx1262: chip is busy.\n");                                                         /* chip is busy */
+       
+        return 4;                                                                                               /* return error */
+    }
+    
+    res = a_sx1262_spi_write_register(handle, SX1262_REG_DIOX_PULL_DOWN_CONTROL, (uint8_t *)&control, 1);       /* write register */
+    if (res != 0)                                                                                               /* check result */
+    {
+        handle->debug_print("sx1262: write register failed.\n");                                                /* write register failed */
+       
+        return 1;                                                                                               /* return error */
+    }
+    
+    return 0;                                                                                                   /* success return 0 */
+}
+
 /**
  * @brief      get the pull down control
  * @param[in]  *handle pointer to an sx1262 handle structure
@@ -4675,6 +5574,649 @@ uint8_t sx1262_get_pull_down_control(sx1262_handle_t *handle, uint8_t *control)
     
     return 0;                                                                                                 /* success return 0 */
 }
+
+/**
+ * @brief     set fhss hopping enable
+ * @param[in] *handle pointer to an sx1262 handle structure
+ * @param[in] enable set params
+ * @return    status code
+ *            - 0 success
+ *            - 1 set fhss hopping enable failed
+ *            - 2 handle is NULL
+ *            - 3 handle is not initialized
+ *            - 4 chip is busy
+ * @note      none
+ */
+uint8_t sx1262_set_fhss_hopping_enable(sx1262_handle_t *handle, uint8_t enable)
+{
+    uint8_t res;
+    
+    if (handle == NULL)                                                                                 /* check handle */
+    {
+        return 2;                                                                                       /* return error */
+    }
+    if (handle->inited != 1)                                                                            /* check handle initialization */
+    {
+        return 3;                                                                                       /* return error */
+    }
+    
+    res = a_sx1262_check_busy(handle);                                                                  /* check busy */
+    if (res != 0)                                                                                       /* check result */
+    {
+        handle->debug_print("sx1262: chip is busy.\n");                                                 /* chip is busy */
+       
+        return 4;                                                                                       /* return error */
+    }
+    
+    res = a_sx1262_spi_write_register(handle, SX1262_REG_HOPPING_ENABLE, (uint8_t *)&enable, 1);        /* write register */
+    if (res != 0)                                                                                       /* check result */
+    {
+        handle->debug_print("sx1262: write register failed.\n");                                        /* write register failed */
+       
+        return 1;                                                                                       /* return error */
+    }
+    
+    return 0;                                                                                           /* success return 0 */
+}
+
+/**
+ * @brief      get fhss hopping enable
+ * @param[in]  *handle pointer to an sx1262 handle structure
+ * @param[out] *enable pointer to a bool value buffer
+ * @return     status code
+ *             - 0 success
+ *             - 1 get fhss hopping enable failed
+ *             - 2 handle is NULL
+ *             - 3 handle is not initialized
+ *             - 4 chip is busy
+ * @note       none
+ */
+uint8_t sx1262_get_fhss_hopping_enable(sx1262_handle_t *handle, uint8_t *enable)
+{
+    uint8_t res;
+    
+    if (handle == NULL)                                                                               /* check handle */
+    {
+        return 2;                                                                                     /* return error */
+    }
+    if (handle->inited != 1)                                                                          /* check handle initialization */
+    {
+        return 3;                                                                                     /* return error */
+    }
+    
+    res = a_sx1262_check_busy(handle);                                                                /* check busy */
+    if (res != 0)                                                                                     /* check result */
+    {
+        handle->debug_print("sx1262: chip is busy.\n");                                               /* chip is busy */
+       
+        return 4;                                                                                     /* return error */
+    }
+    
+    res = a_sx1262_spi_read_register(handle, SX1262_REG_HOPPING_ENABLE, (uint8_t *)enable, 1);        /* read register */
+    if (res != 0)                                                                                     /* check result */
+    {
+        handle->debug_print("sx1262: read register failed.\n");                                       /* read register failed */
+       
+        return 1;                                                                                     /* return error */
+    }
+    
+    return 0;                                                                                         /* success return 0 */
+}
+
+/**
+ * @brief     set fhss packet length
+ * @param[in] *handle pointer to an sx1262 handle structure
+ * @param[in] len set length
+ * @return    status code
+ *            - 0 success
+ *            - 1 set fhss packet length failed
+ *            - 2 handle is NULL
+ *            - 3 handle is not initialized
+ *            - 4 chip is busy
+ * @note      none
+ */
+uint8_t sx1262_set_fhss_packet_length(sx1262_handle_t *handle, uint8_t len)
+{
+    uint8_t res;
+    
+    if (handle == NULL)                                                                             /* check handle */
+    {
+        return 2;                                                                                   /* return error */
+    }
+    if (handle->inited != 1)                                                                        /* check handle initialization */
+    {
+        return 3;                                                                                   /* return error */
+    }
+    
+    res = a_sx1262_check_busy(handle);                                                              /* check busy */
+    if (res != 0)                                                                                   /* check result */
+    {
+        handle->debug_print("sx1262: chip is busy.\n");                                             /* chip is busy */
+       
+        return 4;                                                                                   /* return error */
+    }
+    
+    res = a_sx1262_spi_write_register(handle, SX1262_REG_PACKET_LENGTH, (uint8_t *)&len, 1);        /* write register */
+    if (res != 0)                                                                                   /* check result */
+    {
+        handle->debug_print("sx1262: write register failed.\n");                                    /* write register failed */
+       
+        return 1;                                                                                   /* return error */
+    }
+    
+    return 0;                                                                                       /* success return 0 */
+}
+
+/**
+ * @brief      get fhss packet length
+ * @param[in]  *handle pointer to an sx1262 handle structure
+ * @param[out] *len pointer to a length buffer
+ * @return     status code
+ *             - 0 success
+ *             - 1 get fhss packet length failed
+ *             - 2 handle is NULL
+ *             - 3 handle is not initialized
+ *             - 4 chip is busy
+ * @note       none
+ */
+uint8_t sx1262_get_fhss_packet_length(sx1262_handle_t *handle, uint8_t *len)
+{
+    uint8_t res;
+    
+    if (handle == NULL)                                                                           /* check handle */
+    {
+        return 2;                                                                                 /* return error */
+    }
+    if (handle->inited != 1)                                                                      /* check handle initialization */
+    {
+        return 3;                                                                                 /* return error */
+    }
+    
+    res = a_sx1262_check_busy(handle);                                                            /* check busy */
+    if (res != 0)                                                                                 /* check result */
+    {
+        handle->debug_print("sx1262: chip is busy.\n");                                           /* chip is busy */
+       
+        return 4;                                                                                 /* return error */
+    }
+    
+    res = a_sx1262_spi_read_register(handle, SX1262_REG_PACKET_LENGTH, (uint8_t *)len, 1);        /* read register */
+    if (res != 0)                                                                                 /* check result */
+    {
+        handle->debug_print("sx1262: read register failed.\n");                                   /* read register failed */
+       
+        return 1;                                                                                 /* return error */
+    }
+    
+    return 0;                                                                                     /* success return 0 */
+}
+
+/**
+ * @brief     set fhss nb hopping blocks
+ * @param[in] *handle pointer to an sx1262 handle structure
+ * @param[in] n set blocks
+ * @return    status code
+ *            - 0 success
+ *            - 1 set fhss nb hopping blocks failed
+ *            - 2 handle is NULL
+ *            - 3 handle is not initialized
+ *            - 4 chip is busy
+ * @note      none
+ */
+uint8_t sx1262_set_fhss_nb_hopping_blocks(sx1262_handle_t *handle, uint8_t n)
+{
+    uint8_t res;
+    
+    if (handle == NULL)                                                                               /* check handle */
+    {
+        return 2;                                                                                     /* return error */
+    }
+    if (handle->inited != 1)                                                                          /* check handle initialization */
+    {
+        return 3;                                                                                     /* return error */
+    }
+    
+    res = a_sx1262_check_busy(handle);                                                                /* check busy */
+    if (res != 0)                                                                                     /* check result */
+    {
+        handle->debug_print("sx1262: chip is busy.\n");                                               /* chip is busy */
+       
+        return 4;                                                                                     /* return error */
+    }
+    
+    res = a_sx1262_spi_write_register(handle, SX1262_REG_NB_HOPPING_BLOCKS, (uint8_t *)&n, 1);        /* write register */
+    if (res != 0)                                                                                     /* check result */
+    {
+        handle->debug_print("sx1262: write register failed.\n");                                      /* write register failed */
+       
+        return 1;                                                                                     /* return error */
+    }
+    
+    return 0;                                                                                         /* success return 0 */
+}
+
+/**
+ * @brief      get fhss nb hopping blocks
+ * @param[in]  *handle pointer to an sx1262 handle structure
+ * @param[out] *n pointer to a blocks buffer
+ * @return     status code
+ *             - 0 success
+ *             - 1 get fhss nb hopping blocks failed
+ *             - 2 handle is NULL
+ *             - 3 handle is not initialized
+ *             - 4 chip is busy
+ * @note       none
+ */
+uint8_t sx1262_get_fhss_nb_hopping_blocks(sx1262_handle_t *handle, uint8_t *n)
+{
+    uint8_t res;
+    
+    if (handle == NULL)                                                                             /* check handle */
+    {
+        return 2;                                                                                   /* return error */
+    }
+    if (handle->inited != 1)                                                                        /* check handle initialization */
+    {
+        return 3;                                                                                   /* return error */
+    }
+    
+    res = a_sx1262_check_busy(handle);                                                              /* check busy */
+    if (res != 0)                                                                                   /* check result */
+    {
+        handle->debug_print("sx1262: chip is busy.\n");                                             /* chip is busy */
+       
+        return 4;                                                                                   /* return error */
+    }
+    
+    res = a_sx1262_spi_read_register(handle, SX1262_REG_NB_HOPPING_BLOCKS, (uint8_t *)n, 1);        /* read register */
+    if (res != 0)                                                                                   /* check result */
+    {
+        handle->debug_print("sx1262: read register failed.\n");                                     /* read register failed */
+       
+        return 1;                                                                                   /* return error */
+    }
+    
+    return 0;                                                                                       /* success return 0 */
+}
+
+/**
+ * @brief     set fhss freq0 symbols
+ * @param[in] *handle pointer to an sx1262 handle structure
+ * @param[in] num set symbols number
+ * @return    status code
+ *            - 0 success
+ *            - 1 set fhss symbols freq0 failed
+ *            - 2 handle is NULL
+ *            - 3 handle is not initialized
+ *            - 4 chip is busy
+ * @note      none
+ */
+uint8_t sx1262_set_fhss_symbols_freq0(sx1262_handle_t *handle, uint16_t num)
+{
+    uint8_t res;
+    uint8_t buf[2];
+    
+    if (handle == NULL)                                                                /* check handle */
+    {
+        return 2;                                                                      /* return error */
+    }
+    if (handle->inited != 1)                                                           /* check handle initialization */
+    {
+        return 3;                                                                      /* return error */
+    }
+    
+    res = a_sx1262_check_busy(handle);                                                 /* check busy */
+    if (res != 0)                                                                      /* check result */
+    {
+        handle->debug_print("sx1262: chip is busy.\n");                                /* chip is busy */
+       
+        return 4;                                                                      /* return error */
+    }
+    
+    buf[0] = (num >> 8) & 0xFF;                                                        /* set msb */
+    buf[1] = (num >> 0) & 0xFF;                                                        /* set lsb */
+    res = a_sx1262_spi_write_register(handle, SX1262_REG_NB_SYMBOLS_0, buf, 2);        /* write register */
+    if (res != 0)                                                                      /* check result */
+    {
+        handle->debug_print("sx1262: write register failed.\n");                       /* write register failed */
+       
+        return 1;                                                                      /* return error */
+    }
+    
+    return 0;                                                                          /* success return 0 */
+}
+
+/**
+ * @brief      get fhss freq0 symbols
+ * @param[in]  *handle pointer to an sx1262 handle structure
+ * @param[out] *num pointer to a symbols number buffer
+ * @return     status code
+ *             - 0 success
+ *             - 1 get fhss symbols freq0 failed
+ *             - 2 handle is NULL
+ *             - 3 handle is not initialized
+ *             - 4 chip is busy
+ * @note       none
+ */
+uint8_t sx1262_get_fhss_symbols_freq0(sx1262_handle_t *handle, uint16_t *num)
+{
+    uint8_t res;
+    uint8_t buf[2];
+    
+    if (handle == NULL)                                                               /* check handle */
+    {
+        return 2;                                                                     /* return error */
+    }
+    if (handle->inited != 1)                                                          /* check handle initialization */
+    {
+        return 3;                                                                     /* return error */
+    }
+    
+    res = a_sx1262_check_busy(handle);                                                /* check busy */
+    if (res != 0)                                                                     /* check result */
+    {
+        handle->debug_print("sx1262: chip is busy.\n");                               /* chip is busy */
+       
+        return 4;                                                                     /* return error */
+    }
+    
+    res = a_sx1262_spi_read_register(handle, SX1262_REG_NB_SYMBOLS_0, buf, 2);        /* read register */
+    if (res != 0)                                                                     /* check result */
+    {
+        handle->debug_print("sx1262: read register failed.\n");                       /* read register failed */
+       
+        return 1;                                                                     /* return error */
+    }
+    *num = (uint16_t)(buf[0]) << 8 | buf[1];                                          /* get number */
+    
+    return 0;                                                                         /* success return 0 */
+}
+
+/**
+ * @brief     set fhss freq0
+ * @param[in] *handle pointer to an sx1262 handle structure
+ * @param[in] freq set freq
+ * @return    status code
+ *            - 0 success
+ *            - 1 set fhss freq0 failed
+ *            - 2 handle is NULL
+ *            - 3 handle is not initialized
+ *            - 4 chip is busy
+ * @note      none
+ */
+uint8_t sx1262_set_fhss_freq0(sx1262_handle_t *handle, uint32_t freq)
+{
+    uint8_t res;
+    uint8_t buf[4];
+    
+    if (handle == NULL)                                                          /* check handle */
+    {
+        return 2;                                                                /* return error */
+    }
+    if (handle->inited != 1)                                                     /* check handle initialization */
+    {
+        return 3;                                                                /* return error */
+    }
+    
+    res = a_sx1262_check_busy(handle);                                           /* check busy */
+    if (res != 0)                                                                /* check result */
+    {
+        handle->debug_print("sx1262: chip is busy.\n");                          /* chip is busy */
+       
+        return 4;                                                                /* return error */
+    }
+    
+    buf[0] = (freq >> 24) & 0xFF;                                                /* set part0 */
+    buf[1] = (freq >> 16) & 0xFF;                                                /* set part1 */
+    buf[2] = (freq >> 8) & 0xFF;                                                 /* set part2 */
+    buf[3] = (freq >> 0) & 0xFF;                                                 /* set part3 */
+    res = a_sx1262_spi_write_register(handle, SX1262_REG_FREQ_0, buf, 4);        /* write register */
+    if (res != 0)                                                                /* check result */
+    {
+        handle->debug_print("sx1262: write register failed.\n");                 /* write register failed */
+       
+        return 1;                                                                /* return error */
+    }
+    
+    return 0;                                                                    /* success return 0 */
+}
+
+/**
+ * @brief      get fhss freq0
+ * @param[in]  *handle pointer to an sx1262 handle structure
+ * @param[out] *freq pointer to a freq buffer
+ * @return     status code
+ *             - 0 success
+ *             - 1 get fhss freq0 failed
+ *             - 2 handle is NULL
+ *             - 3 handle is not initialized
+ *             - 4 chip is busy
+ * @note       none
+ */
+uint8_t sx1262_get_fhss_freq0(sx1262_handle_t *handle, uint32_t *freq)
+{
+    uint8_t res;
+    uint8_t buf[4];
+    
+    if (handle == NULL)                                                         /* check handle */
+    {
+        return 2;                                                               /* return error */
+    }
+    if (handle->inited != 1)                                                    /* check handle initialization */
+    {
+        return 3;                                                               /* return error */
+    }
+    
+    res = a_sx1262_check_busy(handle);                                          /* check busy */
+    if (res != 0)                                                               /* check result */
+    {
+        handle->debug_print("sx1262: chip is busy.\n");                         /* chip is busy */
+       
+        return 4;                                                               /* return error */
+    }
+    
+    res = a_sx1262_spi_read_register(handle, SX1262_REG_FREQ_0, buf, 4);        /* read register */
+    if (res != 0)                                                               /* check result */
+    {
+        handle->debug_print("sx1262: read register failed.\n");                 /* read register failed */
+       
+        return 1;                                                               /* return error */
+    }
+    *freq = (uint32_t)(buf[0]) << 24 | (uint32_t)(buf[1]) << 16 |
+            (uint32_t)(buf[2]) << 8 | (uint32_t)(buf[3]) << 0;                  /* get freq */
+    
+    return 0;                                                                   /* success return 0 */
+}
+
+/**
+ * @brief     set fhss freq15 symbols
+ * @param[in] *handle pointer to an sx1262 handle structure
+ * @param[in] num set symbols number
+ * @return    status code
+ *            - 0 success
+ *            - 1 set fhss symbols freq15 failed
+ *            - 2 handle is NULL
+ *            - 3 handle is not initialized
+ *            - 4 chip is busy
+ * @note      none
+ */
+uint8_t sx1262_set_fhss_symbols_freq15(sx1262_handle_t *handle, uint16_t num)
+{
+    uint8_t res;
+    uint8_t buf[2];
+    
+    if (handle == NULL)                                                                /* check handle */
+    {
+        return 2;                                                                      /* return error */
+    }
+    if (handle->inited != 1)                                                           /* check handle initialization */
+    {
+        return 3;                                                                      /* return error */
+    }
+    
+    res = a_sx1262_check_busy(handle);                                                 /* check busy */
+    if (res != 0)                                                                      /* check result */
+    {
+        handle->debug_print("sx1262: chip is busy.\n");                                /* chip is busy */
+       
+        return 4;                                                                      /* return error */
+    }
+    
+    buf[0] = (num >> 8) & 0xFF;                                                        /* set msb */
+    buf[1] = (num >> 0) & 0xFF;                                                        /* set lsb */
+    res = a_sx1262_spi_write_register(handle, SX1262_REG_NB_SYMBOLS_15, buf, 2);       /* write register */
+    if (res != 0)                                                                      /* check result */
+    {
+        handle->debug_print("sx1262: write register failed.\n");                       /* write register failed */
+       
+        return 1;                                                                      /* return error */
+    }
+    
+    return 0;                                                                          /* success return 0 */
+}
+
+/**
+ * @brief      get fhss freq15 symbols
+ * @param[in]  *handle pointer to an sx1262 handle structure
+ * @param[out] *num pointer to a number buffer
+ * @return     status code
+ *             - 0 success
+ *             - 1 get fhss symbols freq15 failed
+ *             - 2 handle is NULL
+ *             - 3 handle is not initialized
+ *             - 4 chip is busy
+ * @note       none
+ */
+uint8_t sx1262_get_fhss_symbols_freq15(sx1262_handle_t *handle, uint16_t *num)
+{
+    uint8_t res;
+    uint8_t buf[2];
+    
+    if (handle == NULL)                                                               /* check handle */
+    {
+        return 2;                                                                     /* return error */
+    }
+    if (handle->inited != 1)                                                          /* check handle initialization */
+    {
+        return 3;                                                                     /* return error */
+    }
+    
+    res = a_sx1262_check_busy(handle);                                                /* check busy */
+    if (res != 0)                                                                     /* check result */
+    {
+        handle->debug_print("sx1262: chip is busy.\n");                               /* chip is busy */
+       
+        return 4;                                                                     /* return error */
+    }
+    
+    res = a_sx1262_spi_read_register(handle, SX1262_REG_NB_SYMBOLS_15, buf, 2);       /* read register */
+    if (res != 0)                                                                     /* check result */
+    {
+        handle->debug_print("sx1262: read register failed.\n");                       /* read register failed */
+       
+        return 1;                                                                     /* return error */
+    }
+    *num = (uint16_t)(buf[0]) << 8 | buf[1];                                          /* get number */
+    
+    return 0;                                                                         /* success return 0 */
+}
+
+/**
+ * @brief     set fhss freq15
+ * @param[in] *handle pointer to an sx1262 handle structure
+ * @param[in] freq set freq
+ * @return    status code
+ *            - 0 success
+ *            - 1 set fhss freq15 failed
+ *            - 2 handle is NULL
+ *            - 3 handle is not initialized
+ *            - 4 chip is busy
+ * @note      none
+ */
+uint8_t sx1262_set_fhss_freq15(sx1262_handle_t *handle, uint32_t freq)
+{
+    uint8_t res;
+    uint8_t buf[4];
+    
+    if (handle == NULL)                                                          /* check handle */
+    {
+        return 2;                                                                /* return error */
+    }
+    if (handle->inited != 1)                                                     /* check handle initialization */
+    {
+        return 3;                                                                /* return error */
+    }
+    
+    res = a_sx1262_check_busy(handle);                                           /* check busy */
+    if (res != 0)                                                                /* check result */
+    {
+        handle->debug_print("sx1262: chip is busy.\n");                          /* chip is busy */
+       
+        return 4;                                                                /* return error */
+    }
+    
+    buf[0] = (freq >> 24) & 0xFF;                                                /* set part0 */
+    buf[1] = (freq >> 16) & 0xFF;                                                /* set part1 */
+    buf[2] = (freq >> 8) & 0xFF;                                                 /* set part2 */
+    buf[3] = (freq >> 0) & 0xFF;                                                 /* set part3 */
+    res = a_sx1262_spi_write_register(handle, SX1262_REG_FREQ_15, buf, 4);       /* write register */
+    if (res != 0)                                                                /* check result */
+    {
+        handle->debug_print("sx1262: write register failed.\n");                 /* write register failed */
+       
+        return 1;                                                                /* return error */
+    }
+    
+    return 0;                                                                    /* success return 0 */
+}
+
+/**
+ * @brief      get fhss freq15
+ * @param[in]  *handle pointer to an sx1262 handle structure
+ * @param[out] *freq pointer to a freq buffer
+ * @return     status code
+ *             - 0 success
+ *             - 1 get fhss freq15 failed
+ *             - 2 handle is NULL
+ *             - 3 handle is not initialized
+ *             - 4 chip is busy
+ * @note       none
+ */
+uint8_t sx1262_get_fhss_freq15(sx1262_handle_t *handle, uint32_t *freq)
+{
+    uint8_t res;
+    uint8_t buf[4];
+    
+    if (handle == NULL)                                                         /* check handle */
+    {
+        return 2;                                                               /* return error */
+    }
+    if (handle->inited != 1)                                                    /* check handle initialization */
+    {
+        return 3;                                                               /* return error */
+    }
+    
+    res = a_sx1262_check_busy(handle);                                          /* check busy */
+    if (res != 0)                                                               /* check result */
+    {
+        handle->debug_print("sx1262: chip is busy.\n");                         /* chip is busy */
+       
+        return 4;                                                               /* return error */
+    }
+    
+    res = a_sx1262_spi_read_register(handle, SX1262_REG_FREQ_15, buf, 4);       /* read register */
+    if (res != 0)                                                               /* check result */
+    {
+        handle->debug_print("sx1262: read register failed.\n");                 /* read register failed */
+       
+        return 1;                                                               /* return error */
+    }
+    *freq = (uint32_t)(buf[0]) << 24 | (uint32_t)(buf[1]) << 16 |
+            (uint32_t)(buf[2]) << 8 | (uint32_t)(buf[3]) << 0;                  /* get freq */
+    
+    return 0;                                                                   /* success return 0 */
+}
+
 /**
  * @brief      write and read register
  * @param[in]  *handle pointer to an sx1262 handle structure
@@ -4689,11 +6231,10 @@ uint8_t sx1262_get_pull_down_control(sx1262_handle_t *handle, uint8_t *control)
  *             - 3 handle is not initialized
  * @note       none
  */
-
 uint8_t sx1262_write_read_reg(sx1262_handle_t *handle, uint8_t *in_buf, uint32_t in_len,
-    uint8_t *out_buf, uint32_t out_len)
+                              uint8_t *out_buf, uint32_t out_len)
 {
-
+    
     if (handle == NULL)                                                  /* check handle */
     {
         return 2;                                                        /* return error */
@@ -4702,7 +6243,7 @@ uint8_t sx1262_write_read_reg(sx1262_handle_t *handle, uint8_t *in_buf, uint32_t
     {
         return 3;                                                        /* return error */
     }
-
+    
     if (handle->spi_write_read(in_buf, in_len, out_buf, out_len) != 0)   /* spi read */
     {
         return 1;                                                        /* return error */

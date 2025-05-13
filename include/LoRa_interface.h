@@ -15,6 +15,8 @@
  #include "driver/spi_master.h"
  #include "driver/gpio.h"
 
+ 
+ void init_lora_task(void);
  /**
  * @brief  interface the spi bus with the sx1262 and add the device with respect to the ESP32 
  * @return status code
@@ -40,15 +42,8 @@ uint8_t esp32_SPI_bus_deinit(void);
  *         - 0 spi read and write asynch failed
  * @note   none
  */
-uint8_t esp32_SPI_WRITE_READ_test(uint8_t *in_buf, uint32_t in_len, uint8_t *out_buf, uint32_t out_len);
+uint8_t esp32_SPI_WRITE_READ(uint8_t *in_buf, uint32_t in_len, uint8_t *out_buf, uint32_t out_len);
 
- /**
- * @brief  Link the SPI bus the sx1262 and the ESP32 with respect to the ESP32 
- * @return status code
- *         - 1 success
- *         - 0 LoRa chip failed to initialize
- * @note   none
- */
 
  /**
  * @brief  interface reset gpio init
@@ -105,12 +100,39 @@ uint8_t sx1262_interface_busy_gpio_deinit(void);
  * @note       none
  */
 uint8_t sx1262_interface_busy_gpio_read(uint8_t *value);
+// Function to set up LoRa interrupt handling and task (called from main.c)
+// This function takes the handle address from main.c and uses it to create the task and hook the ISR.
+void setup_lora_interrupt_handling(sx1262_handle_t *handle);
+
+// Declare your sx1262_irq_handler function
+// This function contains your complex logic and is called by the processing task.
+uint8_t sx1262_irq_handler(sx1262_handle_t *handle);
+
+/**
+ * @brief  interface busy gpio init
+ * @return status code
+ *         - 0 success
+ *         - 1 init failed
+ * @note   none
+ */
+esp_err_t sx1262_interface_dio1_gpio_init(sx1262_handle_t *LoRa_handle);
+
+/**
+ * @brief  interface busy gpio deinit
+ * @return status code
+ *         - 0 success
+ *         - 1 deinit failed
+ * @note   none
+ */
+esp_err_t sx1262_interface_dio1_gpio_deinit(void);
 
 /**
  * @brief     interface delay ms
  * @param[in] ms time
  * @note      none
  */
+
+ 
 void sx1262_interface_delay_ms(uint32_t ms);
 
 /**

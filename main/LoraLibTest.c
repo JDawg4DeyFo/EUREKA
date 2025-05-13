@@ -9,11 +9,39 @@
  * 
  */
 
-#include "../include/LoRa_main.h"
+#include "../../include/LoRa_main.h"
+#include "driver/gpio.h"
+#include "../../include/driver_sx1262_cad_test.h"
 
-static sx1262_handle_t LoRa_1;
+#define tx_timeout 9000
+
+static sx1262_handle_t LoRa;
+static uint8_t test_buf[5] = "Test";
+
+
 void app_main(void){
-  sx1262_lora_begin(&LoRa_1);
-  sx1262_lora_deinit(&LoRa_1);
-   //while(1);
- }
+  sx1262_lora_begin(&LoRa);
+  init_lora_task();
+  sx1262_interface_dio1_gpio_init(&LoRa);
+
+  
+  if (sx1262_lora_set_send_mode(&LoRa))
+  {
+    sx1262_interface_debug_print("Set send mode failed\n");
+    sx1262_interface_dio1_gpio_deinit();
+    sx1262_lora_deinit(&LoRa);
+  } 
+
+
+  if(sx1262_lora_send(&LoRa, test_buf, sizeof(test_buf))){
+    sx1262_interface_dio1_gpio_deinit();
+    sx1262_lora_deinit(&LoRa);
+  }else{
+    sx1262_interface_debug_print("Transmission is a success\n");
+    sx1262_interface_dio1_gpio_deinit();
+    sx1262_lora_deinit(&LoRa);
+  }
+  
+  while(1);
+  
+}

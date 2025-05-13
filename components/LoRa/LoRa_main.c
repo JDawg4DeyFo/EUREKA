@@ -1,4 +1,25 @@
 /**
+ * Copyright (c) 2015 - present LibDriver All rights reserved
+ * 
+ * The MIT License (MIT)
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE. 
  * @file LoRa_main.c
  * @author Edouard Valenzuela (ecvalenz@ucsc.edu)
  * @brief Consolidation of LoRa functions
@@ -45,8 +66,7 @@ uint8_t sx1262_lora_begin(sx1262_handle_t *LoRa_handle)
     uint32_t reg;
     uint8_t modulation;
     uint8_t config;
-    
-    
+
     /* init the sx1262 */
     res = sx1262_device_init(LoRa_handle);
     if (res != 0)
@@ -65,6 +85,96 @@ uint8_t sx1262_lora_begin(sx1262_handle_t *LoRa_handle)
         
         return 1;
     }
+
+     /* set regulator mode */
+     res = sx1262_set_regulator_mode(LoRa_handle, SX1262_LORA_DEFAULT_REGULATOR_MODE);
+     if (res != 0)
+     {
+         sx1262_interface_debug_print("sx1262: set regulator mode failed.\n");
+         sx1262_deinit(LoRa_handle);
+         
+         return 1;
+     }
+     
+      /* set the rx gain */
+    res = sx1262_set_rx_gain(LoRa_handle, SX1262_LORA_DEFAULT_RX_GAIN);
+    if (res != 0)
+    {
+        sx1262_interface_debug_print("sx1262: set rx gain failed.\n");
+        sx1262_deinit(LoRa_handle);
+        
+        return 1;
+    }
+
+     /* enter to stdby xosc mode */
+     res = sx1262_set_rx_tx_fallback_mode(LoRa_handle, SX1262_RX_TX_FALLBACK_MODE_STDBY_XOSC);
+     if (res != 0)
+     {
+         sx1262_interface_debug_print("sx1262: set rx tx fallback mode failed.\n");
+         sx1262_deinit(LoRa_handle);
+         
+         return 1;
+     }
+
+     /* set lora mode */
+     res = sx1262_set_packet_type(LoRa_handle, SX1262_PACKET_TYPE_LORA);
+     if (res != 0)
+     {
+         sx1262_interface_debug_print("sx1262: set packet type failed.\n");
+         sx1262_deinit(LoRa_handle);
+         
+         return 1;
+     }
+
+      /* convert the frequency */
+    res = sx1262_frequency_convert_to_register(LoRa_handle, SX1262_LORA_DEFAULT_RF_FREQUENCY, (uint32_t *)&reg);
+    if (res != 0)
+    {
+        sx1262_interface_debug_print("sx1262: convert to register failed.\n");
+        sx1262_deinit(LoRa_handle);
+        
+        return 1;
+    }
+    
+    /* set the frequency */
+    res = sx1262_set_rf_frequency(LoRa_handle, reg);
+    if (res != 0)
+    {
+        sx1262_interface_debug_print("sx1262: set rf frequency failed.\n");
+        sx1262_deinit(LoRa_handle);
+        
+        return 1;
+    }
+
+    /* set pa config */
+    res = sx1262_set_pa_config(LoRa_handle, SX1262_LORA_DEFAULT_PA_CONFIG_DUTY_CYCLE, SX1262_LORA_DEFAULT_PA_CONFIG_HP_MAX);
+    if (res != 0)
+    {
+        sx1262_interface_debug_print("sx1262: set pa config failed.\n");
+        sx1262_deinit(LoRa_handle);
+        
+        return 1;
+    }
+
+    /* set tx params */
+    res = sx1262_set_tx_params(LoRa_handle, SX1262_LORA_DEFAULT_TX_DBM, SX1262_LORA_DEFAULT_RAMP_TIME);
+    if (res != 0)
+    {
+        sx1262_interface_debug_print("sx1262: set tx params failed.\n");
+        sx1262_deinit(LoRa_handle);
+        
+        return 1;
+    }
+
+     /* set base address */
+     res = sx1262_set_buffer_base_address(LoRa_handle, 0x00, 0x00);
+     if (res != 0)
+     {
+         sx1262_interface_debug_print("sx1262: set buffer base address failed.\n");
+         (void)sx1262_deinit(LoRa_handle);
+         
+         return 1;
+     }
     
     /* set stop timer on preamble */
     res = sx1262_set_stop_timer_on_preamble(LoRa_handle, SX1262_LORA_DEFAULT_STOP_TIMER_ON_PREAMBLE);
@@ -76,36 +186,7 @@ uint8_t sx1262_lora_begin(sx1262_handle_t *LoRa_handle)
         return 1;
     }
     
-    /* set regulator mode */
-    res = sx1262_set_regulator_mode(LoRa_handle, SX1262_LORA_DEFAULT_REGULATOR_MODE);
-    if (res != 0)
-    {
-        sx1262_interface_debug_print("sx1262: set regulator mode failed.\n");
-        sx1262_deinit(LoRa_handle);
-        
-        return 1;
-    }
-    
-    /* set pa config */
-    res = sx1262_set_pa_config(LoRa_handle, SX1262_LORA_DEFAULT_PA_CONFIG_DUTY_CYCLE, SX1262_LORA_DEFAULT_PA_CONFIG_HP_MAX);
-    if (res != 0)
-    {
-        sx1262_interface_debug_print("sx1262: set pa config failed.\n");
-        sx1262_deinit(LoRa_handle);
-        
-        return 1;
-    }
-    
-    /* enter to stdby xosc mode */
-    res = sx1262_set_rx_tx_fallback_mode(LoRa_handle, SX1262_RX_TX_FALLBACK_MODE_STDBY_XOSC);
-    if (res != 0)
-    {
-        sx1262_interface_debug_print("sx1262: set rx tx fallback mode failed.\n");
-        sx1262_deinit(LoRa_handle);
-        
-        return 1;
-    }
-    
+
     /* set dio irq */
     res = sx1262_set_dio_irq_params(LoRa_handle, 0x03FF, 0x03FF, 0x0000, 0x0000);
     if (res != 0)
@@ -126,25 +207,6 @@ uint8_t sx1262_lora_begin(sx1262_handle_t *LoRa_handle)
         return 1;
     }
     
-    /* set lora mode */
-    res = sx1262_set_packet_type(LoRa_handle, SX1262_PACKET_TYPE_LORA);
-    if (res != 0)
-    {
-        sx1262_interface_debug_print("sx1262: set packet type failed.\n");
-        sx1262_deinit(LoRa_handle);
-        
-        return 1;
-    }
-    
-    /* set tx params */
-    res = sx1262_set_tx_params(LoRa_handle, SX1262_LORA_DEFAULT_TX_DBM, SX1262_LORA_DEFAULT_RAMP_TIME);
-    if (res != 0)
-    {
-        sx1262_interface_debug_print("sx1262: set tx params failed.\n");
-        sx1262_deinit(LoRa_handle);
-        
-        return 1;
-    }
     
     /* set lora modulation params */
     res = sx1262_set_lora_modulation_params(LoRa_handle, SX1262_LORA_DEFAULT_SF, SX1262_LORA_DEFAULT_BANDWIDTH, 
@@ -157,35 +219,7 @@ uint8_t sx1262_lora_begin(sx1262_handle_t *LoRa_handle)
         return 1;
     }
     
-    /* convert the frequency */
-    res = sx1262_frequency_convert_to_register(LoRa_handle, SX1262_LORA_DEFAULT_RF_FREQUENCY, (uint32_t *)&reg);
-    if (res != 0)
-    {
-        sx1262_interface_debug_print("sx1262: convert to register failed.\n");
-        sx1262_deinit(LoRa_handle);
-        
-        return 1;
-    }
     
-    /* set the frequency */
-    res = sx1262_set_rf_frequency(LoRa_handle, reg);
-    if (res != 0)
-    {
-        sx1262_interface_debug_print("sx1262: set rf frequency failed.\n");
-        sx1262_deinit(LoRa_handle);
-        
-        return 1;
-    }
-    
-    /* set base address */
-    res = sx1262_set_buffer_base_address(LoRa_handle, 0x00, 0x00);
-    if (res != 0)
-    {
-        sx1262_interface_debug_print("sx1262: set buffer base address failed.\n");
-        sx1262_deinit(LoRa_handle);
-        
-        return 1;
-    }
     
     /* set lora symb num */
     res = sx1262_set_lora_symb_num_timeout(LoRa_handle, SX1262_LORA_DEFAULT_SYMB_NUM_TIMEOUT);
@@ -248,15 +282,6 @@ uint8_t sx1262_lora_begin(sx1262_handle_t *LoRa_handle)
         return 1;
     }
     
-    /* set the rx gain */
-    res = sx1262_set_rx_gain(LoRa_handle, SX1262_LORA_DEFAULT_RX_GAIN);
-    if (res != 0)
-    {
-        sx1262_interface_debug_print("sx1262: set rx gain failed.\n");
-        sx1262_deinit(LoRa_handle);
-        
-        return 1;
-    }
     
     /* set the ocp */
     res = sx1262_set_ocp(LoRa_handle, SX1262_LORA_DEFAULT_OCP);
@@ -289,6 +314,17 @@ uint8_t sx1262_lora_begin(sx1262_handle_t *LoRa_handle)
         return 1;
     }
     
+     // Calibrate all main blocks (RC64K, RC13M, PLL, ADC, PAs - Analog/Digital)
+    res = sx1262_set_calibration(LoRa_handle, 0x7F); 
+    if (res != 0)
+    {
+        sx1262_interface_debug_print("sx1262: set calibration failed.\n");
+        sx1262_deinit(LoRa_handle);
+
+         return 1;
+    }
+    init_lora_task();
+    
     return 0;
 }
 
@@ -301,13 +337,11 @@ uint8_t sx1262_lora_begin(sx1262_handle_t *LoRa_handle)
  */
 
  uint8_t sx1262_lora_deinit(sx1262_handle_t *LoRa_handle){
-    
-    if (sx1262_deinit(LoRa_handle) != 0) {
-       printf("LoRa chip failed to deinitialize\n");
+    if (sx1262_deinit(LoRa_handle) != 0) 
+    {
        return 1;
     }
- 
-    printf("LoRa chip successfully deinitialized\n");
+
     return 0;
  }
 
@@ -339,16 +373,30 @@ uint8_t sx1262_lora_sleep(sx1262_handle_t *LoRa_handle)
  */
 uint8_t sx1262_lora_wake_up(sx1262_handle_t *LoRa_handle)
 {
-    uint8_t status;
-    
-    if (sx1262_get_status(LoRa_handle, (uint8_t *)&status) != 0)
+    gpio_set_level(7, 0); //Set CS pin on SPI bus low
+
+    sx1262_interface_delay_ms(10); //10 ms delay
+
+    gpio_set_level(7, 1); //Set CS pin on SPI bus back to high
+
+    // Set standby mode
+    uint8_t res = sx1262_set_standby(LoRa_handle, SX1262_CLOCK_SOURCE_XTAL_32MHZ);
+    if (res != 0)
     {
+        sx1262_interface_debug_print("sx1262: failed to set standby.\n");
         return 1;
     }
-    else
+
+    uint8_t value;
+    res = sx1262_interface_busy_gpio_read(&value);                                                           /* check busy */
+    if (res != 0)                                                                               /* check result */
     {
-        return 0;
+        sx1262_interface_debug_print("sx1262: chip is busy.\n");                                         /* chip is busy */
+       
+        return 1;                                                                               /* return error */
     }
+
+    return 0;
 }
 
 /**
@@ -473,14 +521,14 @@ uint8_t sx1262_lora_set_shot_receive_mode(sx1262_handle_t *LoRa_handle, double u
 }
 
 /**
- * @brief  lora example enter to the send mode
+ * @brief  lora example enter to the continuous transmit mode
  * @return status code
  *         - 0 success
  *         - 1 enter failed
  * @note   none
  */
-uint8_t sx1262_lora_set_send_mode(sx1262_handle_t *LoRa_handle)
-{
+uint8_t sx1262_lora_set_continuous_transmit_mode(sx1262_handle_t *LoRa_handle){
+    
     /* set dio irq */
     if (sx1262_set_dio_irq_params(LoRa_handle, SX1262_IRQ_TX_DONE | SX1262_IRQ_TIMEOUT | SX1262_IRQ_CAD_DONE | SX1262_IRQ_CAD_DETECTED,
                                   SX1262_IRQ_TX_DONE | SX1262_IRQ_TIMEOUT | SX1262_IRQ_CAD_DONE | SX1262_IRQ_CAD_DETECTED,
@@ -488,15 +536,55 @@ uint8_t sx1262_lora_set_send_mode(sx1262_handle_t *LoRa_handle)
     {
         return 1;
     }
-    
     /* clear irq status */
     if (sx1262_clear_irq_status(LoRa_handle, 0x03FFU) != 0)
     {
         return 1;
     }
     
+    /* set lora packet params */
+    if (sx1262_set_lora_packet_params(LoRa_handle, SX1262_LORA_DEFAULT_PREAMBLE_LENGTH,
+        SX1262_LORA_DEFAULT_HEADER, SX1262_LORA_DEFAULT_BUFFER_SIZE,
+        SX1262_LORA_DEFAULT_CRC_TYPE, SX1262_LORA_DEFAULT_INVERT_IQ) != 0)
+    {
+        return 1;
+    }
+
+    /* start transmit*/
+    if (sx1262_set_tx_continuous_wave(LoRa_handle) != 0)
+    {
+        return 1;
+    }
+    
     return 0;
 }
+
+/**
+ * @brief  lora example enter to the send mode
+ * @return status code
+ *         - 0 success
+ *         - 1 enter failed
+ * @note   none
+ */
+
+ uint8_t sx1262_lora_set_send_mode(sx1262_handle_t *LoRa_handle)
+ {
+     /* set dio irq */
+     if (sx1262_set_dio_irq_params(LoRa_handle, SX1262_IRQ_TX_DONE | SX1262_IRQ_TIMEOUT | SX1262_IRQ_CAD_DONE | SX1262_IRQ_CAD_DETECTED,
+                                   SX1262_IRQ_TX_DONE | SX1262_IRQ_TIMEOUT | SX1262_IRQ_CAD_DONE | SX1262_IRQ_CAD_DETECTED,
+                                   0x0000, 0x0000) != 0)
+     {
+         return 1;
+     }
+     
+     /* clear irq status */
+     if (sx1262_clear_irq_status(LoRa_handle, 0x03FFU) != 0)
+     {
+         return 1;
+     }
+     
+     return 0;
+ }
 
 /**
  * @brief     lora example send lora data
@@ -508,7 +596,8 @@ uint8_t sx1262_lora_set_send_mode(sx1262_handle_t *LoRa_handle)
  * @note      none
  */
 uint8_t sx1262_lora_send(sx1262_handle_t *LoRa_handle, uint8_t *buf, uint16_t len)
-{
+{   
+    
     /* send the data */
     if (sx1262_lora_transmit(LoRa_handle, SX1262_CLOCK_SOURCE_XTAL_32MHZ,
                              SX1262_LORA_DEFAULT_PREAMBLE_LENGTH, SX1262_LORA_DEFAULT_HEADER,

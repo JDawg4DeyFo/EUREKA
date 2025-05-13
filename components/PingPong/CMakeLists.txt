@@ -1,14 +1,14 @@
-## LoRa CMakeLists file
-## April 7th, 2025
+## Ping PongCMakeLists file
+## May 1st, 2025
 
 # Define source files
-set(srcs LoRa_driver.c LoRa_interface.c LoRa_main.c driver_sx1262_send_receive_test.c driver_sx1262_cad_test.c)
+set(srcs PingPong.c)
 
 # Declare public dependencies
-set(requires esp_driver_spi esp_driver_gpio)
+set(requires LoRa)
 
 # Declare private dependencies
-set(priv_requires)
+set(priv_requires esp_driver_spi esp_driver_gpio)
 
 # Register component
 idf_component_register(SRCS "${srcs}"

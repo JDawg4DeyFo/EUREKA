@@ -9,6 +9,15 @@ config SENSOR_LIB_TEST
 
 config LORA_LIB_TEST
 	bool "Build LoRa test harness"
+	default n
+
+config TX_PINGPONG_TEST
+	bool "Build TX_Ping for PingPong Test"
+	default n
+
+config RX_PINGPONG_TEST
+	bool "Build RX_Ping for PingPong Test"
+	default n
 
 config PCNT_TEST
 	bool "Build Pulse Count test harness"
@@ -16,6 +25,7 @@ config PCNT_TEST
 config POWER_TEST
 	bool "Build power test harness"
 
+<<<<<<< HEAD
 config SENSOR_NODE_MAIN
 	bool "Build main() for sensor node"
 
@@ -23,3 +33,6 @@ config CLUSTER_HEAD_MAIN
 	bool "Build main() for cluster head"
 
 endchoice
+=======
+endchoice
+>>>>>>> edouard
