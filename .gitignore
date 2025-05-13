@@ -3,3 +3,7 @@ build/
 .vscode/
 
 *.swp
+
+sdkconfig
+
+sdckconfig.old
