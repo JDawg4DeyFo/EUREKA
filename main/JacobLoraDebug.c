@@ -15,6 +15,8 @@
 #include "soc/gpio_sig_map.h"
 #include "hal/gpio_types.h"
 #include "hal/gpio_hal.h"
+#include "soc/io_mux_reg.h"
+
 
 #define tx_timeout 9000
 #define MIRROR_MISO 41
