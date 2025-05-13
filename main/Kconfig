@@ -32,6 +32,6 @@ config CLUSTER_HEAD_MAIN
 	bool "Build main() for cluster head"
 
 config JACOB_LORA
-	bool "Build main() for cluster head"
+	bool "Build Jacob's Lora test"
 
 endchoice
