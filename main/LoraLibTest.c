@@ -24,7 +24,7 @@ void app_main(void){
   init_lora_task();
   sx1262_interface_dio1_gpio_init(&LoRa);
 
-  
+  //sx1262_set_tx_continuous_wave(&LoRa);
   if (sx1262_lora_set_send_mode(&LoRa))
   {
     sx1262_interface_debug_print("Set send mode failed\n");
@@ -41,7 +41,7 @@ void app_main(void){
     sx1262_interface_dio1_gpio_deinit();
     sx1262_lora_deinit(&LoRa);
   }
+
   
-  while(1);
   
 }

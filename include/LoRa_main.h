@@ -42,7 +42,7 @@
 #define SX1262_LORA_DEFAULT_PA_CONFIG_DUTY_CYCLE        0x04                              /**< set +22dBm power */
 #define SX1262_LORA_DEFAULT_PA_CONFIG_HP_MAX            0x07                              /**< set +22dBm power */
 #define SX1262_LORA_DEFAULT_TX_DBM                      22                                /**< +22dBm */
-#define SX1262_LORA_DEFAULT_RAMP_TIME                   SX1262_RAMP_TIME_10US             /**< set ramp time 10 us */
+#define SX1262_LORA_DEFAULT_RAMP_TIME                   SX1262_RAMP_TIME_200US             /**< set ramp time 10 us */
 #define SX1262_LORA_DEFAULT_SF                          SX1262_LORA_SF_12                 /**< sf12 */
 #define SX1262_LORA_DEFAULT_BANDWIDTH                   SX1262_LORA_BANDWIDTH_125_KHZ     /**< 125khz */
 #define SX1262_LORA_DEFAULT_CR                          SX1262_LORA_CR_4_5                /**< cr4/5 */
