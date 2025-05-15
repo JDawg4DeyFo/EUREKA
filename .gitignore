@@ -9,3 +9,5 @@ sdkconfig
 sdckconfig.old
 
 *.old
+
+log/

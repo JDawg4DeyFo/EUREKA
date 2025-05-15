@@ -34,6 +34,7 @@
 #include "LoRa_driver.h"
 #include "driver/gpio.h"
 #include <math.h>
+#include <stdio.h> // jacob
 
 /**
  * @brief chip information definition
@@ -718,7 +719,7 @@ uint8_t sx1262_init(sx1262_handle_t *handle)
         return 6;                                                                          /* return error */ 
     }
     handle->delay_ms(5);                                                                   /* delay 5 ms */
-    
+    buf[0] = 0; // jacob
     if (a_sx1262_spi_read(handle, SX1262_COMMAND_GET_STATUS, (uint8_t *)buf, 1) != 0)      /* read command */
     {
         handle->debug_print("sx1262: get status failed.\n");                               /* get status failed */
@@ -728,6 +729,7 @@ uint8_t sx1262_init(sx1262_handle_t *handle)
         
         return 6;                                                                          /* return error */
     }
+	printf("Buf value: %d", buf[0]); // jacob
     prev = 0x00;
     if (a_sx1262_spi_write(handle, SX1262_COMMAND_SET_STANDBY, (uint8_t *)&prev, 1) != 0)  /* write command */
     {
