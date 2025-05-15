@@ -191,6 +191,8 @@ uint8_t esp32_SPI_WRITE_READ(uint8_t *in_buf, uint32_t in_len, uint8_t *out_buf,
       .rxlength = out_len * 8,
    };
 
+   memset(transaction_mes.rx_data, 0, sizeof(transaction_mes.rx_data));
+
    esp_err_t check_result = spi_device_transmit(slave_handle, &transaction_mes);
    if (check_result != ESP_OK){
       printf("spi_device_transmit failed due to: %d\n", check_result);
