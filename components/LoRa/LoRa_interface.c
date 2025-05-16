@@ -123,7 +123,7 @@ static void IRAM_ATTR gpio_isr_handler(void* arg)
 
  uint8_t esp32_SPI_bus_init(void){
 
-   esp_err_t check_result = spi_bus_initialize(SPI2_HOST, &bus_pins, SPI_DMA_CH_AUTO);
+   esp_err_t check_result = spi_bus_initialize(SPI3_HOST, &bus_pins, SPI_DMA_CH_AUTO);
 
    if (check_result  != ESP_OK){
       printf("spi_bus_initalize failed due to: %d\n", check_result);
@@ -132,7 +132,7 @@ static void IRAM_ATTR gpio_isr_handler(void* arg)
 
    printf("spi_bus_initalize is a success\n");
 
-   check_result = spi_bus_add_device(SPI2_HOST, &dev_config, &slave_handle);
+   check_result = spi_bus_add_device(SPI3_HOST, &dev_config, &slave_handle);
 
    if (check_result != ESP_OK){
       printf("spi_bus_add_device failed due to: %d\n", check_result);
@@ -162,7 +162,7 @@ uint8_t esp32_SPI_bus_deinit(void){
 
    printf("spi_bus_remove_device is a success\n");
 
-   check_result = spi_bus_free(SPI2_HOST);
+   check_result = spi_bus_free(SPI3_HOST);
    if (check_result != ESP_OK){
       printf("spi_bus_add_device failed due to: %d\n", check_result);
       return 1;
