@@ -27,6 +27,8 @@
 #define GPIO_RESET 8
 #define GPIO_DIO1 33
 
+// https://github.com/libdriver/sx1262/tree/main
+
 static spi_device_handle_t slave_handle; 
 TaskHandle_t lora_task_handle = NULL;
 

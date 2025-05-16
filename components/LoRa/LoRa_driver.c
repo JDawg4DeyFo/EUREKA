@@ -36,6 +36,8 @@
 #include <math.h>
 #include <stdio.h> // jacob
 
+// https://github.com/libdriver/sx1262/tree/main
+
 /**
  * @brief chip information definition
  */
