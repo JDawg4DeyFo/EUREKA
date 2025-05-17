@@ -16,12 +16,12 @@
 #include "esp_log.h"
 
 //GPIO numbers on the ESP32 
-// #define GPIO_MOSI 6
-// #define GPIO_MISO 3
-#define GPIO_MOSI 45
-#define GPIO_MISO 41
-// #define GPIO_SCK 5
-#define GPIO_SCK 46
+// #define GPIO_MOSI 45
+// #define GPIO_MISO 41
+// #define GPIO_SCK 46
+#define GPIO_MOSI 6
+#define GPIO_MISO 3
+#define GPIO_SCK 5
 #define GPIO_CS 7
 #define GPIO_BUSY 34
 #define GPIO_RESET 8
@@ -188,15 +188,22 @@ uint8_t esp32_SPI_bus_deinit(void){
 static const char *TAG_SPI = "SPI_WRITE_READ";
 
 uint8_t esp32_SPI_WRITE_READ(uint8_t *in_buf, uint32_t in_len, uint8_t *out_buf, uint32_t out_len){
+	// Dummy buffer needed
+	uint8_t TX_Dummy[MAX_TXBUFFER_SPI];
+	memset(TX_Dummy, 0, sizeof(TX_Dummy));
+
+	// Copy contents of input buffer
+	memcpy(TX_Dummy, in_buf, in_len);
+
    //Transaction example to be sent via SPI
    spi_transaction_t transaction_mes = {
-      .tx_buffer = in_buf,
+      .tx_buffer = TX_Dummy,
       .rx_buffer = out_buf,
       .length = (in_len + out_len) * 8,
       .rxlength = out_len * 8,
    };
 
-   memset(transaction_mes.rx_data, 0, sizeof(transaction_mes.rx_data));
+   memset(out_buf, 0, out_len);
 
    esp_err_t check_result = spi_device_transmit(slave_handle, &transaction_mes);
    if (check_result != ESP_OK){
@@ -206,10 +213,10 @@ uint8_t esp32_SPI_WRITE_READ(uint8_t *in_buf, uint32_t in_len, uint8_t *out_buf,
 
     // Print out each opcode and the value stored in that buffer
    for (int i = 0; i < in_len; i++) {
-      ESP_LOGI(TAG_SPI, "tx_data :0x%02X, ", in_buf[i]);
+      ESP_LOGI(TAG_SPI, "tx_data :0x%02X, ", ((uint8_t*)transaction_mes.tx_buffer)[i]);
    }
    for (int j = 0; j < out_len; j++){
-      ESP_LOGI(TAG_SPI, "rx_data :0x%02X", transaction_mes.rx_data[j]);
+      ESP_LOGI(TAG_SPI, "rx_data :0x%02X", out_buf[j]);
    }
    
    return 0;

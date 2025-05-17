@@ -15,6 +15,10 @@
  #include "driver/spi_master.h"
  #include "driver/gpio.h"
 
+ // Jacob:
+ // need to finalize these values or remove and implement in a better way.
+ #define MAX_TXBUFFER_SPI 20
+
  
  void init_lora_task(void);
  /**
