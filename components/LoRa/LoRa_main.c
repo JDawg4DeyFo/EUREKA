@@ -76,13 +76,47 @@ uint8_t sx1262_lora_begin(sx1262_handle_t *LoRa_handle)
         return 1;
     }
     
-    /* enter standby */
-    res = sx1262_set_standby(LoRa_handle, SX1262_CLOCK_SOURCE_XTAL_32MHZ);
+	// JACOB
+	// device_init() sets it to standby
+    // /* enter standby */
+    // res = sx1262_set_standby(LoRa_handle, SX1262_CLOCK_SOURCE_XTAL_32MHZ);
+    // if (res != 0)
+    // {
+    //     sx1262_interface_debug_print("sx1262: set standby failed.\n");
+    //     sx1262_deinit(LoRa_handle);
+        
+    //     return 1;
+    // }
+
+	// 1: Set Packet Type
+	/* set lora mode */
+     res = sx1262_set_packet_type(LoRa_handle, SX1262_PACKET_TYPE_LORA);
+     if (res != 0)
+     {
+         sx1262_interface_debug_print("sx1262: set packet type failed.\n");
+         sx1262_deinit(LoRa_handle);
+         
+         return 1;
+     }
+
+	 // 2: Set Modulation Parameters
+	/* set lora modulation params */
+    res = sx1262_set_lora_modulation_params(LoRa_handle, SX1262_LORA_DEFAULT_SF, SX1262_LORA_DEFAULT_BANDWIDTH, 
+                                            SX1262_LORA_DEFAULT_CR, SX1262_LORA_DEFAULT_LOW_DATA_RATE_OPTIMIZE);
     if (res != 0)
     {
-        sx1262_interface_debug_print("sx1262: set standby failed.\n");
+        sx1262_interface_debug_print("sx1262: set lora modulation params failed.\n");
         sx1262_deinit(LoRa_handle);
         
+        return 1;
+    }
+
+	 // 3: Set Packet Parameters
+	/* set lora packet params */
+    if (sx1262_set_lora_packet_params(LoRa_handle, SX1262_LORA_DEFAULT_PREAMBLE_LENGTH,
+                                      SX1262_LORA_DEFAULT_HEADER, SX1262_LORA_DEFAULT_BUFFER_SIZE,
+                                      SX1262_LORA_DEFAULT_CRC_TYPE, SX1262_LORA_DEFAULT_INVERT_IQ) != 0)
+    {
         return 1;
     }
 
@@ -111,16 +145,6 @@ uint8_t sx1262_lora_begin(sx1262_handle_t *LoRa_handle)
      if (res != 0)
      {
          sx1262_interface_debug_print("sx1262: set rx tx fallback mode failed.\n");
-         sx1262_deinit(LoRa_handle);
-         
-         return 1;
-     }
-
-     /* set lora mode */
-     res = sx1262_set_packet_type(LoRa_handle, SX1262_PACKET_TYPE_LORA);
-     if (res != 0)
-     {
-         sx1262_interface_debug_print("sx1262: set packet type failed.\n");
          sx1262_deinit(LoRa_handle);
          
          return 1;
@@ -205,21 +229,7 @@ uint8_t sx1262_lora_begin(sx1262_handle_t *LoRa_handle)
         sx1262_deinit(LoRa_handle);
         
         return 1;
-    }
-    
-    
-    /* set lora modulation params */
-    res = sx1262_set_lora_modulation_params(LoRa_handle, SX1262_LORA_DEFAULT_SF, SX1262_LORA_DEFAULT_BANDWIDTH, 
-                                            SX1262_LORA_DEFAULT_CR, SX1262_LORA_DEFAULT_LOW_DATA_RATE_OPTIMIZE);
-    if (res != 0)
-    {
-        sx1262_interface_debug_print("sx1262: set lora modulation params failed.\n");
-        sx1262_deinit(LoRa_handle);
-        
-        return 1;
-    }
-    
-    
+    }   
     
     /* set lora symb num */
     res = sx1262_set_lora_symb_num_timeout(LoRa_handle, SX1262_LORA_DEFAULT_SYMB_NUM_TIMEOUT);
