@@ -357,9 +357,9 @@ uint8_t sx1262_interface_busy_gpio_read(uint8_t *value){
    int gpio_current_level = gpio_get_level(GPIO_BUSY);
    
    if (!gpio_current_level){
-      printf("The SX1262 is ready to accept a command (NOT BUSY)\n");
+    //   printf("The SX1262 is ready to accept a command (NOT BUSY)\n");
    } else {
-      printf("The SX1262 is not ready to accept a command (BUSY)\n");
+    //   printf("The SX1262 is not ready to accept a command (BUSY)\n");
       return 1;
    }
 
