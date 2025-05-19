@@ -12,6 +12,8 @@
 #include "../../include/LoRa_main.h"
 #include "driver/gpio.h"
 #include "esp_log.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 
 #define tx_timeout 9000
 #define MIRROR_MOSI 40
@@ -20,8 +22,17 @@ static const char *TAG = "JacobLoraDebug.c";
 static sx1262_handle_t LoRa;
 static uint8_t test_buf[5] = "Test";
 
+static void delay_ms(int ms)
+{
+    vTaskDelay((ms) / portTICK_PERIOD_MS);
+}
+
 void app_main(void)
 {
+	float temp1, temp2;
+	uint8_t dummy;
+
+	delay_ms(20);
 	ESP_LOGI(TAG, "before lora begin");
 	sx1262_lora_begin(&LoRa);
 	ESP_LOGI(TAG, "past lora begin before lora task");
@@ -29,6 +40,10 @@ void app_main(void)
 	ESP_LOGI(TAG, "past init lora task, before gpioinit");
 	sx1262_interface_dio1_gpio_init(&LoRa);
 	ESP_LOGI(TAG, "Past gpio init before set send");
+
+	sx1262_get_status(&LoRa, &dummy);
+
+	ESP_LOGI(TAG, "Just got status");
 
 	if (sx1262_lora_set_send_mode(&LoRa))
 	{
@@ -41,6 +56,7 @@ void app_main(void)
 	if (sx1262_lora_send(&LoRa, test_buf, sizeof(test_buf)))
 	{
 		ESP_LOGE(TAG, "Send failed");
+		sx1262_get_status(&LoRa, &dummy);
 		sx1262_interface_dio1_gpio_deinit();
 		sx1262_lora_deinit(&LoRa);
 	}

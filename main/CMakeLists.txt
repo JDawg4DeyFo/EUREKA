@@ -59,6 +59,10 @@ elseif(CONFIG_CLUSTER_HEAD_MAIN)
 	list(APPEND srcs ClusterMain.c)
 	list(APPEND requires)
 	list(APPEND priv_requires esp_timer LoRa)
+elseif(CONFIG_NEW_DRIVER_TEST)
+list(APPEND srcs NewDriverTest.c)
+list(APPEND requires)
+list(APPEND priv_requires ra01s)
 endif()
 
 # Register main as the component

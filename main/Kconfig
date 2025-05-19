@@ -34,4 +34,27 @@ config CLUSTER_HEAD_MAIN
 config JACOB_LORA
 	bool "Build Jacob's Lora test"
 
+config NEW_DRIVER_TEST
+	bool "Build test harness for new driver"
+
 endchoice
+
+
+menu "Application Configuration"
+
+	choice DIRECTION
+		prompt "Communication polarity"
+		default SENDER
+		help
+			Select Communication polarity.
+		config SENDER
+			bool "As the sender"
+			help
+				As the sender.
+		config RECEIVER
+			bool "As the receiver"
+			help
+				As the receiver.
+	endchoice
+
+endmenu 
