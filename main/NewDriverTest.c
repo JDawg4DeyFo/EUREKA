@@ -73,12 +73,12 @@ void app_main()
 	int8_t txPowerInDbm = 22;
 
 	uint32_t frequencyInHz = 0;
-#if CONFIG_433MHZ
-	frequencyInHz = 433000000;
-	ESP_LOGI(TAG, "Frequency is 433MHz");
-#elif CONFIG_866MHZ
-	frequencyInHz = 866000000;
-	ESP_LOGI(TAG, "Frequency is 866MHz");
+#if CONFIG_911MHZ
+	frequencyInHz = 911000000;
+	ESP_LOGI(TAG, "Frequency is 911MHz");
+#elif CONFIG_908MHZ
+	frequencyInHz = 908000000;
+	ESP_LOGI(TAG, "Frequency is 908MHz");
 #elif CONFIG_915MHZ
 	frequencyInHz = 915000000;
 	ESP_LOGI(TAG, "Frequency is 915MHz");

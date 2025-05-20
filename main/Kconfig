@@ -31,6 +31,9 @@ config PINGPONG_TEST
 config FOREST_PATHLOSS_TEST
 	bool "Build Path Loss in a Forested Environment test"
 
+config LORA_CAD_TEST
+	bool "Build LoRa Channel Activity Detection test"
+	
 endchoice
 
 

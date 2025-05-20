@@ -59,6 +59,10 @@ elseif(CONFIG_FOREST_PATHLOSS_TEST)
 	list(APPEND srcs ForestPathLossTest.c)
 	list(APPEND requires)
 	list(APPEND priv_requires LoRa)
+elseif(CONFIG_LORA_CAD_TEST)
+	list(APPEND srcs LoRaCADTest.c)
+	list(APPEND requires)
+	list(APPEND priv_requires LoRa)
 endif()
 
 # Register main as the component

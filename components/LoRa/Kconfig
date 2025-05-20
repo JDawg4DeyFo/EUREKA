@@ -14,14 +14,14 @@ menu "SX126X Configuration"
 		default 915MHZ
 		help
 			Select Frequency to use.
-		config 433MHZ
-			bool "433MHz"
+		config 911MHZ
+			bool "911MHz"
 			help
-				Frequency is 433MHz.
-		config 866MHZ
-			bool "866MHz"
+				Frequency is 911MHz.
+		config 908MHZ
+			bool "908MHz"
 			help
-				Frequency is 866MHz.
+				Frequency is 908MHz.
 		config 915MHZ
 			bool "915MHz"
 			help
