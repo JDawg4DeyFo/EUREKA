@@ -12,7 +12,7 @@
 #include "freertos/task.h"
 #include "esp_log.h"
 
-#include "../include/ra01s.h"
+#include "../include/LoRa.h"
 
 static const char *TAG = "MAIN";
 

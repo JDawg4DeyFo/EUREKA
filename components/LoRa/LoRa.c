@@ -11,7 +11,7 @@
 #include <driver/gpio.h>
 #include "esp_log.h"
 
-#include "../../include/ra01s.h"
+#include "../../include/LoRa.h"
 
 #define TAG "RA01S"
 
