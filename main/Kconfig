@@ -28,6 +28,9 @@ config NEW_DRIVER_TEST
 config PINGPONG_TEST
 	bool "Build Ping Pong test"
 
+config FOREST_PATHLOSS_TEST
+	bool "Build Path Loss in a Forested Environment test"
+
 endchoice
 
 
@@ -50,7 +53,7 @@ menu "New Driver Test Application Configuration"
 
 endmenu 
 
-menu "Ping Pong Application Configuration"
+menu "Ping Pong or Path Loss in a Forested Environment Application Configuration"
 
 	choice POLARITY
 		prompt "Communication Polarity"
@@ -68,3 +71,4 @@ menu "Ping Pong Application Configuration"
 	endchoice
 
 endmenu 
+

@@ -55,6 +55,10 @@ elseif(CONFIG_PINGPONG_TEST)
 	list(APPEND srcs PingPongTest.c)
 	list(APPEND requires)
 	list(APPEND priv_requires LoRa)
+elseif(CONFIG_FOREST_PATHLOSS_TEST)
+	list(APPEND srcs ForestPathLossTest.c)
+	list(APPEND requires)
+	list(APPEND priv_requires LoRa)
 endif()
 
 # Register main as the component
