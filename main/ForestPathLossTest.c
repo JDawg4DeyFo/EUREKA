@@ -42,19 +42,99 @@ typedef enum
     SF_10 = 10,   // Spreading Factor of 10
     SF_11 = 11,   // Spreading Factor of 11
     SF_12 = 12,   // Spreading Factor of 12
-} LoRa_SpreadingFactor
+} LoRa_SpreadingFactor;
 
 #if CONFIG_PRIMARY
 void task_primary(void *pvParameters)
 {
+    ESP_LOGI(pcTaskGetName(NULL), "Start");
+	uint8_t txData[256]; // Maximum Payload size of SX1261/62/68 is 255
+	uint8_t rxData[256]; // Maximum Payload size of SX1261/62/68 is 255
+	while(1) {
+		uint8_t rxLen = LoRaReceive(rxData, sizeof(rxData));
+		if ( rxLen > 0 ) { 
+			printf("Receive rxLen:%d\n", rxLen);
+			for(int i=0;i< rxLen;i++) {
+				printf("%02x ",rxData[i]);
+			}
+			printf("\n");
 
+			for(int i=0;i< rxLen;i++) {
+				if (rxData[i] > 0x19 && rxData[i] < 0x7F) {
+					char myChar = rxData[i];
+					printf("%c", myChar);
+				} else {
+					printf("?");
+				}
+			}
+			printf("\n");
+
+			int8_t rssi, snr;
+			GetPacketStatus(&rssi, &snr);
+			printf("rssi=%d[dBm] snr=%d[dB]\n", rssi, snr);
+
+			for(int i=0;i<rxLen;i++) {
+				if (isupper(rxData[i])) {
+					txData[i] = tolower(rxData[i]);
+				} else {
+					txData[i] = toupper(rxData[i]);
+				}
+			}
+
+			// Wait for transmission to complete
+			if (LoRaSend(txData, rxLen, SX126x_TXMODE_SYNC)) {
+				ESP_LOGD(pcTaskGetName(NULL), "Send success");
+			} else {
+				ESP_LOGE(pcTaskGetName(NULL), "LoRaSend fail");
+			}
+
+		}
+		vTaskDelay(1); // Avoid WatchDog alerts
+	} // end while
 }
 
 
 #if CONFIG_SECONDARY
 void task_secondary(void *pvParameters)
 {
+    ESP_LOGI(pcTaskGetName(NULL), "Start");
+	uint8_t txData[256]; // Maximum Payload size of SX1261/62/68 is 255
+	uint8_t rxData[256]; // Maximum Payload size of SX1261/62/68 is 255
+	while(1) {
+		TickType_t nowTick = xTaskGetTickCount();
+		int txLen = sprintf((char *)txData, "Hello World %"PRIu32, nowTick);
+		//uint8_t len = strlen((char *)txData);
 
+		// Wait for transmission to complete
+		if (LoRaSend(txData, txLen, SX126x_TXMODE_SYNC)) {
+			//ESP_LOGI(pcTaskGetName(NULL), "Send success");
+
+			bool waiting = true;
+			TickType_t startTick = xTaskGetTickCount();
+			while(waiting) {
+				uint8_t rxLen = LoRaReceive(rxData, sizeof(rxData));
+				TickType_t currentTick = xTaskGetTickCount();
+				TickType_t diffTick = currentTick - startTick;
+				if ( rxLen > 0 ) {
+					ESP_LOGI(pcTaskGetName(NULL), "%d byte packet received:[%.*s]", rxLen, rxLen, rxData);
+					ESP_LOGI(pcTaskGetName(NULL), "Response time is %"PRIu32" millisecond", diffTick * portTICK_PERIOD_MS);
+					waiting = false;
+				}
+				
+				ESP_LOGD(pcTaskGetName(NULL), "diffTick=%"PRIu32, diffTick);
+				if (diffTick > TIMEOUT) {
+					ESP_LOGW(pcTaskGetName(NULL), "No response within %d ticks", TIMEOUT);
+					waiting = false;
+				}
+				vTaskDelay(1); // Avoid WatchDog alerts
+			} // end waiting
+
+		} else {
+			ESP_LOGE(pcTaskGetName(NULL), "Send fail");
+		}
+
+		vTaskDelay(pdMS_TO_TICKS(1000));
+	} // end while
 }
 
 void app_main()
@@ -99,40 +179,54 @@ void app_main()
     LoRa_Bandwidth BW_Options[] = {BANDWIDTH_7P81_KHZ, BANDWIDTH_15P63_KHZ, BANDWIDTH_31P25_KHZ, BANDWIDTH_62P50_KHZ, BANDWIDTH_125_KHZ,
     BANDWIDTH_250_KHZ, BANDWIDTH_500_KHZ};
 
+     const char *BW_Labels[] = {
+        "7.81 kHz", "15.63 kHz", "31.25 kHz", "62.50 kHz",
+        "125 kHz", "250 kHz", "500 kHz"
+    };
+
     LoRa_SpreadingFactor SF_Options[] = {SF_5, SF_6, SF_7, SF_8, SF_9, SF_10, SF_11, SF_12};
 
+    int bwCount = sizeof(BW_Options) / sizeof(BW_Options[0]);
+    int sfCount = sizeof(SF_Options) / sizeof(SF_Options[0]);
+
+    uint8_t spreadingFactor_selection, bandwidth_selection;
 	uint8_t spreadingFactor, bandwidth;
 
 
     printf("Available Bandwidth Options:\n");
-    for (int i = 0; i < sizeof(BW_Options) / sizeof(BW_Options[0]); i++) {
-        printf("  %d: %d kHz\n", i + 1, BW_Options[i]);
+    for (int i = 0; i < bwCount; i++) {
+        printf("  %d: %s\n", i + 1, BW_Labels[i]);
     }
 
     printf("Select Bandwidth (enter number): ");
-    scanf("%d", &bandwidth);
-    if (bandwidth < 1 || bandwidth > 3) {
+    scanf("%hhu", &bandwidth_selection);
+    if (bandwidth_selection < 1 || bandwidth_selection > bwCount) {
         printf("Invalid bandwidth selection.\n");
         return 1;
     }
 
     printf("\nAvailable Spreading Factor Options:\n");
-    for (int i = 0; i < sizeof(SF_Options) / sizeof(SF_Options[0]); i++) {
+    for (int i = 0; i < sfCount; i++) {
         printf("  %d: SF%d\n", i + 1, SF_Options[i]);
     }
 
     printf("Select Spreading Factor (enter number): ");
-    scanf("%d", &spreadingFactor);
-    if (spreadingFactor < 1 || spreadingFactor > 6) {
+    scanf("%hhu", &spreadingFactor_selection);
+    if (spreadingFactor_selection < 1 || spreadingFactor_selection > sfCount) {
         printf("Invalid spreading factor selection.\n");
         return 1;
     }
+
+    // Cast enum values into uint8_t
+    bandwidth = (uint8_t)BW_Options[bandwidth_selection - 1];
+    spreadingFactor = (uint8_t)SF_Options[spreadingFactor_selection - 1];
 
 	uint8_t codingRate = 1;
 	uint16_t preambleLength = 8;
 	uint8_t payloadLen = 0;
 	bool crcOn = true;
 	bool invertIrq = false;
+
 #if CONFIG_ADVANCED
 	spreadingFactor = CONFIG_SF_RATE;
 	bandwidth = CONFIG_BANDWIDTH;

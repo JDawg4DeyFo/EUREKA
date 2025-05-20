@@ -683,7 +683,7 @@ void SetCad()
 void SetRxGain() 
 {
 	uint8_t RxGain = SX126X_RX_GAIN_ON;
-	WriteRegister(SX126X_REG_RX_GAIN, &RxGain, 1)
+	WriteRegister(SX126X_REG_RX_GAIN, &RxGain, 1);
 }
 
 
