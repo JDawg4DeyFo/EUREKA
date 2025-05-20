@@ -283,7 +283,7 @@ void LoRaConfig(uint8_t spreadingFactor, uint8_t bandwidth, uint8_t codingRate, 
 
 	WriteCommand(SX126X_CMD_SET_PACKET_PARAMS, PacketParams, 6); // 0x8C
 
-	// Do not use DIO interruptst
+	// Do not use DIO interrupts
 	SetDioIrqParams(SX126X_IRQ_ALL, //all interrupts enabled
 		SX126X_IRQ_NONE, //interrupts on DIO1
 		SX126X_IRQ_NONE, //interrupts on DIO2
@@ -680,6 +680,12 @@ void SetCad()
 	WriteCommand(SX126X_CMD_SET_CAD, &data, 0); // 0xC5
 }
 
+void SetRxGain() 
+{
+	uint8_t RxGain = SX126X_RX_GAIN_ON;
+	WriteRegister(SX126X_REG_RX_GAIN, &RxGain, 1)
+}
+
 
 uint16_t GetIrqStatus( void )
 {
@@ -766,6 +772,9 @@ void SetTx(uint32_t timeoutInMs)
 	}
 }
 
+void SetTxContinuousWave(void){
+	WriteCommand(SX126X_CMD_SET_TX_CONTINUOUS_WAVE , NULL, 1); //0xD1
+}
 
 void SetTxEnable(void)
 {
@@ -963,7 +972,7 @@ void WriteCommand(uint8_t cmd, uint8_t* data, uint8_t numBytes) {
 }
 
 uint8_t WriteCommand2(uint8_t cmd, uint8_t* data, uint8_t numBytes) {
-	// ensure BUSY is low (state meachine ready)
+	// ensure BUSY is low (state machine ready)
 	WaitForIdle(BUSY_WAIT, "start WriteCommand2", true);
 
 	if(debugPrint) {

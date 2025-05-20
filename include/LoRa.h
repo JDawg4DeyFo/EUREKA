@@ -159,6 +159,10 @@
 #define SX126X_RX_TIMEOUT_NONE                        0x000000    //  23    0     Rx timeout duration: no timeout (Rx single mode)
 #define SX126X_RX_TIMEOUT_INF                         0xFFFFFF    //  23    0                          infinite (Rx continuous mode)
 
+//SX126X_CMD_SET_RXGAIN
+#define SX126X_RX_GAIN_OFF                            0x94        //Rx Power Saving gain
+#define SX126X_RX_GAIN_ON                             0x96        //Rx Boosted gain
+
 //SX126X_CMD_STOP_TIMER_ON_PREAMBLE
 #define SX126X_STOP_ON_PREAMBLE_OFF                   0x00        //  7     0     stop timer on: sync word or header (default)
 #define SX126X_STOP_ON_PREAMBLE_ON                    0x01        //  7     0                    preamble detection
@@ -409,6 +413,7 @@ void     SetPacketType(uint8_t packetType);
 void     SetModulationParams(uint8_t spreadingFactor, uint8_t bandwidth, uint8_t codingRate, uint8_t lowDataRateOptimize);
 void     SetCadParams(uint8_t cadSymbolNum, uint8_t cadDetPeak, uint8_t cadDetMin, uint8_t cadExitMode, uint32_t cadTimeout);
 void     SetCad();
+void     SetRxGain();
 uint8_t  GetStatus(void);
 uint16_t GetIrqStatus(void);
 void     ClearIrqStatus(uint16_t irq);
@@ -416,6 +421,7 @@ void     SetTxEnable(void);
 void     SetRxEnable(void);
 void     SetRx(uint32_t timeout);
 void     SetTx(uint32_t timeoutInMs);
+void     SetTxContinuousWave(void);
 int      GetPacketLost();
 uint8_t  GetRssiInst();
 void     GetRxBufferStatus(uint8_t *payloadLength, uint8_t *rxStartBufferPointer);
