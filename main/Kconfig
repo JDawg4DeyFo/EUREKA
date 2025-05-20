@@ -7,18 +7,6 @@ config SENSOR_LIB_TEST
 	bool "Build sensor test harness"
 	default y
 
-config LORA_LIB_TEST
-	bool "Build LoRa test harness"
-	default n
-
-config TX_PINGPONG_TEST
-	bool "Build TX_Ping for PingPong Test"
-	default n
-
-config RX_PINGPONG_TEST
-	bool "Build RX_Ping for PingPong Test"
-	default n
-
 config PCNT_TEST
 	bool "Build Pulse Count test harness"
 
@@ -37,10 +25,13 @@ config JACOB_LORA
 config NEW_DRIVER_TEST
 	bool "Build test harness for new driver"
 
+config PINGPONG_TEST
+	bool "Build Ping Pong test"
+
 endchoice
 
 
-menu "Application Configuration"
+menu "New Driver Test Application Configuration"
 
 	choice DIRECTION
 		prompt "Communication polarity"
@@ -55,6 +46,25 @@ menu "Application Configuration"
 			bool "As the receiver"
 			help
 				As the receiver.
+	endchoice
+
+endmenu 
+
+menu "Ping Pong Application Configuration"
+
+	choice POLARITY
+		prompt "Communication Polarity"
+		default PRIMARY
+		help
+			Select Communication Polarity.
+		config PRIMARY
+			bool "Primary"
+			help
+				As Echo Client.
+		config SECONDARY
+			bool "Secondary"
+			help
+				As Echo Server.
 	endchoice
 
 endmenu 
