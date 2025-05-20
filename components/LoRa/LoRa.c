@@ -773,7 +773,11 @@ void SetTx(uint32_t timeoutInMs)
 }
 
 void SetTxContinuousWave(void){
-	WriteCommand(SX126X_CMD_SET_TX_CONTINUOUS_WAVE , NULL, 1); //0xD1
+	WriteCommand(SX126X_CMD_SET_TX_CONTINUOUS_WAVE, NULL, 1); //0xD1
+}
+
+void SetRxTxFallbackMode(uint8_t fallback_mode){
+	WriteCommand(SX126X_CMD_SET_RX_TX_FALLBACK_MODE, &fallback_mode, 1); //0x93
 }
 
 void SetTxEnable(void)

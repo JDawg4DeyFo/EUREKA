@@ -53,7 +53,7 @@ menu "New Driver Test Application Configuration"
 
 endmenu 
 
-menu "Ping Pong or Path Loss in a Forested Environment Application Configuration"
+menu "Ping Pong Application Configuration"
 
 	choice POLARITY
 		prompt "Communication Polarity"

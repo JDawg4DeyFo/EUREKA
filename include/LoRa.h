@@ -422,6 +422,7 @@ void     SetRxEnable(void);
 void     SetRx(uint32_t timeout);
 void     SetTx(uint32_t timeoutInMs);
 void     SetTxContinuousWave(void);
+void     SetRxTxFallbackMode(uint8_t fallback_mode);
 int      GetPacketLost();
 uint8_t  GetRssiInst();
 void     GetRxBufferStatus(uint8_t *payloadLength, uint8_t *rxStartBufferPointer);

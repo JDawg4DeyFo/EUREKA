@@ -11,7 +11,7 @@ menu "SX126X Configuration"
 
 	choice FREQUENCY
 		prompt "Frequency to use"
-		default 433MHZ
+		default 915MHZ
 		help
 			Select Frequency to use.
 		config 433MHZ
@@ -35,8 +35,8 @@ menu "SX126X Configuration"
 	config OTHER_FREQUENCY
 		depends on OTHER
 		int "Frequency to use[MHz]"
-		range 1 999
-		default 433
+		range 902 928
+		default 915
 		help
 			Frequency to use[MHz].
 

@@ -2,7 +2,7 @@
  * @file ForestPathLossTest.c
  * @author Edouard Valenzuela (ecvalenz@ucsc.edu)
  * @brief Code to conduct the experiment that measures the path loss in a forested environment
- * @version 0.1
+ * @version 1.0
  * @date 2025-05-19
  *
  * @copyright Copyright (c) 2025
@@ -16,10 +16,12 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_log.h"
+#include "driver/uart.h"
 
 #include "../include/LoRa.h"
 
 static const char *TAG = "MAIN";
+static const uint8_t fallback_mode = SX126X_RX_TX_FALLBACK_MODE_STDBY_RC;
 
 typedef enum
 {
@@ -44,98 +46,141 @@ typedef enum
     SF_12 = 12,   // Spreading Factor of 12
 } LoRa_SpreadingFactor;
 
-#if CONFIG_PRIMARY
-void task_primary(void *pvParameters)
+typedef enum 
 {
-    ESP_LOGI(pcTaskGetName(NULL), "Start");
-	uint8_t txData[256]; // Maximum Payload size of SX1261/62/68 is 255
-	uint8_t rxData[256]; // Maximum Payload size of SX1261/62/68 is 255
-	while(1) {
-		uint8_t rxLen = LoRaReceive(rxData, sizeof(rxData));
-		if ( rxLen > 0 ) { 
-			printf("Receive rxLen:%d\n", rxLen);
-			for(int i=0;i< rxLen;i++) {
-				printf("%02x ",rxData[i]);
-			}
-			printf("\n");
+	STANDBY = 0,
+	TRANSMIT = 1,
+	RECEIVE = 2,
+} EXP_States;
 
-			for(int i=0;i< rxLen;i++) {
-				if (rxData[i] > 0x19 && rxData[i] < 0x7F) {
-					char myChar = rxData[i];
-					printf("%c", myChar);
-				} else {
-					printf("?");
-				}
-			}
-			printf("\n");
+EXP_States current_state = STANDBY;
 
-			int8_t rssi, snr;
-			GetPacketStatus(&rssi, &snr);
-			printf("rssi=%d[dBm] snr=%d[dB]\n", rssi, snr);
+void task_main(void *pvParameters)
+{
+	while(1){
+		switch(current_state){
+		case STANDBY:
+			ESP_LOGI(TAG, "In STANDBY state");
 
-			for(int i=0;i<rxLen;i++) {
-				if (isupper(rxData[i])) {
-					txData[i] = tolower(rxData[i]);
-				} else {
-					txData[i] = toupper(rxData[i]);
-				}
+			LoRa_Bandwidth BW_Options[] = {BANDWIDTH_7P81_KHZ, BANDWIDTH_15P63_KHZ, BANDWIDTH_31P25_KHZ, BANDWIDTH_62P50_KHZ, BANDWIDTH_125_KHZ,
+			BANDWIDTH_250_KHZ, BANDWIDTH_500_KHZ};
+
+			const char *BW_Labels[] = {
+				"7.81 kHz", "15.63 kHz", "31.25 kHz", "62.50 kHz",
+				"125 kHz", "250 kHz", "500 kHz"
+			};
+
+			LoRa_SpreadingFactor SF_Options[] = {SF_5, SF_6, SF_7, SF_8, SF_9, SF_10, SF_11, SF_12};
+
+			int bwCount = sizeof(BW_Options) / sizeof(BW_Options[0]);
+			int sfCount = sizeof(SF_Options) / sizeof(SF_Options[0]);
+
+			uint8_t spreadingFactor_selection, bandwidth_selection;
+			uint8_t spreadingFactor, bandwidth;
+
+			printf("Available Bandwidth Options:\n");
+			for (int i = 0; i < bwCount; i++) {
+				printf("  %d: %s\n", i + 1, BW_Labels[i]);
 			}
+
+			int c;
+			printf("Select Bandwidth (enter number): ");
+			scanf("%hhu\n", &bandwidth_selection);
+			vTaskDelay(pdMS_TO_TICKS(60000));
+			if (bandwidth_selection < 1 || bandwidth_selection > bwCount) {
+				ESP_LOGE(TAG, "Invalid bandwidth selection.\n");
+				while ((c = getchar()) != '\n' && c != EOF);
+				break;
+			}
+
+			printf("\nAvailable Spreading Factor Options:\n");
+			for (int i = 0; i < sfCount; i++) {
+				printf("  %d: SF%d\n", i + 1, SF_Options[i]);
+			}
+
+			printf("Select Spreading Factor (enter number): ");
+			scanf("%hhu\n", &spreadingFactor_selection);
+			vTaskDelay(pdMS_TO_TICKS(60000));
+			if (spreadingFactor_selection < 1 || spreadingFactor_selection > sfCount) {
+				ESP_LOGE(TAG, "Invalid spreading factor selection.\n");
+				while ((c = getchar()) != '\n' && c != EOF);
+				break;
+			}
+
+			// Cast enum values into uint8_t
+			bandwidth = (uint8_t)BW_Options[bandwidth_selection - 1];
+			spreadingFactor = (uint8_t)SF_Options[spreadingFactor_selection - 1];
+
+			uint8_t codingRate = 1;
+			uint16_t preambleLength = 8;
+			uint8_t payloadLen = 0;
+			bool crcOn = true;
+			bool invertIrq = false;
+
+			LoRaConfig(spreadingFactor, bandwidth, codingRate, preambleLength, payloadLen, crcOn, invertIrq);
+
+			uint8_t user_state;
+			printf("Select State (enter number: 1 for TX, 2 for RX): ");
+			scanf("%hhu", &user_state);
+			if (user_state < 1 || user_state > 2) 
+			{
+				ESP_LOGE(TAG, "Invalid State selection.\n");
+				break;
+			} else {
+				current_state = (EXP_States)user_state;
+			}
+
+			if(current_state == TRANSMIT)
+			{
+				ESP_LOGI(TAG, "Transitioning to TRANSMIT State");
+			}
+
+			if(current_state == RECEIVE)
+			{
+				ESP_LOGI(TAG, "Transitioning to RECEIVE State");
+			}
+			break;
+		case TRANSMIT:
+			ESP_LOGI(TAG, "In TRANSMIT state");
+			uint8_t txbuf[256]; // Maximum Payload size of SX1261/62/68 is 255
+			TickType_t nowTick = xTaskGetTickCount();
+			int txLen = sprintf((char *)txbuf, "Hello World %"PRIu32, nowTick);
+			ESP_LOGI(pcTaskGetName(NULL), "%d byte packet sent...", txLen);
 
 			// Wait for transmission to complete
-			if (LoRaSend(txData, rxLen, SX126x_TXMODE_SYNC)) {
-				ESP_LOGD(pcTaskGetName(NULL), "Send success");
-			} else {
-				ESP_LOGE(pcTaskGetName(NULL), "LoRaSend fail");
+			if (LoRaSend(txbuf, txLen, SX126x_TXMODE_SYNC) == false) {
+				ESP_LOGE(pcTaskGetName(NULL),"LoRaSend fail");
 			}
 
+			// Do not wait for the transmission to be completed
+			//LoRaSend(buf, txLen, SX126x_TXMODE_ASYNC );
+
+			int lost = GetPacketLost();
+			if (lost != 0) {
+				ESP_LOGW(pcTaskGetName(NULL), "%d packets lost", lost);
+			}
+
+			vTaskDelay(pdMS_TO_TICKS(1000));
+			current_state = STANDBY;
+			break;
+		case RECEIVE:
+			ESP_LOGI(TAG, "In RECEIVE state");
+			uint8_t rxbuf[256]; // Maximum Payload size of SX1261/62/68 is 255
+			uint8_t rxLen = LoRaReceive(rxbuf, sizeof(rxbuf));
+			if ( rxLen > 0 ) { 
+				ESP_LOGI(pcTaskGetName(NULL), "%d byte packet received:[%.*s]", rxLen, rxLen, rxbuf);
+				int8_t rssi, snr;
+				GetPacketStatus(&rssi, &snr);
+				ESP_LOGI(pcTaskGetName(NULL), "rssi=%d[dBm] snr=%d[dB]", rssi, snr);
+			}
+			vTaskDelay(1); // Avoid WatchDog alerts
+
+			current_state = STANDBY;
+			break;
 		}
-		vTaskDelay(1); // Avoid WatchDog alerts
-	} // end while
+	}
 }
 
-
-#if CONFIG_SECONDARY
-void task_secondary(void *pvParameters)
-{
-    ESP_LOGI(pcTaskGetName(NULL), "Start");
-	uint8_t txData[256]; // Maximum Payload size of SX1261/62/68 is 255
-	uint8_t rxData[256]; // Maximum Payload size of SX1261/62/68 is 255
-	while(1) {
-		TickType_t nowTick = xTaskGetTickCount();
-		int txLen = sprintf((char *)txData, "Hello World %"PRIu32, nowTick);
-		//uint8_t len = strlen((char *)txData);
-
-		// Wait for transmission to complete
-		if (LoRaSend(txData, txLen, SX126x_TXMODE_SYNC)) {
-			//ESP_LOGI(pcTaskGetName(NULL), "Send success");
-
-			bool waiting = true;
-			TickType_t startTick = xTaskGetTickCount();
-			while(waiting) {
-				uint8_t rxLen = LoRaReceive(rxData, sizeof(rxData));
-				TickType_t currentTick = xTaskGetTickCount();
-				TickType_t diffTick = currentTick - startTick;
-				if ( rxLen > 0 ) {
-					ESP_LOGI(pcTaskGetName(NULL), "%d byte packet received:[%.*s]", rxLen, rxLen, rxData);
-					ESP_LOGI(pcTaskGetName(NULL), "Response time is %"PRIu32" millisecond", diffTick * portTICK_PERIOD_MS);
-					waiting = false;
-				}
-				
-				ESP_LOGD(pcTaskGetName(NULL), "diffTick=%"PRIu32, diffTick);
-				if (diffTick > TIMEOUT) {
-					ESP_LOGW(pcTaskGetName(NULL), "No response within %d ticks", TIMEOUT);
-					waiting = false;
-				}
-				vTaskDelay(1); // Avoid WatchDog alerts
-			} // end waiting
-
-		} else {
-			ESP_LOGE(pcTaskGetName(NULL), "Send fail");
-		}
-
-		vTaskDelay(pdMS_TO_TICKS(1000));
-	} // end while
-}
 
 void app_main()
 {
@@ -176,68 +221,19 @@ void app_main()
 		}
 	}
 	
-    LoRa_Bandwidth BW_Options[] = {BANDWIDTH_7P81_KHZ, BANDWIDTH_15P63_KHZ, BANDWIDTH_31P25_KHZ, BANDWIDTH_62P50_KHZ, BANDWIDTH_125_KHZ,
-    BANDWIDTH_250_KHZ, BANDWIDTH_500_KHZ};
-
-     const char *BW_Labels[] = {
-        "7.81 kHz", "15.63 kHz", "31.25 kHz", "62.50 kHz",
-        "125 kHz", "250 kHz", "500 kHz"
-    };
-
-    LoRa_SpreadingFactor SF_Options[] = {SF_5, SF_6, SF_7, SF_8, SF_9, SF_10, SF_11, SF_12};
-
-    int bwCount = sizeof(BW_Options) / sizeof(BW_Options[0]);
-    int sfCount = sizeof(SF_Options) / sizeof(SF_Options[0]);
-
-    uint8_t spreadingFactor_selection, bandwidth_selection;
-	uint8_t spreadingFactor, bandwidth;
-
-
-    printf("Available Bandwidth Options:\n");
-    for (int i = 0; i < bwCount; i++) {
-        printf("  %d: %s\n", i + 1, BW_Labels[i]);
-    }
-
-    printf("Select Bandwidth (enter number): ");
-    scanf("%hhu", &bandwidth_selection);
-    if (bandwidth_selection < 1 || bandwidth_selection > bwCount) {
-        printf("Invalid bandwidth selection.\n");
-        return 1;
-    }
-
-    printf("\nAvailable Spreading Factor Options:\n");
-    for (int i = 0; i < sfCount; i++) {
-        printf("  %d: SF%d\n", i + 1, SF_Options[i]);
-    }
-
-    printf("Select Spreading Factor (enter number): ");
-    scanf("%hhu", &spreadingFactor_selection);
-    if (spreadingFactor_selection < 1 || spreadingFactor_selection > sfCount) {
-        printf("Invalid spreading factor selection.\n");
-        return 1;
-    }
-
-    // Cast enum values into uint8_t
-    bandwidth = (uint8_t)BW_Options[bandwidth_selection - 1];
-    spreadingFactor = (uint8_t)SF_Options[spreadingFactor_selection - 1];
-
+	uint8_t spreadingFactor = 12;
+	uint8_t bandwidth = 4;
 	uint8_t codingRate = 1;
 	uint16_t preambleLength = 8;
 	uint8_t payloadLen = 0;
 	bool crcOn = true;
 	bool invertIrq = false;
-
 #if CONFIG_ADVANCED
 	spreadingFactor = CONFIG_SF_RATE;
 	bandwidth = CONFIG_BANDWIDTH;
 	codingRate = CONFIG_CODING_RATE;
 #endif
 	LoRaConfig(spreadingFactor, bandwidth, codingRate, preambleLength, payloadLen, crcOn, invertIrq);
-
-#if CONFIG_PRIMARY
-	xTaskCreate(&task_primary, "PRIMARY", 1024*4, NULL, 5, NULL);
-#endif
-#if CONFIG_SECONDARY
-	xTaskCreate(&task_secondary, "SECONDARY", 1024*4, NULL, 5, NULL);
-#endif
+	SetRxTxFallbackMode(fallback_mode);
+	xTaskCreate(&task_main, "Task Main", 1024*4, NULL, 5, NULL);
 }
