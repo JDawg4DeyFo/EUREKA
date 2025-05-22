@@ -33,6 +33,9 @@ config FOREST_PATHLOSS_TEST
 
 config LORA_CAD_TEST
 	bool "Build LoRa Channel Activity Detection test"
+
+config MONITOR_TEST
+	bool "Build test for INA219"
 	
 endchoice
 

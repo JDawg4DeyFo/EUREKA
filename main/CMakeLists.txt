@@ -63,6 +63,10 @@ elseif(CONFIG_LORA_CAD_TEST)
 	list(APPEND srcs LoRaCADTest.c)
 	list(APPEND requires)
 	list(APPEND priv_requires LoRa)
+elseif(CONFIG_MONITOR_TEST)
+	list(APPEND srcs MonitorTest.c)
+	list(APPEND requires)
+	list(APPEND priv_requires ina219)
 endif()
 
 # Register main as the component
