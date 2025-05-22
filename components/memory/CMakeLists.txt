@@ -2,7 +2,7 @@
 ## May 21st, 2025
 
 # Define source files
-set(srcs )
+set(srcs memory.c)
 
 # Declare public dependencies
 set(requires )

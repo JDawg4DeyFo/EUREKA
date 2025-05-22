@@ -15,12 +15,6 @@
 #include "esp_vfs_fat.h"
 #include "sdmmc_cmd.h" 
 
-#define MISO_PIN 2
-#define MOSI_PIN 11
-#define SCLK_PIN 14
-#define CS_PIN 13
-
-#define MOUNT_POINT "/sdcard"
 
 /**
 * @brief Establish connection with the SD Card and the MCU
@@ -43,7 +37,7 @@ esp_err_t sd_card_init(void);
 esp_err_t sd_card_deinit(void);
 
 /**
-* @brief Create a new file and write information it
+* @brief Create a new file and/or overwrite the information on it
 * 
 * @param path file path that is intended to be read from
 * @param data information to be stored on that file
