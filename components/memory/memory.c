@@ -15,6 +15,7 @@
 static const char *TAG = "SD Card";
 
 #define MOUNT_POINT "/sdcard"
+#define EXAMPLE_MAX_CHAR_SIZE    64
 
 #ifdef CONFIG_EXAMPLE_DEBUG_PIN_CONNECTIONS
 const char* names[] = {"CLK ", "MOSI", "MISO", "CS  "};
@@ -165,6 +166,13 @@ esp_err_t sd_card_read_file(const char *path){
     return ESP_OK;
 }
 
-esp_err_t sd_card_append_file(const char *path, char *data);
+esp_err_t sd_card_append_file(const char *path, char *data){
+    ESP_LOGI(TAG, "Reading file %s", path);
+    FILE *f = fopen(path, "r");
+    if (f == NULL) {
+        ESP_LOGE(TAG, "Failed to open file for reading");
+        return ESP_FAIL;
+    }
+}
 
 esp_err_t sd_card_delete_file(const char *path);
