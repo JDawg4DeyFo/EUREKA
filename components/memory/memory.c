@@ -17,6 +17,10 @@ static const char *TAG = "SD Card";
 #define MOUNT_POINT "/sdcard"
 #define EXAMPLE_MAX_CHAR_SIZE    64
 
+sdmmc_card_t *card;
+const char mount_point[] = MOUNT_POINT;
+sdmmc_host_t host = SDSPI_HOST_DEFAULT();
+
 #ifdef CONFIG_EXAMPLE_DEBUG_PIN_CONNECTIONS
 const char* names[] = {"CLK ", "MOSI", "MISO", "CS  "};
 const int pins[] = {CONFIG_EXAMPLE_PIN_CLK,
@@ -59,14 +63,10 @@ esp_err_t sd_card_init(void){
         .allocation_unit_size = 16 * 1024
     };
 
-    sdmmc_card_t *card;
-    const char mount_point[] = MOUNT_POINT;
-
     ESP_LOGI(TAG, "Initializing SD card");
 
     ESP_LOGI(TAG, "Using SPI peripheral");
 
-    sdmmc_host_t host = SDSPI_HOST_DEFAULT();
 
     spi_bus_config_t bus_cfg = {
         .mosi_io_num = PIN_NUM_MOSI,
@@ -80,7 +80,7 @@ esp_err_t sd_card_init(void){
     ret = spi_bus_initialize(host.slot, &bus_cfg, SDSPI_DEFAULT_DMA);
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "Failed to initialize bus.");
-        return;
+        return ESP_FAIL;
     }
 
     sdspi_device_config_t slot_config = SDSPI_DEVICE_CONFIG_DEFAULT();
@@ -101,12 +101,14 @@ esp_err_t sd_card_init(void){
             check_sd_card_pins(&config, pin_count);
 #endif
         }
-        return;
+        return ESP_FAIL;
     }
     ESP_LOGI(TAG, "Filesystem mounted");
 
     // Card has been initialized, print its properties
     sdmmc_card_print_info(stdout, card);
+
+    return ESP_OK;
 
 }
 
@@ -116,7 +118,7 @@ esp_err_t sd_card_deinit(void){
     ret = esp_vfs_fat_sdcard_unmount(mount_point, card);
     if(ret != ESP_OK){
         ESP_LOGE(TAG, "Card failed to unmount");
-        return;
+        return ESP_FAIL;
     }
 
     ESP_LOGI(TAG, "Card unmounted");
@@ -126,8 +128,9 @@ esp_err_t sd_card_deinit(void){
 
       if(ret != ESP_OK){
         ESP_LOGE(TAG, "Failed to deinit SPI Bus");
-        return;
+        return ESP_FAIL;
     }
+    return ESP_OK;
 
 }
 
@@ -173,6 +176,9 @@ esp_err_t sd_card_append_file(const char *path, char *data){
         ESP_LOGE(TAG, "Failed to open file for reading");
         return ESP_FAIL;
     }
+    return ESP_OK;
 }
 
-esp_err_t sd_card_delete_file(const char *path);
+esp_err_t sd_card_delete_file(const char *path){
+    return ESP_OK;
+}

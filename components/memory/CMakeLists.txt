@@ -5,7 +5,7 @@
 set(srcs memory.c)
 
 # Declare public dependencies
-set(requires )
+set(requires esp_driver_spi fatfs esp_driver_sdspi sdmmc)
 
 # Declare private dependencies
 set(priv_requires )

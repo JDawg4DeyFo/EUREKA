@@ -13,7 +13,7 @@
 
 #include "../../include/LoRa.h"
 
-#define TAG "RA01S"
+#define TAG "LoRa SX1262"
 
 // SPI Stuff
 #if CONFIG_SPI2_HOST

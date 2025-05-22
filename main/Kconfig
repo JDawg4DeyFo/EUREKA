@@ -33,6 +33,9 @@ config FOREST_PATHLOSS_TEST
 
 config LORA_CAD_TEST
 	bool "Build LoRa Channel Activity Detection test"
+
+config MEMORY_LIB_TEST
+	bool "Build Memory Library test"
 	
 endchoice
 
