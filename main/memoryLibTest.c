@@ -23,7 +23,8 @@ void app_main(void)
     const char mount_point[] = MOUNT_POINT;
     sdmmc_host_t host = SDSPI_HOST_DEFAULT();
 
-	if(sd_card_init(mount_point, host, &card) != ESP_OK)
+    ret = sd_card_init(mount_point, host, &card);
+	if(ret != ESP_OK)
     {
         ESP_LOGE(TAG, "SD Card failed to be initialized");
         return;
@@ -48,12 +49,36 @@ void app_main(void)
     }
 
     char newline_data[EXAMPLE_MAX_CHAR_SIZE];
-    snprintf(newline_data, EXAMPLE_MAX_CHAR_SIZE, "%s %s!\n", "What the Helly Bron James", card->cid.name);
+    snprintf(newline_data, EXAMPLE_MAX_CHAR_SIZE, "%s %s!\n", "What the Helly Berry", card->cid.name);
     ret = sd_card_append_file(file_helly, newline_data);
 
     if (ret != ESP_OK) 
     {
         ESP_LOGE(TAG, "Failed to append helly.txt");
+        return;
+    }
+
+    ret = sd_card_read_file(file_helly);
+    if (ret != ESP_OK) 
+    {
+        ESP_LOGE(TAG, "Failed to read from helly.txt");
+        return;
+    }
+
+    char newline3_data[EXAMPLE_MAX_CHAR_SIZE];
+    snprintf(newline3_data, EXAMPLE_MAX_CHAR_SIZE, "%s %s!\n", "What the Helly Bron James", card->cid.name);
+    ret = sd_card_append_file(file_helly, newline3_data);
+
+    if (ret != ESP_OK) 
+    {
+        ESP_LOGE(TAG, "Failed to append helly.txt");
+        return;
+    }
+
+    ret = sd_card_read_file(file_helly);
+    if (ret != ESP_OK) 
+    {
+        ESP_LOGE(TAG, "Failed to read from helly.txt");
         return;
     }
 

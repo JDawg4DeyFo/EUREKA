@@ -60,7 +60,6 @@ esp_err_t sd_card_init(const char *mount_point, sdmmc_host_t host, sdmmc_card_t 
 
     ESP_LOGI(TAG, "Using SPI peripheral");
 
-
     spi_bus_config_t bus_cfg = {
         .mosi_io_num = PIN_NUM_MOSI,
         .miso_io_num = PIN_NUM_MISO,
@@ -131,15 +130,15 @@ esp_err_t sd_card_read_file(const char *path){
         return ESP_FAIL;
     }
     char line[64];
-    fgets(line, sizeof(line), f);
-    fclose(f);
+    while (fgets(line, sizeof(line), f)) {
+        // Strip newline if needed
+        char *pos = strchr(line, '\n');
+        if (pos) {
+            *pos = '\0';
+        }
 
-    // strip newline
-    char *pos = strchr(line, '\n');
-    if (pos) {
-        *pos = '\0';
+        ESP_LOGI(TAG, "Read from file: '%s'", line);
     }
-    ESP_LOGI(TAG, "Read from file: '%s'", line);
 
     return ESP_OK;
 }
@@ -154,7 +153,7 @@ esp_err_t sd_card_append_file(const char *path, char *data){
 
     ESP_LOGI(TAG, "Appending file");
 
-    fprintf(f, "%s\n", data);
+    fprintf(f, "%s", data);
     fclose(f);
     return ESP_OK;
 }
