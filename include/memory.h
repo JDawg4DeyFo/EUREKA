@@ -24,17 +24,7 @@
 *     - ESP_ERR_XXX on failure
 */
 
-esp_err_t sd_card_init(void);
-
-/**
-* @brief Disconnect the SD Card and the MCU
-* 
-* @return 
-*     - ESP_OK on success
-*     - ESP_ERR_XXX on failure
-*/
-
-esp_err_t sd_card_deinit(void);
+esp_err_t sd_card_init(const char *mount_point, sdmmc_host_t host, sdmmc_card_t **card_handle);
 
 /**
 * @brief Create a new file and/or overwrite the information on it

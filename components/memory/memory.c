@@ -14,13 +14,6 @@
 
 static const char *TAG = "SD Card";
 
-#define MOUNT_POINT "/sdcard"
-#define EXAMPLE_MAX_CHAR_SIZE    64
-
-sdmmc_card_t *card;
-const char mount_point[] = MOUNT_POINT;
-sdmmc_host_t host = SDSPI_HOST_DEFAULT();
-
 #ifdef CONFIG_EXAMPLE_DEBUG_PIN_CONNECTIONS
 const char* names[] = {"CLK ", "MOSI", "MISO", "CS  "};
 const int pins[] = {CONFIG_EXAMPLE_PIN_CLK,
@@ -50,9 +43,9 @@ pin_configuration_t config = {
 #define PIN_NUM_CLK   CONFIG_EXAMPLE_PIN_CLK
 #define PIN_NUM_CS    CONFIG_EXAMPLE_PIN_CS
 
-esp_err_t sd_card_init(void){
+esp_err_t sd_card_init(const char *mount_point, sdmmc_host_t host, sdmmc_card_t **card_handle){
     esp_err_t ret;
-
+    sdmmc_card_t *card;
     esp_vfs_fat_sdmmc_mount_config_t mount_config = {
 #ifdef CONFIG_EXAMPLE_FORMAT_IF_MOUNT_FAILED
         .format_if_mount_failed = true,
@@ -108,28 +101,10 @@ esp_err_t sd_card_init(void){
     // Card has been initialized, print its properties
     sdmmc_card_print_info(stdout, card);
 
-    return ESP_OK;
-
-}
-
-esp_err_t sd_card_deinit(void){
-    esp_err_t ret;
-    
-    ret = esp_vfs_fat_sdcard_unmount(mount_point, card);
-    if(ret != ESP_OK){
-        ESP_LOGE(TAG, "Card failed to unmount");
-        return ESP_FAIL;
+    if (card_handle) {
+        *card_handle = card;
     }
 
-    ESP_LOGI(TAG, "Card unmounted");
-
-    //deinitialize the bus after all devices are removed
-    ret = spi_bus_free(host.slot);
-
-      if(ret != ESP_OK){
-        ESP_LOGE(TAG, "Failed to deinit SPI Bus");
-        return ESP_FAIL;
-    }
     return ESP_OK;
 
 }
@@ -155,7 +130,7 @@ esp_err_t sd_card_read_file(const char *path){
         ESP_LOGE(TAG, "Failed to open file for reading");
         return ESP_FAIL;
     }
-    char line[EXAMPLE_MAX_CHAR_SIZE];
+    char line[64];
     fgets(line, sizeof(line), f);
     fclose(f);
 
@@ -170,15 +145,26 @@ esp_err_t sd_card_read_file(const char *path){
 }
 
 esp_err_t sd_card_append_file(const char *path, char *data){
-    ESP_LOGI(TAG, "Reading file %s", path);
-    FILE *f = fopen(path, "r");
+    ESP_LOGI(TAG, "Opening file %s", path);
+    FILE *f = fopen(path, "a");
     if (f == NULL) {
         ESP_LOGE(TAG, "Failed to open file for reading");
         return ESP_FAIL;
     }
+
+    ESP_LOGI(TAG, "Appending file");
+
+    fprintf(f, "%s\n", data);
+    fclose(f);
     return ESP_OK;
 }
 
 esp_err_t sd_card_delete_file(const char *path){
+    if(remove(path) != 0 ){
+        ESP_LOGE(TAG, "Failed to delete: %s", path);
+        return ESP_FAIL;
+    }
+
+    ESP_LOGI(TAG, "Successfully deleted: %s", path);
     return ESP_OK;
 }
