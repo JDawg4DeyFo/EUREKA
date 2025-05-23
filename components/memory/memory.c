@@ -8,6 +8,7 @@
  *
  */
 #include <string.h>
+#include <dirent.h>
 #include <sys/unistd.h>
 #include <sys/stat.h>
 #include "../../include/memory.h"
@@ -106,6 +107,37 @@ esp_err_t sd_card_init(const char *mount_point, sdmmc_host_t host, sdmmc_card_t 
 
     return ESP_OK;
 
+}
+
+void sd_card_list_files (const char *path) {
+    DIR *dir = opendir(path);
+    if (dir == NULL) {
+        ESP_LOGE(TAG, "Failed to open directory: %s", path);
+        return;
+    }
+
+    ESP_LOGI(TAG, "Listing files in: %s", path);
+    struct dirent *entry;
+
+    while ((entry = readdir(dir)) != NULL) {
+        char full_path[512];
+        snprintf(full_path, sizeof(full_path), "%s/%s", path, entry->d_name);
+
+        struct stat st;
+        if (stat(full_path, &st) == 0) {
+            if (S_ISDIR(st.st_mode)) {
+                ESP_LOGI(TAG, "DIR  : %s", entry->d_name);
+            } else if (S_ISREG(st.st_mode)) {
+                ESP_LOGI(TAG, "FILE : %s (%ld bytes)", entry->d_name, st.st_size);
+            } else {
+                ESP_LOGI(TAG, "OTHER: %s", entry->d_name);
+            }
+        } else {
+            ESP_LOGW(TAG, "Could not stat file: %s", entry->d_name);
+        }
+    }
+
+    closedir(dir);
 }
 
 esp_err_t sd_card_write_file(const char *path, char *data){

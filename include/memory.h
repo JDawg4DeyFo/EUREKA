@@ -9,7 +9,6 @@
  */
 
 #include <stdio.h>
-#include <string.h>
 #include "driver/spi_master.h"
 #include "driver/sdspi_host.h"
 #include "esp_vfs_fat.h"
@@ -27,6 +26,14 @@
 esp_err_t sd_card_init(const char *mount_point, sdmmc_host_t host, sdmmc_card_t **card_handle);
 
 /**
+* @brief List all the files that are stored on the SD Card
+* 
+* @param mount_point Path to the SD Card, not a particular file.
+*/
+
+void sd_card_list_files (const char *mount_point);
+
+/**
 * @brief Create a new file and/or overwrite the information on it
 * 
 * @param path file path that is intended to be read from
@@ -35,6 +42,7 @@ esp_err_t sd_card_init(const char *mount_point, sdmmc_host_t host, sdmmc_card_t 
 *     - ESP_OK on success
 *     - ESP_ERR_XXX on failure
 */
+
 
 
 esp_err_t sd_card_write_file(const char *path, char *data);
