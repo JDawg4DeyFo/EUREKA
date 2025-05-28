@@ -16,9 +16,9 @@
 #include "esp_log.h"
 #include "esp_timer.h"
 
-#include "../include/LoRa_main.h"
 // #include "../include/Memory.h"
 #include "../include/Protocol.h"
+#include "../include/LoRa.h"
 
 // Defines
 /******************************************************************************/
@@ -29,12 +29,15 @@
 // Variables
 /******************************************************************************/
 static const char *TAG = "ClusterMain.c";
-static sx1262_handle_t LORA_Handle;
 static LORA_Packet_t MainPacket;
 static bool Sending, Response; // to check in main loop
 static int Send_StartTime;
 static float Period;
 static uint32_t TempTimestamp;
+uint8_t TX_Buf[MAX_BUFF];
+uint8_t RX_Buff[MAX_BUFF];
+uint8_t rx_len, tx_len;
+// bool TX_Buf_Empty, RX_Buf_Empty;
 
 union {
 	float f;
@@ -49,18 +52,26 @@ union {
 
 // Get packet from RX buffer and store into main packet
 bool GetPacket() {
-	// return false if handle isn't initialized
-	if (LORA_Handle == NULL) {
+	// Return false if there's no packet
+	if (rx_len <= 0) {
 		return false;
 	}
 
 	// Transfer bytes from lora buffer into main packet structure
-	MainPacket.NodeID = LORA_Handle.receive_buf[0];
-	MainPacket.Pkt_Type = LORA_Handle.receive_buf[1];
-	memcpy(MainPacket.Timestamp, LORA_Handle.receive_buf + 2, TIMESTAMP_LENGTH);
-	MainPacket.Length = LORA_Handle.receive_buf[6];
-	memcpy(MainPacket.Payload, LORA_Handle.receive_buf + 7, MainPacket.Length);
-	MainPacket.CRC = *(LORA_Handle.receive_buf + MainPacket.Length + 7);
+	MainPacket.NodeID = RX_Buff[0];
+	MainPacket.Pkt_Type = RX_Buff[1];
+	memcpy(MainPacket.Timestamp, RX_Buff + 2, TIMESTAMP_LENGTH);
+	MainPacket.Length = RX_Buff[6];
+	memcpy(MainPacket.Payload, RX_Buff + 7, MainPacket.Length);
+	MainPacket.CRC = *(RX_Buff + MainPacket.Length + 7);
+
+	// // Transfer bytes from lora buffer into main packet structure
+	// MainPacket.NodeID = LORA_Handle.receive_buf[0];
+	// MainPacket.Pkt_Type = LORA_Handle.receive_buf[1];
+	// memcpy(MainPacket.Timestamp, LORA_Handle.receive_buf + 2, TIMESTAMP_LENGTH);
+	// MainPacket.Length = LORA_Handle.receive_buf[6];
+	// memcpy(MainPacket.Payload, LORA_Handle.receive_buf + 7, MainPacket.Length);
+	// MainPacket.CRC = *(LORA_Handle.receive_buf + MainPacket.Length + 7);
 
 	return true;
 }
@@ -118,6 +129,8 @@ void Calculate_CRC(LORA_Packet_t *Packet) {
 bool SendPacket() {
 	uint8_t buffer[MAX_PACKET_LENGTH];
 	uint8_t len;
+
+	memset(buffer, 0, sizeof(buffer));
 	
 	// convert packet to array of chars
 	buffer[0] = MainPacket.NodeID;
@@ -135,8 +148,13 @@ bool SendPacket() {
 	*(buffer + 7 + MainPacket.Legnth) = MainPacket.CRC;
 	
 	// send packet and set flags
-	sx1262_lora_send(&LORA_Handle, buffer, len);
+	tx_len = 8 + MainPacket.Length;
+
 	Sending = true;
+	if (LoRaSend(buffer, tx_len, SX126x_TXMODE_SYNC) == false) {
+		ESP_LOGE(pcTaskGetName(NULL),"LoRaSend fail");
+	}
+	Sending = false;
 	Sending_StartTime = esp_timer_get_time();
 
 	return true;
@@ -222,8 +240,61 @@ bool ParsePacket(void) {
 /******************************************************************************/
 void app_main(void) {
 	// Power_init();
-	sx1262_lora_begin(&LORA_Handle);
-	sx1262_lora_set_continuous_receive_mode(&LORA_Handle);
+
+	// Lora init
+	LoRaInit();
+	int8_t txPowerInDbm = 22;
+
+	// set frequency
+	uint32_t frequencyInHz = 0;
+#if CONFIG_433MHZ
+	frequencyInHz = 433000000;
+	ESP_LOGI(TAG, "Frequency is 433MHz");
+#elif CONFIG_866MHZ
+	frequencyInHz = 866000000;
+	ESP_LOGI(TAG, "Frequency is 866MHz");
+#elif CONFIG_915MHZ
+	frequencyInHz = 915000000;
+	ESP_LOGI(TAG, "Frequency is 915MHz");
+#elif CONFIG_OTHER
+	ESP_LOGI(TAG, "Frequency is %dMHz", CONFIG_OTHER_FREQUENCY);
+	frequencyInHz = CONFIG_OTHER_FREQUENCY * 1000000;
+#endif
+
+	// txco power configurations for LORA
+#if CONFIG_USE_TCXO
+	ESP_LOGW(TAG, "Enable TCXO");
+	float tcxoVoltage = 3.3; // use TCXO
+	bool useRegulatorLDO = true; // use DCDC + LDO
+#else
+	ESP_LOGW(TAG, "Disable TCXO");
+	float tcxoVoltage = 0.0; // don't use TCXO
+	bool useRegulatorLDO = false; // use only LDO in all modes
+#endif
+
+// begin the lora module
+if (LoRaBegin(frequencyInHz, txPowerInDbm, tcxoVoltage, useRegulatorLDO) != 0) {
+		ESP_LOGE(TAG, "Does not recognize the module");
+		while(1) {
+			vTaskDelay(1);
+		}
+	}
+	
+	uint8_t spreadingFactor = 7;
+	uint8_t bandwidth = 4;
+	uint8_t codingRate = 1;
+	uint16_t preambleLength = 8;
+	uint8_t payloadLen = 0;
+	bool crcOn = true;
+	bool invertIrq = false;
+#if CONFIG_ADVANCED
+	spreadingFactor = CONFIG_SF_RATE;
+	bandwidth = CONFIG_BANDWIDTH;
+	codingRate = CONFIG_CODING_RATE;
+#endif
+	LoRaConfig(spreadingFactor, bandwidth, codingRate, preambleLength, payloadLen, crcOn, invertIrq);
+
+
 	//init timer
 	esp_timer_init();
 
@@ -237,32 +308,38 @@ void app_main(void) {
 
 	// main program
 	while (1) {
-		// Poll packets and parse
-		if (MainPacket_Ready == true) {
+		// Check if sending
+		if(Sending) {
+			continue;
+		}
+
+		// Poll for RX
+		rx_len = LoRaReceive(RX_Buff, sizeof(RX_Buff));
+		if ( rxLen > 0) {
+			ESP_LOGI(pcTaskGetName(NULL), "%d byte packet received:[%.*s]", RX_Buff, rx_len, RX_Buff);
+
+			int8_t rssi, snr;
+			GetPacketStatus(&rssi, &snr);
+			ESP_LOGI(pcTaskGetName(NULL), "rssi=%d[dBm] snr=%d[dB]", rssi, snr);
+
 			GetPacket();
 			ParsePacket();
 		}
 
-		// If transmitting, check for timeout or response
-		while (Sending) {
-			// timeout condition
-			if ((esp_timer_get_time() - Sending_StartTime) > (TIMEOUT_PERIOD * MICROSECOND_TO_SECOND)) {
-				// Stop sending
-				sx1262_lora_set_continuous_receive_mode(&LORA_Handle);
-				Sending = false;
-			}
+		// 	// Response condition
+		// 	if (Response) {
+		// 		// if more TX packets
+		// 			// send and reset start time
 
-			// Response condition
-			if (Response) {
-				// if more TX packets
-					// send and reset start time
+		// 		// else{}: code below
+		// 		// sx1262_lora_set_continuous_receive_mode(&LORA_Handle);
+		// 		Sending = false;
+		// 		Response = false;
+		// 	}
 
-				// else{}: code below
-				sx1262_lora_set_continuous_receive_mode(&LORA_Handle);
-				Sending = false;
-				Response = false;
-			}
+		// }
 
-		}
+		// check power
+
 	}
 }

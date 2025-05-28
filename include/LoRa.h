@@ -3,6 +3,8 @@
 
 #include "driver/spi_master.h"
 
+#define MAX_BUFF 256
+
 //return values
 #define ERR_NONE                        0
 #define ERR_PACKET_TOO_LONG             1
