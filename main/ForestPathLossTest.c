@@ -26,7 +26,7 @@ void task_tx(void *pvParameters)
 
 	while(packets_sent < 12) {
 		TickType_t nowTick = xTaskGetTickCount();
-		int txLen = sprintf((char *)buf, "EUREKA! %"PRIu32, nowTick);
+		int txLen = sprintf((char *)buf, "WhatTheHelly!WhatTheHellyBerry!WhatTheH %"PRIu32, nowTick);
 		ESP_LOGI(pcTaskGetName(NULL), "%d byte packet sent...", txLen);
 
 		// Wait for transmission to complete
