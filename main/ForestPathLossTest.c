@@ -116,7 +116,7 @@ void app_main()
 	}
 	
 	uint8_t spreadingFactor = 12;
-	uint8_t bandwidth = 4;
+	uint8_t bandwidth = 3;
 	uint8_t codingRate = 1;
 	uint16_t preambleLength = 8;
 	uint8_t payloadLen = 0;
