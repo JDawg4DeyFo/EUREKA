@@ -24,9 +24,9 @@ void task_tx(void *pvParameters)
 	uint8_t buf[256]; // Maximum Payload size of SX1261/62/68 is 255
 	int packets_sent = 0;
 
-	while(packets_sent < 10) {
+	while(packets_sent < 12) {
 		TickType_t nowTick = xTaskGetTickCount();
-		int txLen = sprintf((char *)buf, "EUREKA! %"PRIu32, nowTick);
+		int txLen = sprintf((char *)buf, "WhatTheHelly!WhatTheHellyBerry!WhatTheH %"PRIu32, nowTick);
 		ESP_LOGI(pcTaskGetName(NULL), "%d byte packet sent...", txLen);
 
 		// Wait for transmission to complete
@@ -58,7 +58,7 @@ void task_rx(void *pvParameters)
 	ESP_LOGI(pcTaskGetName(NULL), "Start");
 	uint8_t buf[256]; // Maximum Payload size of SX1261/62/68 is 255
 	int packets_received = 0;
-	while(packets_received < 10) {
+	while(packets_received < 12) {
 		uint8_t rxLen = LoRaReceive(buf, sizeof(buf));
 		if ( rxLen > 0 ) { 
 			ESP_LOGI(pcTaskGetName(NULL), "%d byte packet received:[%.*s]", rxLen, rxLen, buf);
@@ -116,7 +116,7 @@ void app_main()
 	}
 	
 	uint8_t spreadingFactor = 12;
-	uint8_t bandwidth = 4;
+	uint8_t bandwidth = 3;
 	uint8_t codingRate = 1;
 	uint16_t preambleLength = 8;
 	uint8_t payloadLen = 0;

@@ -67,6 +67,10 @@ elseif(CONFIG_MONITOR_TEST)
 	list(APPEND srcs MonitorTest.c)
 	list(APPEND requires)
 	list(APPEND priv_requires ina219)
+elseif(CONFIG_MEMORY_LIB_TEST)
+	list(APPEND srcs memoryLibTest.c)
+	list(APPEND requires)
+	list(APPEND priv_requires memory)
 endif()
 
 # Register main as the component
