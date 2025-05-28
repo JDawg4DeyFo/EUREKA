@@ -13,17 +13,16 @@
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include <string.h>
 
 #define I2C_SCL 42
 #define I2C_SDA 41
 #define I2C_PORT 0
 
 #define MAX_CURRENT 0.006
-#define SHUNT_RESISTANCE 50
+#define SHUNT_RESISTANCE 47
 
 static const char *TAG = "Monitor Testing";
-
-ina219_t Handle;
 
 static void delay_ms(int ms)
 {
@@ -34,8 +33,18 @@ void app_main(void)
 {
 	float BusVoltage, ShuntVoltage, Current, Power;
 
+	BusVoltage = 0;
+	ShuntVoltage = 0;
+	Current = 0;
+	Power = 0;
+
+	ina219_t Handle;
+	memset(&Handle, 0, sizeof(ina219_t));
+
 	//config
 	ina219_init_desc(&Handle, INA219_ADDR_GND_GND, I2C_PORT, I2C_SDA, I2C_SCL);
+
+	// i2cdev_init();
 	
 	// init
 	ina219_init(&Handle);
@@ -46,7 +55,7 @@ void app_main(void)
 	while (1)
 	{
 		// delay
-		delay_ms(100);
+		delay_ms(1000);
 
 		// measure
 		ina219_get_current(&Handle, &Current);
