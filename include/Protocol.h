@@ -32,6 +32,7 @@
 #define TX_ACK_LEN 0
 
 #define RESPONSE_TIMEOUT_MS 3000	// value may need to be adjusted
+#define DATAREQ_DEBOUNCE_MS 10000
 // Typedefs
 /******************************************************************************/
 

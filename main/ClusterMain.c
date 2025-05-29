@@ -23,6 +23,7 @@
 // Defines
 /******************************************************************************/
 #define SENDING_TIMEOUT_TIME 100 				// ACCURATE VALUE NEEDED. timeout for tx transmissions
+#define PLACEHOLDER_UNIQUEID 102;
 // Datatypes
 /******************************************************************************/
 
@@ -32,7 +33,7 @@ static const char *TAG = "ClusterMain.c";
 static LORA_Packet_t MainPacket, StoragePacket;	// store packet is needed in case original packet
 												// needs to be stored if no ack received
 static bool AwaitingResponse; // to check in main loop
-static int Send_StartTime;
+static int Send_StartTime, Last_DataRequest;
 static uint16_t Period;
 static uint32_t TempTimestamp;
 uint8_t TX_Buf[MAX_BUFF];
@@ -126,6 +127,40 @@ void Calculate_CRC(LORA_Packet_t *Packet) {
 	Packet->CRC = Iterative_CRC(false, *(Packet->Payload + Packet->Length - 1));
 }
 
+bool SendAck() {
+	uint8_t ACK_CRC;
+	// convert packet to array of chars
+	buffer[0] = PLACEHOLDER_UNIQUEID;
+	buffer[1] = TX_ACK;
+	
+	TempTimestamp = 100;
+	// timestamp copy
+	memcpy(buffer[2], TempTimestamp, 4);
+
+	// convert length
+	buffer[6] = TX_ACK_LEN;
+
+	// Calculate CRC
+	Iterative_CRC(true, Buffer[0]);
+	Iterative_CRC(false, Buffer[1]);
+	Iterative_CRC(false, Buffer[2]);
+	Iterative_CRC(false, Buffer[3]);
+	Iterative_CRC(false, Buffer[4]);
+	Iterative_CRC(false, Buffer[5]);
+	ACK_CRC = Iterative_CRC(false, Buffer[6]);
+
+	// store CRC
+	buffer[7] = ACK_CRC;
+	
+	// send packet and set flags
+	tx_len = 8;
+	if (LoRaSend(buffer, tx_len, SX126x_TXMODE_SYNC) == false) {
+		ESP_LOGE(TAG,"LoRaSend fail");
+	}
+	
+	return true;
+}
+
 // Send_Packet
 bool SendPacket() {
 	uint8_t buffer[MAX_PACKET_LENGTH];
@@ -156,6 +191,7 @@ bool SendPacket() {
 
 	// Init response logic
 	Send_StartTime = esp_timer_get_time();
+	AwaitingResponse = true;
 	
 	return true;
 }
@@ -163,7 +199,7 @@ bool SendPacket() {
 // send new period
 bool SendNewPeriod() {
 	// build packet
-	MainPacket.NodeID = Unique_NodeID;
+	MainPacket.NodeID = PLACEHOLDER_UNIQUEID;
 	MainPacket.Pkt_Type = PERIOD_UPDATE;
 
 	TempTimestamp = 100;	// replace with actual value later
@@ -215,6 +251,9 @@ bool ParsePacket(void) {
 				StorePacket();
 			}
 
+			// Send ACK
+			SendAck();
+
 			SendSensorData();
 			break;
 
@@ -224,6 +263,9 @@ bool ParsePacket(void) {
 			if(AwaitingResponse) {
 				StorePacket();
 			}
+
+			// Send ACK
+			SendAck();
 
 			// Update period
 			Period = MainPacket.Payload[0] << BYTE_SHIFT;
@@ -237,10 +279,20 @@ bool ParsePacket(void) {
 		// packet shoudn't have any payload
 		// all cluster head has to do is send a sense request to sensor nodes
 		// response will be handled just like any other raw sensor data packet
+		// cluster head should also relay data request
 		case REQUEST_SENSOR_DATA:
 			// Check if awaiting response
 			if(AwaitingResponse) {
 				StorePacket();
+			}
+
+			// Send ACK
+			SendAck();
+
+			// Check that data wasn't just requested
+			int Last_Request_Time = (esp_timer_get_time() - Last_DataRequest) / 1000;
+			if (Last_Request_Time < DATAREQ_DEBOUNCE_MS) {
+				break;
 			}
 
 			// Send data request
@@ -255,6 +307,9 @@ bool ParsePacket(void) {
 				StorePacket();
 			}
 
+			// Send ACK
+			SendAck();
+
 			// Forward data
 			SendPacket();
 			break;
@@ -264,6 +319,9 @@ bool ParsePacket(void) {
 			if(AwaitingResponse) {
 				StorePacket();
 			}
+
+			// Send ACK
+			SendAck();
 
 			// update local time
 			// updatetime()
@@ -275,7 +333,10 @@ bool ParsePacket(void) {
 			if(AwaitingResponse) {
 				StorePacket();
 			}
-			
+
+			// Send ACK
+			SendAck();
+
 			// Foward data
 			SendPacket();
 
@@ -353,7 +414,7 @@ if (LoRaBegin(frequencyInHz, txPowerInDbm, tcxoVoltage, useRegulatorLDO) != 0) {
 	esp_timer_init();
 
 	// assign unique node id
-	Unique_NodeID = 102; // place holder value
+	Unique_NodeID = PLACEHOLDER_UNIQUEID; // place holder value
 
 	// init variables
 	Response = false;
