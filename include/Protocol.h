@@ -17,14 +17,21 @@
 #define TIMESTAMP_LENGTH 4
 #define BASE_PACKET_LEGNTH 8
 
+#define BYTE_SHIFT 8
+#define BYTE_MASK 0xFF
+
 // payload lengths
 #define RAW_SENSOR_DATA_LEN 22
 #define PERIOD_UPDATE_LEN	2
 #define REQUEST_SENSOR_DATA_LEN 0
 #define PROCESSED_SENSOR_DATA_LEN 22 // may not need this...
 #define TIME_UPDATE_LEN 4
-#define BATTER_DATA_LEN 4
+#define BATTERY_DATA_LEN 4
+#define BATTERY_REQ_LEN 1;
+#define DEBUG_LEN 1;
 #define TX_ACK_LEN 0
+
+#define RESPONSE_TIMEOUT_MS 3000	// value may need to be adjusted
 // Typedefs
 /******************************************************************************/
 
@@ -35,8 +42,10 @@ typedef enum {
 	REQUEST_SENSOR_DATA,
 	PROCESSED_SENSOR_DATA,
 	TIME_UPDATE,	// relay and update time across nodes
-	BATTERY_DATA,
-	TX_ACK
+	BATTERY_DATA,	// relay
+	BATTERY_REQUEST,	// UNFINISHED: Request for battery data. payload could be node ID
+	DEBUG,			// for testing
+	TX_ACK			// NOTE: could include NOde ID in payload to increase robustness
 } PacketIDs_t
 
 unsigned char PayloadLength_Lookup[] = {

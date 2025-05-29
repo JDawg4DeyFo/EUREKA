@@ -29,10 +29,11 @@
 // Variables
 /******************************************************************************/
 static const char *TAG = "ClusterMain.c";
-static LORA_Packet_t MainPacket;
-static bool Sending, Response; // to check in main loop
+static LORA_Packet_t MainPacket, StoragePacket;	// store packet is needed in case original packet
+												// needs to be stored if no ack received
+static bool AwaitingResponse; // to check in main loop
 static int Send_StartTime;
-static float Period;
+static uint16_t Period;
 static uint32_t TempTimestamp;
 uint8_t TX_Buf[MAX_BUFF];
 uint8_t RX_Buff[MAX_BUFF];
@@ -149,14 +150,13 @@ bool SendPacket() {
 	
 	// send packet and set flags
 	tx_len = 8 + MainPacket.Length;
-
-	Sending = true;
 	if (LoRaSend(buffer, tx_len, SX126x_TXMODE_SYNC) == false) {
-		ESP_LOGE(pcTaskGetName(NULL),"LoRaSend fail");
+		ESP_LOGE(TAG,"LoRaSend fail");
 	}
-	Sending = false;
-	Sending_StartTime = esp_timer_get_time();
 
+	// Init response logic
+	Send_StartTime = esp_timer_get_time();
+	
 	return true;
 }
 
@@ -169,10 +169,16 @@ bool SendNewPeriod() {
 	TempTimestamp = 100;	// replace with actual value later
 	memcpy(MainPacket.Timestamp, TempTimestamp, 4);
 
-	MainPacket.Length = 0;
+	// redundant main packet period update, but good to be safe just in case
+	MainPacket.Payload[0] = BYTE_MASK & (Period >> BYTE_SHIFT);
+	MainPacket.Payload[1] = BYTE_MASK & Period;
+
+	MainPacket.Length = 2;
 
 	Calculate_CRC(&MainPacket);
-
+	
+	// store packet in case it needs to get stored
+	StoragePacket = MainPacket;
 	SendPacket();
 
 	return true;
@@ -180,6 +186,14 @@ bool SendNewPeriod() {
 
 // send data request
 bool SensorDataRequest() {
+
+	return true;
+}
+
+bool StorePacket() {
+	AwaitingResponse = false;
+
+	// write storage packet into sd card
 
 	return true;
 }
@@ -193,21 +207,27 @@ bool ParsePacket(void) {
 			break;
 		
 		// Packet contains raw sensor data
-		case RAW_SENSOR_DATA:
-			// process data
-			// ProcessRawSensorData();
-			
-			// send data
-			Sending = true;
-			Send_StartTime = esp_timer_get_time();
-			// SendSensorData();
+		// Future revision might contain process_sensor_data() function
+		// to convert raw sensor node data into transmit friendly processed data
+		case RAW_SENSOR_DATA:	
+			// Check if awaiting response
+			if(AwaitingResponse) {
+				StorePacket();
+			}
+
+			SendSensorData();
 			break;
 
 		// Packet contains a period update for sensor nodes
 		case PERIOD_UPDATE:
+			// Check if awaiting response
+			if(AwaitingResponse) {
+				StorePacket();
+			}
+
 			// Update period
-			// Period = some value, extracted from payload;
-			// not sure if this is needed
+			Period = MainPacket.Payload[0] << BYTE_SHIFT;
+			Period += MainPacket.Payload[1];
 
 			// send new period
 			SendNewPeriod();
@@ -218,6 +238,11 @@ bool ParsePacket(void) {
 		// all cluster head has to do is send a sense request to sensor nodes
 		// response will be handled just like any other raw sensor data packet
 		case REQUEST_SENSOR_DATA:
+			// Check if awaiting response
+			if(AwaitingResponse) {
+				StorePacket();
+			}
+
 			// Send data request
 			SendSensorDataRequest();
 			break;
@@ -225,10 +250,39 @@ bool ParsePacket(void) {
 		// Packet contains processed sensor data
 		// here, the cluster head should act as a relay.
 		case PROCESSED_SENSOR_DATA:
+			// Check if awaiting response
+			if(AwaitingResponse) {
+				StorePacket();
+			}
+
 			// Forward data
 			SendPacket();
 			break;
+
+		case TIME_UPDATE:
+			// Check if awaiting response
+			if(AwaitingResponse) {
+				StorePacket();
+			}
+
+			// update local time
+			// updatetime()
+			// Foward data
+			break;
+
+		case BATTERY_DATA:
+			// Check if awaiting response
+			if(AwaitingResponse) {
+				StorePacket();
+			}
 			
+			// Foward data
+			SendPacket();
+
+		// simple set flag low
+		case TX_ACK:
+			AwaitingResponse = false;
+			break;
 	}
 
 	return true;
@@ -302,42 +356,33 @@ if (LoRaBegin(frequencyInHz, txPowerInDbm, tcxoVoltage, useRegulatorLDO) != 0) {
 	Unique_NodeID = 102; // place holder value
 
 	// init variables
-	Sending = false;
 	Response = false;
 	Period = DEFAULT_PERIOD;
 
 	// main program
 	while (1) {
-		// Check if sending
-		if(Sending) {
-			continue;
-		}
+		int IterationTime;
 
 		// Poll for RX
 		rx_len = LoRaReceive(RX_Buff, sizeof(RX_Buff));
 		if ( rxLen > 0) {
-			ESP_LOGI(pcTaskGetName(NULL), "%d byte packet received:[%.*s]", RX_Buff, rx_len, RX_Buff);
+			ESP_LOGI(TAG, "%d byte packet received:[%.*s]", RX_Buff, rx_len, RX_Buff);
 
 			int8_t rssi, snr;
 			GetPacketStatus(&rssi, &snr);
-			ESP_LOGI(pcTaskGetName(NULL), "rssi=%d[dBm] snr=%d[dB]", rssi, snr);
+			ESP_LOGI(TAG, "rssi=%d[dBm] snr=%d[dB]", rssi, snr);
 
 			GetPacket();
 			ParsePacket();
 		}
 
-		// 	// Response condition
-		// 	if (Response) {
-		// 		// if more TX packets
-		// 			// send and reset start time
-
-		// 		// else{}: code below
-		// 		// sx1262_lora_set_continuous_receive_mode(&LORA_Handle);
-		// 		Sending = false;
-		// 		Response = false;
-		// 	}
-
-		// }
+		// iteration time in ms
+		IterationTime = (esp_timer_get_time() - Send_StartTime) / 1000;
+		if(AwaitingResponse && (IterationTime > RESPONSE_TIMEOUT_MS)) {
+			// store stuff
+			ESP_LOGW(TAG, "No response from node");
+			StorePacket();
+		}
 
 		// check power
 
