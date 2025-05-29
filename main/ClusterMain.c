@@ -15,6 +15,7 @@
 #include <stddef.h>
 #include "esp_log.h"
 #include "esp_timer.h"
+#include <string.h>
 
 // #include "../include/Memory.h"
 #include "../include/Protocol.h"
@@ -36,6 +37,7 @@ static bool AwaitingResponse; // to check in main loop
 static int Send_StartTime, Last_DataRequest;
 static uint16_t Period;
 static uint32_t TempTimestamp;
+uint8_t Unique_NodeID;
 uint8_t TX_Buf[MAX_BUFF];
 uint8_t RX_Buff[MAX_BUFF];
 uint8_t rx_len, tx_len;
@@ -106,13 +108,13 @@ void Calculate_CRC(LORA_Packet_t *Packet) {
 	Iterative_CRC(false, (uint8_t)Packet->Pkt_Type);
 
 	// 32 bit timestamp requires some finesse
-	TempChar = (uint8_t)((Packet->Timestamp>>24) & 0xFF);
+	TempChar = (uint8_t)(Packet->Timestamp)[0];
 	Iterative_CRC(false, TempChar);
-	TempChar = (uint8_t)((Packet->Timestamp>>16) & 0xFF);
+	TempChar = (uint8_t)(Packet->Timestamp)[1];
 	Iterative_CRC(false, TempChar);
-	TempChar = (uint8_t)((Packet->Timestamp>>8) & 0xFF);
+	TempChar = (uint8_t)(Packet->Timestamp)[2];
 	Iterative_CRC(false, TempChar);
-	TempChar = (uint8_t)(Packet->Timestamp & 0xFF);
+	TempChar = (uint8_t)(Packet->Timestamp)[3];
 	Iterative_CRC(false, TempChar);
 
 	// Length
@@ -129,25 +131,26 @@ void Calculate_CRC(LORA_Packet_t *Packet) {
 
 bool SendAck() {
 	uint8_t ACK_CRC;
+	uint8_t buffer[MAX_PACKET_LENGTH];
 	// convert packet to array of chars
 	buffer[0] = PLACEHOLDER_UNIQUEID;
 	buffer[1] = TX_ACK;
 	
 	TempTimestamp = 100;
 	// timestamp copy
-	memcpy(buffer[2], TempTimestamp, 4);
+	memcpy(buffer + 2, &TempTimestamp, 4);
 
 	// convert length
 	buffer[6] = TX_ACK_LEN;
 
 	// Calculate CRC
-	Iterative_CRC(true, Buffer[0]);
-	Iterative_CRC(false, Buffer[1]);
-	Iterative_CRC(false, Buffer[2]);
-	Iterative_CRC(false, Buffer[3]);
-	Iterative_CRC(false, Buffer[4]);
-	Iterative_CRC(false, Buffer[5]);
-	ACK_CRC = Iterative_CRC(false, Buffer[6]);
+	Iterative_CRC(true, buffer[0]);
+	Iterative_CRC(false, buffer[1]);
+	Iterative_CRC(false, buffer[2]);
+	Iterative_CRC(false, buffer[3]);
+	Iterative_CRC(false, buffer[4]);
+	Iterative_CRC(false, buffer[5]);
+	ACK_CRC = Iterative_CRC(false, buffer[6]);
 
 	// store CRC
 	buffer[7] = ACK_CRC;
@@ -164,7 +167,6 @@ bool SendAck() {
 // Send_Packet
 bool SendPacket() {
 	uint8_t buffer[MAX_PACKET_LENGTH];
-	uint8_t len;
 
 	memset(buffer, 0, sizeof(buffer));
 	
@@ -173,15 +175,15 @@ bool SendPacket() {
 	buffer[1] = MainPacket.Pkt_Type;
 	
 	// timestamp copy
-	memcpy(buffer[2], MainPacket.Timestamp, 4);
+	memcpy(buffer + 2, MainPacket.Timestamp, 4);
 
 	// convert length
 	buffer[6] = MainPacket.Length;
 
 	// convert length
-	memcpy(buffer[7], MainPacket.Payload, MainPacket.Length);
+	memcpy(buffer + 7, MainPacket.Payload, MainPacket.Length);
 
-	*(buffer + 7 + MainPacket.Legnth) = MainPacket.CRC;
+	*(buffer + 7 + MainPacket.Length) = MainPacket.CRC;
 	
 	// send packet and set flags
 	tx_len = 8 + MainPacket.Length;
@@ -203,7 +205,7 @@ bool SendNewPeriod() {
 	MainPacket.Pkt_Type = PERIOD_UPDATE;
 
 	TempTimestamp = 100;	// replace with actual value later
-	memcpy(MainPacket.Timestamp, TempTimestamp, 4);
+	memcpy(MainPacket.Timestamp, &TempTimestamp, 4);
 
 	// redundant main packet period update, but good to be safe just in case
 	MainPacket.Payload[0] = BYTE_MASK & (Period >> BYTE_SHIFT);
@@ -221,7 +223,7 @@ bool SendNewPeriod() {
 }
 
 // send data request
-bool SensorDataRequest() {
+bool SendSensorDataRequest() {
 
 	return true;
 }
@@ -254,7 +256,7 @@ bool ParsePacket(void) {
 			// Send ACK
 			SendAck();
 
-			SendSensorData();
+			SendPacket();
 			break;
 
 		// Packet contains a period update for sensor nodes
@@ -339,10 +341,54 @@ bool ParsePacket(void) {
 
 			// Foward data
 			SendPacket();
+			
+			break;
+
+		case BATTERY_REQUEST:
+			// Check if awaiting response
+			if(AwaitingResponse) {
+				StorePacket();
+			}
+
+			// Send ACK
+			SendAck();
+
+			// Foward data
+			SendPacket();
+			
+			break;
+
+		case DEBUG:
+			// Check if awaiting response
+			if(AwaitingResponse) {
+				StorePacket();
+			}
+
+			// Send ACK
+			SendAck();
+
+			// Foward data
+			SendPacket();
+			
+			break;
 
 		// simple set flag low
 		case TX_ACK:
 			AwaitingResponse = false;
+			break;
+
+		default: 
+			// Check if awaiting response
+			if(AwaitingResponse) {
+				StorePacket();
+			}
+
+			// Send ACK
+			SendAck();
+
+			// Foward data
+			SendPacket();
+			
 			break;
 	}
 
@@ -417,7 +463,6 @@ if (LoRaBegin(frequencyInHz, txPowerInDbm, tcxoVoltage, useRegulatorLDO) != 0) {
 	Unique_NodeID = PLACEHOLDER_UNIQUEID; // place holder value
 
 	// init variables
-	Response = false;
 	Period = DEFAULT_PERIOD;
 
 	// main program
@@ -426,8 +471,8 @@ if (LoRaBegin(frequencyInHz, txPowerInDbm, tcxoVoltage, useRegulatorLDO) != 0) {
 
 		// Poll for RX
 		rx_len = LoRaReceive(RX_Buff, sizeof(RX_Buff));
-		if ( rxLen > 0) {
-			ESP_LOGI(TAG, "%d byte packet received:[%.*s]", RX_Buff, rx_len, RX_Buff);
+		if ( rx_len > 0) {
+			ESP_LOGI(TAG, "%d byte packet received:[%.*s]", rx_len, rx_len, RX_Buff);
 
 			int8_t rssi, snr;
 			GetPacketStatus(&rssi, &snr);

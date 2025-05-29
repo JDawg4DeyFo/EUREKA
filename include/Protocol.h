@@ -33,6 +33,7 @@
 
 #define RESPONSE_TIMEOUT_MS 3000	// value may need to be adjusted
 #define DATAREQ_DEBOUNCE_MS 10000
+#define DEFAULT_PERIOD 100			// ADJUST: Default period value should be different
 // Typedefs
 /******************************************************************************/
 
@@ -47,7 +48,7 @@ typedef enum {
 	BATTERY_REQUEST,	// UNFINISHED: Request for battery data. payload could be node ID
 	DEBUG,			// for testing
 	TX_ACK			// NOTE: could include NOde ID in payload to increase robustness
-} PacketIDs_t
+} PacketIDs_t;
 
 unsigned char PayloadLength_Lookup[] = {
 	0,							// NOTHING
