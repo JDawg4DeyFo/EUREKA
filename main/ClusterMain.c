@@ -176,7 +176,7 @@ bool SendDebugPacket() {
 	uint8_t buffer[MAX_PACKET_LENGTH];
 	// convert packet to array of chars
 	buffer[0] = PLACEHOLDER_UNIQUEID;
-	buffer[1] = TX_ACK;
+	buffer[1] = DEBUG;
 	
 	TempTimestamp = 100;
 	// timestamp copy
@@ -404,6 +404,10 @@ bool ParsePacket(void) {
 			break;
 
 		case DEBUG:
+#ifdef CONFIG_DEBUG
+			ESP_LOGI(TAG, "Debug packet received");
+#endif
+
 			// Check if awaiting response
 			if(AwaitingResponse) {
 				StorePacket();
@@ -508,13 +512,13 @@ if (LoRaBegin(frequencyInHz, txPowerInDbm, tcxoVoltage, useRegulatorLDO) != 0) {
 #endif
 	LoRaConfig(spreadingFactor, bandwidth, codingRate, preambleLength, payloadLen, crcOn, invertIrq);
 
+	//esp_timer_init() // apparently this is already initialized
 
-	//init timer
-	esp_timer_init();
+	int IterationCount = 0;
 
 	// main program
 	while (1) {
-		int IterationTime, IterationCount;
+		int IterationTime;
 		float BusVoltage;
 
 		// Poll for RX
@@ -541,13 +545,13 @@ if (LoRaBegin(frequencyInHz, txPowerInDbm, tcxoVoltage, useRegulatorLDO) != 0) {
 		// check power
 		ina219_get_bus_voltage(&MonitorHandle, &BusVoltage);
 		if(BusVoltage < CRITICAL_VOLTAGE) {
-			ESP_LOGE(TAG, "Below critical voltage!");
+			// ESP_LOGE(TAG, "Below critical voltage!");
 			// update network that cluster head is shutting off?
 
 			// shut off
 			uint64_t wakeup_time = EMERGENCY_SLEEP_TIME_SEC * MICROSECOND_CONVERSION;
 			esp_sleep_enable_timer_wakeup(wakeup_time);
-			ESP_LOGI(TAG, "Entering deep sleep for %d seconds...", EMERGENCY_SLEEP_TIME_SEC);
+			// ESP_LOGI(TAG, "Entering deep sleep for %d seconds...", EMERGENCY_SLEEP_TIME_SEC);
 
 			// Light sleep start
 			// esp_deep_sleep_start(); // deep sleep mode but LoRa wakeup is enabled
@@ -556,10 +560,11 @@ if (LoRaBegin(frequencyInHz, txPowerInDbm, tcxoVoltage, useRegulatorLDO) != 0) {
 #ifdef CONFIG_DEBUG_STUFF
 		// should just be replaced with a parallel tx task probably...
 		// would definitley be hard to cordinate the timing and hardware constraints tho
-		IterationCount++
-		if(IterationCount >> 100000) {
+		IterationCount++;
+		if(IterationCount > 100) {
 			ESP_LOGI(TAG, "Sending out debug packet");
 			SendDebugPacket();
+			IterationCount = 0;
 		}
 #endif
 
