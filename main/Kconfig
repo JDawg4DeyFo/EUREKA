@@ -41,6 +41,10 @@ config MEMORY_LIB_TEST
 	
 endchoice
 
+config DEBUG_STUFF
+	bool "Debug stuff"
+	default n
+
 
 menu "New Driver Test Application Configuration"
 

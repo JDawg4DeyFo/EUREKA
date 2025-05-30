@@ -28,7 +28,7 @@
 #define SENDING_TIMEOUT_TIME 100 				// ACCURATE VALUE NEEDED. timeout for tx transmissions
 #define PLACEHOLDER_UNIQUEID 102;
 
-#define EMERGENCY_SLEEP_TIME_SEC 3600			// NOTE: Should probably changed and refined
+#define EMERGENCY_SLEEP_TIME_SEC 600			// NOTE: Should probably changed and refined
 #define MICROSECOND_CONVERSION 1000000
 
 // Voltage monitor defines
@@ -150,7 +150,7 @@ bool SendAck() {
 	// convert length
 	buffer[6] = TX_ACK_LEN;
 
-	// Calculate CRC
+	// Calculate CRC  	NOTE: value doesn't have to be calculated ... it's the same every time
 	Iterative_CRC(true, buffer[0]);
 	Iterative_CRC(false, buffer[1]);
 	Iterative_CRC(false, buffer[2]);
@@ -164,6 +164,44 @@ bool SendAck() {
 	
 	// send packet and set flags
 	tx_len = 8;
+	if (LoRaSend(buffer, tx_len, SX126x_TXMODE_SYNC) == false) {
+		ESP_LOGE(TAG,"LoRaSend fail");
+	}
+	
+	return true;
+}
+
+bool SendDebugPacket() {
+	uint8_t ACK_CRC;
+	uint8_t buffer[MAX_PACKET_LENGTH];
+	// convert packet to array of chars
+	buffer[0] = PLACEHOLDER_UNIQUEID;
+	buffer[1] = TX_ACK;
+	
+	TempTimestamp = 100;
+	// timestamp copy
+	memcpy(buffer + 2, &TempTimestamp, 4);
+
+	// convert length
+	buffer[6] = DEBUG_LEN;
+
+	buffer[7] = 8;
+
+	// Calculate CRC  	NOTE: value doesn't have to be calculated ... it's the same every time
+	Iterative_CRC(true, buffer[0]);
+	Iterative_CRC(false, buffer[1]);
+	Iterative_CRC(false, buffer[2]);
+	Iterative_CRC(false, buffer[3]);
+	Iterative_CRC(false, buffer[4]);
+	Iterative_CRC(false, buffer[5]);
+	Iterative_CRC(false, buffer[6]);
+	ACK_CRC = Iterative_CRC(false, buffer[7]);
+
+	// store CRC
+	buffer[8] = ACK_CRC;
+	
+	// send packet and set flags
+	tx_len = 9;
 	if (LoRaSend(buffer, tx_len, SX126x_TXMODE_SYNC) == false) {
 		ESP_LOGE(TAG,"LoRaSend fail");
 	}
@@ -476,7 +514,7 @@ if (LoRaBegin(frequencyInHz, txPowerInDbm, tcxoVoltage, useRegulatorLDO) != 0) {
 
 	// main program
 	while (1) {
-		int IterationTime;
+		int IterationTime, IterationCount;
 		float BusVoltage;
 
 		// Poll for RX
@@ -507,8 +545,23 @@ if (LoRaBegin(frequencyInHz, txPowerInDbm, tcxoVoltage, useRegulatorLDO) != 0) {
 			// update network that cluster head is shutting off?
 
 			// shut off
-			esp_sleep_enable_timer_wakeup(EMERGENCY_SLEEP_TIME_SEC * MICROSECOND_CONVERSION);
+			uint64_t wakeup_time = EMERGENCY_SLEEP_TIME_SEC * MICROSECOND_CONVERSION;
+			esp_sleep_enable_timer_wakeup(wakeup_time);
+			ESP_LOGI(TAG, "Entering deep sleep for %d seconds...", EMERGENCY_SLEEP_TIME_SEC);
+
+			// Light sleep start
+			// esp_deep_sleep_start(); // deep sleep mode but LoRa wakeup is enabled
 		}
+
+#ifdef CONFIG_DEBUG_STUFF
+		// should just be replaced with a parallel tx task probably...
+		// would definitley be hard to cordinate the timing and hardware constraints tho
+		IterationCount++
+		if(IterationCount >> 100000) {
+			ESP_LOGI(TAG, "Sending out debug packet");
+			SendDebugPacket();
+		}
+#endif
 
 	}
 }
