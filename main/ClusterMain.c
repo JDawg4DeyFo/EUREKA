@@ -15,16 +15,30 @@
 #include <stddef.h>
 #include "esp_log.h"
 #include "esp_timer.h"
+#include "esp_sleep.h"
 #include <string.h>
 
 // #include "../include/Memory.h"
 #include "../include/Protocol.h"
 #include "../include/LoRa.h"
+#include <ina219.h>
 
 // Defines
 /******************************************************************************/
 #define SENDING_TIMEOUT_TIME 100 				// ACCURATE VALUE NEEDED. timeout for tx transmissions
 #define PLACEHOLDER_UNIQUEID 102;
+
+#define EMERGENCY_SLEEP_TIME_SEC 3600			// NOTE: Should probably changed and refined
+#define MICROSECOND_CONVERSION 1000000
+
+// Voltage monitor defines
+#define SHUNT_RESISTANCE 0.24
+#define CRITICAL_VOLTAGE 11.0						// ACCURATE VALUE NEEDED ... minimum voltage is 10V for battery
+
+// i2c defines NOTE: probably should be replaced with CONFIG_I2C values
+#define I2C_SCL 42
+#define I2C_SDA 41
+#define I2C_PORT 0
 // Datatypes
 /******************************************************************************/
 
@@ -35,6 +49,7 @@ static LORA_Packet_t MainPacket, StoragePacket;	// store packet is needed in cas
 												// needs to be stored if no ack received
 static bool AwaitingResponse; // to check in main loop
 static int Send_StartTime, Last_DataRequest;
+static ina219_t MonitorHandle;
 static uint16_t Period;
 static uint32_t TempTimestamp;
 uint8_t Unique_NodeID;
@@ -68,14 +83,6 @@ bool GetPacket() {
 	MainPacket.Length = RX_Buff[6];
 	memcpy(MainPacket.Payload, RX_Buff + 7, MainPacket.Length);
 	MainPacket.CRC = *(RX_Buff + MainPacket.Length + 7);
-
-	// // Transfer bytes from lora buffer into main packet structure
-	// MainPacket.NodeID = LORA_Handle.receive_buf[0];
-	// MainPacket.Pkt_Type = LORA_Handle.receive_buf[1];
-	// memcpy(MainPacket.Timestamp, LORA_Handle.receive_buf + 2, TIMESTAMP_LENGTH);
-	// MainPacket.Length = LORA_Handle.receive_buf[6];
-	// memcpy(MainPacket.Payload, LORA_Handle.receive_buf + 7, MainPacket.Length);
-	// MainPacket.CRC = *(LORA_Handle.receive_buf + MainPacket.Length + 7);
 
 	return true;
 }
@@ -400,7 +407,15 @@ bool ParsePacket(void) {
 // main()
 /******************************************************************************/
 void app_main(void) {
+	// init variables
+	Period = DEFAULT_PERIOD;
+	Unique_NodeID = PLACEHOLDER_UNIQUEID; // place holder value
+
 	// Power_init();
+	ina219_init_desc(&MonitorHandle, INA219_ADDR_GND_GND, I2C_PORT, I2C_SDA, I2C_SCL);
+	ina219_init(&MonitorHandle);
+	ina219_configure(&MonitorHandle, INA219_BUS_RANGE_32V, INA219_GAIN_0_125, INA219_RES_12BIT_1S, INA219_RES_12BIT_1S, INA219_MODE_CONT_SHUNT_BUS);
+	ina219_calibrate(&MonitorHandle, SHUNT_RESISTANCE);
 
 	// Lora init
 	LoRaInit();
@@ -459,15 +474,10 @@ if (LoRaBegin(frequencyInHz, txPowerInDbm, tcxoVoltage, useRegulatorLDO) != 0) {
 	//init timer
 	esp_timer_init();
 
-	// assign unique node id
-	Unique_NodeID = PLACEHOLDER_UNIQUEID; // place holder value
-
-	// init variables
-	Period = DEFAULT_PERIOD;
-
 	// main program
 	while (1) {
 		int IterationTime;
+		float BusVoltage;
 
 		// Poll for RX
 		rx_len = LoRaReceive(RX_Buff, sizeof(RX_Buff));
@@ -491,6 +501,14 @@ if (LoRaBegin(frequencyInHz, txPowerInDbm, tcxoVoltage, useRegulatorLDO) != 0) {
 		}
 
 		// check power
+		ina219_get_bus_voltage(&MonitorHandle, &BusVoltage);
+		if(BusVoltage < CRITICAL_VOLTAGE) {
+			ESP_LOGE(TAG, "Below critical voltage!");
+			// update network that cluster head is shutting off?
+
+			// shut off
+			esp_sleep_enable_timer_wakeup(EMERGENCY_SLEEP_TIME_SEC * MICROSECOND_CONVERSION);
+		}
 
 	}
 }
