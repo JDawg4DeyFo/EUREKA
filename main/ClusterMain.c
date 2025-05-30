@@ -202,9 +202,18 @@ bool SendDebugPacket() {
 	
 	// send packet and set flags
 	tx_len = 9;
+
+	ESP_LOGI(TAG, "Debug packet function reached");
 	if (LoRaSend(buffer, tx_len, SX126x_TXMODE_SYNC) == false) {
 		ESP_LOGE(TAG,"LoRaSend fail");
 	}
+
+	int lost = GetPacketLost();
+	if (lost != 0) {
+		ESP_LOGW(pcTaskGetName(NULL), "%d packets lost", lost);
+	}
+
+	vTaskDelay(pdMS_TO_TICKS(1000));
 	
 	return true;
 }
@@ -233,7 +242,7 @@ bool SendPacket() {
 	// send packet and set flags
 	tx_len = 8 + MainPacket.Length;
 	if (LoRaSend(buffer, tx_len, SX126x_TXMODE_SYNC) == false) {
-		ESP_LOGE(TAG,"LoRaSend fail");
+			ESP_LOGE(TAG,"LoRaSend fail");
 	}
 
 	// Init response logic
