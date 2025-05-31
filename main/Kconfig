@@ -36,8 +36,12 @@ config LORA_CAD_TEST
 
 config MONITOR_TEST
 	bool "Build test for INA219"
+	
 config MEMORY_LIB_TEST
 	bool "Build Memory Library test"
+
+config CRAP
+	bool "Build crap"
 	
 endchoice
 

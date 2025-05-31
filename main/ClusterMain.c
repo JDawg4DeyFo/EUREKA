@@ -4,19 +4,22 @@
  * @brief Main program for cluster head.
  * @version 0.1
  * @date 2025-03-08
- * 
+ *
  * @copyright Copyright (c) 2025
- * 
+ *
  */
-
 
 // Includes
 /******************************************************************************/
 #include <stddef.h>
+#include <stdio.h>
+#include <inttypes.h>
+#include <string.h>
+
+
 #include "esp_log.h"
 #include "esp_timer.h"
 #include "esp_sleep.h"
-#include <string.h>
 
 // #include "../include/Memory.h"
 #include "../include/Protocol.h"
@@ -25,15 +28,15 @@
 
 // Defines
 /******************************************************************************/
-#define SENDING_TIMEOUT_TIME 100 				// ACCURATE VALUE NEEDED. timeout for tx transmissions
+#define SENDING_TIMEOUT_TIME 100 // ACCURATE VALUE NEEDED. timeout for tx transmissions
 #define PLACEHOLDER_UNIQUEID 102;
 
-#define EMERGENCY_SLEEP_TIME_SEC 600			// NOTE: Should probably changed and refined
+#define EMERGENCY_SLEEP_TIME_SEC 600 // NOTE: Should probably changed and refined
 #define MICROSECOND_CONVERSION 1000000
 
 // Voltage monitor defines
 #define SHUNT_RESISTANCE 0.24
-#define CRITICAL_VOLTAGE 11.0						// ACCURATE VALUE NEEDED ... minimum voltage is 10V for battery
+#define CRITICAL_VOLTAGE 11.0 // ACCURATE VALUE NEEDED ... minimum voltage is 10V for battery
 
 // i2c defines NOTE: probably should be replaced with CONFIG_I2C values
 #define I2C_SCL 42
@@ -45,9 +48,9 @@
 // Variables
 /******************************************************************************/
 static const char *TAG = "ClusterMain.c";
-static LORA_Packet_t MainPacket, StoragePacket;	// store packet is needed in case original packet
+static LORA_Packet_t MainPacket, StoragePacket; // store packet is needed in case original packet
 												// needs to be stored if no ack received
-static bool AwaitingResponse; // to check in main loop
+static bool AwaitingResponse;					// to check in main loop
 static int Send_StartTime, Last_DataRequest;
 static ina219_t MonitorHandle;
 static uint16_t Period;
@@ -58,21 +61,22 @@ uint8_t RX_Buff[MAX_BUFF];
 uint8_t rx_len, tx_len;
 // bool TX_Buf_Empty, RX_Buf_Empty;
 
-union {
+union
+{
 	float f;
 	uint8_t b[4];
 } float_converter;
-
 
 // Functions
 /******************************************************************************/
 // LORA ISR
 
-
 // Get packet from RX buffer and store into main packet
-bool GetPacket() {
+bool GetPacket()
+{
 	// Return false if there's no packet
-	if (rx_len <= 0) {
+	if (rx_len <= 0)
+	{
 		return false;
 	}
 
@@ -88,12 +92,14 @@ bool GetPacket() {
 }
 
 // Iterative CRC calculation
-uint8_t Iterative_CRC(bool Reset, uint8_t char_in){
+uint8_t Iterative_CRC(bool Reset, uint8_t char_in)
+{
 	// Checksum variable to maintain its value through iterative calls
 	static uint8_t Current_Checksum;
-	
+
 	// Check for reset flag
-	if(Reset) {
+	if (Reset)
+	{
 		Current_Checksum = 0;
 	}
 
@@ -106,10 +112,11 @@ uint8_t Iterative_CRC(bool Reset, uint8_t char_in){
 }
 
 // Calculate CRC for TX packet
-void Calculate_CRC(LORA_Packet_t *Packet) {
+void Calculate_CRC(LORA_Packet_t *Packet)
+{
 	int i;
 	uint8_t TempChar;
-	
+
 	// Simple char calculations
 	Iterative_CRC(true, Packet->NodeID);
 	Iterative_CRC(false, (uint8_t)Packet->Pkt_Type);
@@ -128,7 +135,8 @@ void Calculate_CRC(LORA_Packet_t *Packet) {
 	Iterative_CRC(false, Packet->Length);
 
 	// Payload
-	for (i = 0; i < (Packet->Length - 1); i++) {
+	for (i = 0; i < (Packet->Length - 1); i++)
+	{
 		Iterative_CRC(false, *(Packet->Payload + i));
 	}
 
@@ -136,13 +144,14 @@ void Calculate_CRC(LORA_Packet_t *Packet) {
 	Packet->CRC = Iterative_CRC(false, *(Packet->Payload + Packet->Length - 1));
 }
 
-bool SendAck() {
+bool SendAck()
+{
 	uint8_t ACK_CRC;
 	uint8_t buffer[MAX_PACKET_LENGTH];
 	// convert packet to array of chars
 	buffer[0] = PLACEHOLDER_UNIQUEID;
 	buffer[1] = TX_ACK;
-	
+
 	TempTimestamp = 100;
 	// timestamp copy
 	memcpy(buffer + 2, &TempTimestamp, 4);
@@ -161,23 +170,25 @@ bool SendAck() {
 
 	// store CRC
 	buffer[7] = ACK_CRC;
-	
+
 	// send packet and set flags
 	tx_len = 8;
-	if (LoRaSend(buffer, tx_len, SX126x_TXMODE_SYNC) == false) {
-		ESP_LOGE(TAG,"LoRaSend fail");
+	if (LoRaSend(buffer, tx_len, SX126x_TXMODE_SYNC) == false)
+	{
+		ESP_LOGE(TAG, "LoRaSend fail");
 	}
-	
+
 	return true;
 }
 
-bool SendDebugPacket() {
+bool SendDebugPacket()
+{
 	uint8_t ACK_CRC;
 	uint8_t buffer[MAX_PACKET_LENGTH];
 	// convert packet to array of chars
 	buffer[0] = PLACEHOLDER_UNIQUEID;
 	buffer[1] = DEBUG;
-	
+
 	TempTimestamp = 100;
 	// timestamp copy
 	memcpy(buffer + 2, &TempTimestamp, 4);
@@ -199,35 +210,38 @@ bool SendDebugPacket() {
 
 	// store CRC
 	buffer[8] = ACK_CRC;
-	
+
 	// send packet and set flags
 	tx_len = 9;
 
 	ESP_LOGI(TAG, "Debug packet function reached");
-	if (LoRaSend(buffer, tx_len, SX126x_TXMODE_SYNC) == false) {
-		ESP_LOGE(TAG,"LoRaSend fail");
+	if (LoRaSend(buffer, tx_len, SX126x_TXMODE_SYNC) == false)
+	{
+		ESP_LOGE(TAG, "LoRaSend fail");
 	}
 
 	int lost = GetPacketLost();
-	if (lost != 0) {
+	if (lost != 0)
+	{
 		ESP_LOGW(pcTaskGetName(NULL), "%d packets lost", lost);
 	}
 
 	vTaskDelay(pdMS_TO_TICKS(1000));
-	
+
 	return true;
 }
 
 // Send_Packet
-bool SendPacket() {
+bool SendPacket()
+{
 	uint8_t buffer[MAX_PACKET_LENGTH];
 
 	memset(buffer, 0, sizeof(buffer));
-	
+
 	// convert packet to array of chars
 	buffer[0] = MainPacket.NodeID;
 	buffer[1] = MainPacket.Pkt_Type;
-	
+
 	// timestamp copy
 	memcpy(buffer + 2, MainPacket.Timestamp, 4);
 
@@ -238,27 +252,29 @@ bool SendPacket() {
 	memcpy(buffer + 7, MainPacket.Payload, MainPacket.Length);
 
 	*(buffer + 7 + MainPacket.Length) = MainPacket.CRC;
-	
+
 	// send packet and set flags
 	tx_len = 8 + MainPacket.Length;
-	if (LoRaSend(buffer, tx_len, SX126x_TXMODE_SYNC) == false) {
-			ESP_LOGE(TAG,"LoRaSend fail");
+	if (LoRaSend(buffer, tx_len, SX126x_TXMODE_SYNC) == false)
+	{
+		ESP_LOGE(TAG, "LoRaSend fail");
 	}
 
 	// Init response logic
 	Send_StartTime = esp_timer_get_time();
 	AwaitingResponse = true;
-	
+
 	return true;
 }
 
 // send new period
-bool SendNewPeriod() {
+bool SendNewPeriod()
+{
 	// build packet
 	MainPacket.NodeID = PLACEHOLDER_UNIQUEID;
 	MainPacket.Pkt_Type = PERIOD_UPDATE;
 
-	TempTimestamp = 100;	// replace with actual value later
+	TempTimestamp = 100; // replace with actual value later
 	memcpy(MainPacket.Timestamp, &TempTimestamp, 4);
 
 	// redundant main packet period update, but good to be safe just in case
@@ -268,7 +284,7 @@ bool SendNewPeriod() {
 	MainPacket.Length = 2;
 
 	Calculate_CRC(&MainPacket);
-	
+
 	// store packet in case it needs to get stored
 	StoragePacket = MainPacket;
 	SendPacket();
@@ -277,12 +293,14 @@ bool SendNewPeriod() {
 }
 
 // send data request
-bool SendSensorDataRequest() {
+bool SendSensorDataRequest()
+{
 
 	return true;
 }
 
-bool StorePacket() {
+bool StorePacket()
+{
 	AwaitingResponse = false;
 
 	// write storage packet into sd card
@@ -291,163 +309,175 @@ bool StorePacket() {
 }
 
 // Parse any packets
-bool ParsePacket(void) {
+bool ParsePacket(void)
+{
 	// Switch case depending on packet type
 	// NOTE: All cases should verify integrity of packet
-	switch (MainPacket.Pkt_Type) {
-		case NOTHING:
+	switch (MainPacket.Pkt_Type)
+	{
+	case NOTHING:
+		break;
+
+	// Packet contains raw sensor data
+	// Future revision might contain process_sensor_data() function
+	// to convert raw sensor node data into transmit friendly processed data
+	case RAW_SENSOR_DATA:
+		// Check if awaiting response
+		if (AwaitingResponse)
+		{
+			StorePacket();
+		}
+
+		// Send ACK
+		SendAck();
+
+		SendPacket();
+		break;
+
+	// Packet contains a period update for sensor nodes
+	case PERIOD_UPDATE:
+		// Check if awaiting response
+		if (AwaitingResponse)
+		{
+			StorePacket();
+		}
+
+		// Send ACK
+		SendAck();
+
+		// Update period
+		Period = MainPacket.Payload[0] << BYTE_SHIFT;
+		Period += MainPacket.Payload[1];
+
+		// send new period
+		SendNewPeriod();
+		break;
+
+	// Packet contains sensor data request
+	// packet shoudn't have any payload
+	// all cluster head has to do is send a sense request to sensor nodes
+	// response will be handled just like any other raw sensor data packet
+	// cluster head should also relay data request
+	case REQUEST_SENSOR_DATA:
+		// Check if awaiting response
+		if (AwaitingResponse)
+		{
+			StorePacket();
+		}
+
+		// Send ACK
+		SendAck();
+
+		// Check that data wasn't just requested
+		int Last_Request_Time = (esp_timer_get_time() - Last_DataRequest) / 1000;
+		if (Last_Request_Time < DATAREQ_DEBOUNCE_MS)
+		{
 			break;
-		
-		// Packet contains raw sensor data
-		// Future revision might contain process_sensor_data() function
-		// to convert raw sensor node data into transmit friendly processed data
-		case RAW_SENSOR_DATA:	
-			// Check if awaiting response
-			if(AwaitingResponse) {
-				StorePacket();
-			}
+		}
 
-			// Send ACK
-			SendAck();
+		// Send data request
+		SendSensorDataRequest();
+		break;
 
-			SendPacket();
-			break;
+	// Packet contains processed sensor data
+	// here, the cluster head should act as a relay.
+	case PROCESSED_SENSOR_DATA:
+		// Check if awaiting response
+		if (AwaitingResponse)
+		{
+			StorePacket();
+		}
 
-		// Packet contains a period update for sensor nodes
-		case PERIOD_UPDATE:
-			// Check if awaiting response
-			if(AwaitingResponse) {
-				StorePacket();
-			}
+		// Send ACK
+		SendAck();
 
-			// Send ACK
-			SendAck();
+		// Forward data
+		SendPacket();
+		break;
 
-			// Update period
-			Period = MainPacket.Payload[0] << BYTE_SHIFT;
-			Period += MainPacket.Payload[1];
+	case TIME_UPDATE:
+		// Check if awaiting response
+		if (AwaitingResponse)
+		{
+			StorePacket();
+		}
 
-			// send new period
-			SendNewPeriod();
-			break;
+		// Send ACK
+		SendAck();
 
-		// Packet contains sensor data request
-		// packet shoudn't have any payload
-		// all cluster head has to do is send a sense request to sensor nodes
-		// response will be handled just like any other raw sensor data packet
-		// cluster head should also relay data request
-		case REQUEST_SENSOR_DATA:
-			// Check if awaiting response
-			if(AwaitingResponse) {
-				StorePacket();
-			}
+		// update local time
+		// updatetime()
+		// Foward data
+		break;
 
-			// Send ACK
-			SendAck();
+	case BATTERY_DATA:
+		// Check if awaiting response
+		if (AwaitingResponse)
+		{
+			StorePacket();
+		}
 
-			// Check that data wasn't just requested
-			int Last_Request_Time = (esp_timer_get_time() - Last_DataRequest) / 1000;
-			if (Last_Request_Time < DATAREQ_DEBOUNCE_MS) {
-				break;
-			}
+		// Send ACK
+		SendAck();
 
-			// Send data request
-			SendSensorDataRequest();
-			break;
+		// Foward data
+		SendPacket();
 
-		// Packet contains processed sensor data
-		// here, the cluster head should act as a relay.
-		case PROCESSED_SENSOR_DATA:
-			// Check if awaiting response
-			if(AwaitingResponse) {
-				StorePacket();
-			}
+		break;
 
-			// Send ACK
-			SendAck();
+	case BATTERY_REQUEST:
+		// Check if awaiting response
+		if (AwaitingResponse)
+		{
+			StorePacket();
+		}
 
-			// Forward data
-			SendPacket();
-			break;
+		// Send ACK
+		SendAck();
 
-		case TIME_UPDATE:
-			// Check if awaiting response
-			if(AwaitingResponse) {
-				StorePacket();
-			}
+		// Foward data
+		SendPacket();
 
-			// Send ACK
-			SendAck();
+		break;
 
-			// update local time
-			// updatetime()
-			// Foward data
-			break;
-
-		case BATTERY_DATA:
-			// Check if awaiting response
-			if(AwaitingResponse) {
-				StorePacket();
-			}
-
-			// Send ACK
-			SendAck();
-
-			// Foward data
-			SendPacket();
-			
-			break;
-
-		case BATTERY_REQUEST:
-			// Check if awaiting response
-			if(AwaitingResponse) {
-				StorePacket();
-			}
-
-			// Send ACK
-			SendAck();
-
-			// Foward data
-			SendPacket();
-			
-			break;
-
-		case DEBUG:
+	case DEBUG:
 #ifdef CONFIG_DEBUG
-			ESP_LOGI(TAG, "Debug packet received");
+		ESP_LOGI(TAG, "Debug packet received");
 #endif
 
-			// Check if awaiting response
-			if(AwaitingResponse) {
-				StorePacket();
-			}
+		// Check if awaiting response
+		if (AwaitingResponse)
+		{
+			StorePacket();
+		}
 
-			// Send ACK
-			SendAck();
+		// Send ACK
+		SendAck();
 
-			// Foward data
-			SendPacket();
-			
-			break;
+		// Foward data
+		SendPacket();
 
-		// simple set flag low
-		case TX_ACK:
-			AwaitingResponse = false;
-			break;
+		break;
 
-		default: 
-			// Check if awaiting response
-			if(AwaitingResponse) {
-				StorePacket();
-			}
+	// simple set flag low
+	case TX_ACK:
+		AwaitingResponse = false;
+		break;
 
-			// Send ACK
-			SendAck();
+	default:
+		// Check if awaiting response
+		if (AwaitingResponse)
+		{
+			StorePacket();
+		}
 
-			// Foward data
-			SendPacket();
-			
-			break;
+		// Send ACK
+		SendAck();
+
+		// Foward data
+		SendPacket();
+
+		break;
 	}
 
 	return true;
@@ -457,7 +487,8 @@ bool ParsePacket(void) {
 
 // main()
 /******************************************************************************/
-void app_main(void) {
+void app_main(void)
+{
 	// init variables
 	Period = DEFAULT_PERIOD;
 	Unique_NodeID = PLACEHOLDER_UNIQUEID; // place holder value
@@ -491,22 +522,24 @@ void app_main(void) {
 	// txco power configurations for LORA
 #if CONFIG_USE_TCXO
 	ESP_LOGW(TAG, "Enable TCXO");
-	float tcxoVoltage = 3.3; // use TCXO
+	float tcxoVoltage = 3.3;	 // use TCXO
 	bool useRegulatorLDO = true; // use DCDC + LDO
 #else
 	ESP_LOGW(TAG, "Disable TCXO");
-	float tcxoVoltage = 0.0; // don't use TCXO
+	float tcxoVoltage = 0.0;	  // don't use TCXO
 	bool useRegulatorLDO = false; // use only LDO in all modes
 #endif
 
-// begin the lora module
-if (LoRaBegin(frequencyInHz, txPowerInDbm, tcxoVoltage, useRegulatorLDO) != 0) {
+	// begin the lora module
+	if (LoRaBegin(frequencyInHz, txPowerInDbm, tcxoVoltage, useRegulatorLDO) != 0)
+	{
 		ESP_LOGE(TAG, "Does not recognize the module");
-		while(1) {
+		while (1)
+		{
 			vTaskDelay(1);
 		}
 	}
-	
+
 	uint8_t spreadingFactor = 7;
 	uint8_t bandwidth = 4;
 	uint8_t codingRate = 1;
@@ -521,18 +554,20 @@ if (LoRaBegin(frequencyInHz, txPowerInDbm, tcxoVoltage, useRegulatorLDO) != 0) {
 #endif
 	LoRaConfig(spreadingFactor, bandwidth, codingRate, preambleLength, payloadLen, crcOn, invertIrq);
 
-	//esp_timer_init() // apparently this is already initialized
+	// esp_timer_init() // apparently this is already initialized
 
 	int IterationCount = 0;
 
 	// main program
-	while (1) {
+	while (1)
+	{
 		int IterationTime;
 		float BusVoltage;
 
 		// Poll for RX
 		rx_len = LoRaReceive(RX_Buff, sizeof(RX_Buff));
-		if ( rx_len > 0) {
+		if (rx_len > 0)
+		{
 			ESP_LOGI(TAG, "%d byte packet received:[%.*s]", rx_len, rx_len, RX_Buff);
 
 			int8_t rssi, snr;
@@ -545,37 +580,33 @@ if (LoRaBegin(frequencyInHz, txPowerInDbm, tcxoVoltage, useRegulatorLDO) != 0) {
 
 		// iteration time in ms
 		IterationTime = (esp_timer_get_time() - Send_StartTime) / 1000;
-		if(AwaitingResponse && (IterationTime > RESPONSE_TIMEOUT_MS)) {
+		if (AwaitingResponse && (IterationTime > RESPONSE_TIMEOUT_MS))
+		{
 			// store stuff
 			ESP_LOGW(TAG, "No response from node");
 			StorePacket();
 		}
 
 		// check power
-		ina219_get_bus_voltage(&MonitorHandle, &BusVoltage);
-		if(BusVoltage < CRITICAL_VOLTAGE) {
-			// ESP_LOGE(TAG, "Below critical voltage!");
-			// update network that cluster head is shutting off?
+		// ina219_get_bus_voltage(&MonitorHandle, &BusVoltage);
+		// if (BusVoltage < CRITICAL_VOLTAGE)
+		// {
+		// 	// ESP_LOGE(TAG, "Below critical voltage!");
+		// 	// update network that cluster head is shutting off?
 
-			// shut off
-			uint64_t wakeup_time = EMERGENCY_SLEEP_TIME_SEC * MICROSECOND_CONVERSION;
-			esp_sleep_enable_timer_wakeup(wakeup_time);
-			// ESP_LOGI(TAG, "Entering deep sleep for %d seconds...", EMERGENCY_SLEEP_TIME_SEC);
+		// 	// shut off
+		// 	uint64_t wakeup_time = EMERGENCY_SLEEP_TIME_SEC * MICROSECOND_CONVERSION;
+		// 	esp_sleep_enable_timer_wakeup(wakeup_time);
+		// 	// ESP_LOGI(TAG, "Entering deep sleep for %d seconds...", EMERGENCY_SLEEP_TIME_SEC);
 
-			// Light sleep start
-			// esp_deep_sleep_start(); // deep sleep mode but LoRa wakeup is enabled
-		}
+		// 	// Light sleep start
+		// 	// esp_deep_sleep_start(); // deep sleep mode but LoRa wakeup is enabled
+		// }
 
 #ifdef CONFIG_DEBUG_STUFF
 		// should just be replaced with a parallel tx task probably...
 		// would definitley be hard to cordinate the timing and hardware constraints tho
-		IterationCount++;
-		if(IterationCount > 100) {
-			ESP_LOGI(TAG, "Sending out debug packet");
-			SendDebugPacket();
-			IterationCount = 0;
-		}
+		SendDebugPacket();
 #endif
-
 	}
 }
