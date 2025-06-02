@@ -540,7 +540,7 @@ void app_main(void)
 		}
 	}
 
-	uint8_t spreadingFactor = 7;
+	uint8_t spreadingFactor = 12;
 	uint8_t bandwidth = 4;
 	uint8_t codingRate = 1;
 	uint16_t preambleLength = 8;
@@ -588,20 +588,20 @@ void app_main(void)
 		}
 
 		// check power
-		// ina219_get_bus_voltage(&MonitorHandle, &BusVoltage);
-		// if (BusVoltage < CRITICAL_VOLTAGE)
-		// {
-		// 	// ESP_LOGE(TAG, "Below critical voltage!");
-		// 	// update network that cluster head is shutting off?
+		ina219_get_bus_voltage(&MonitorHandle, &BusVoltage);
+		if (BusVoltage < CRITICAL_VOLTAGE)
+		{
+			// ESP_LOGE(TAG, "Below critical voltage!");
+			// update network that cluster head is shutting off?
 
-		// 	// shut off
-		// 	uint64_t wakeup_time = EMERGENCY_SLEEP_TIME_SEC * MICROSECOND_CONVERSION;
-		// 	esp_sleep_enable_timer_wakeup(wakeup_time);
-		// 	// ESP_LOGI(TAG, "Entering deep sleep for %d seconds...", EMERGENCY_SLEEP_TIME_SEC);
+			// shut off
+			uint64_t wakeup_time = EMERGENCY_SLEEP_TIME_SEC * MICROSECOND_CONVERSION;
+			esp_sleep_enable_timer_wakeup(wakeup_time);
+			// ESP_LOGI(TAG, "Entering deep sleep for %d seconds...", EMERGENCY_SLEEP_TIME_SEC);
 
-		// 	// Light sleep start
-		// 	// esp_deep_sleep_start(); // deep sleep mode but LoRa wakeup is enabled
-		// }
+			// Light sleep start
+			// esp_deep_sleep_start(); // deep sleep mode but LoRa wakeup is enabled
+		}
 
 #ifdef CONFIG_DEBUG_STUFF
 		// should just be replaced with a parallel tx task probably...

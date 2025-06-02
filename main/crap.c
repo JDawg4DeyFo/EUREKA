@@ -26,6 +26,7 @@ static const char *TAG = "Crap.c";
 
 static uint32_t TempTimestamp;
 static ina219_t MonitorHandle;
+uint8_t tx_len;
 
 // Iterative CRC calculation
 uint8_t Iterative_CRC(bool Reset, uint8_t char_in)
@@ -45,6 +46,56 @@ uint8_t Iterative_CRC(bool Reset, uint8_t char_in)
 
 	// Return value
 	return Current_Checksum;
+}
+
+bool SendDebugPacket()
+{
+	uint8_t ACK_CRC;
+	uint8_t buffer[MAX_PACKET_LENGTH];
+	// convert packet to array of chars
+	buffer[0] = PLACEHOLDER_UNIQUEID;
+	buffer[1] = DEBUG;
+
+	TempTimestamp = 100;
+	// timestamp copy
+	memcpy(buffer + 2, &TempTimestamp, 4);
+
+	// convert length
+	buffer[6] = DEBUG_LEN;
+
+	buffer[7] = 8;
+
+	// Calculate CRC  	NOTE: value doesn't have to be calculated ... it's the same every time
+	Iterative_CRC(true, buffer[0]);
+	Iterative_CRC(false, buffer[1]);
+	Iterative_CRC(false, buffer[2]);
+	Iterative_CRC(false, buffer[3]);
+	Iterative_CRC(false, buffer[4]);
+	Iterative_CRC(false, buffer[5]);
+	Iterative_CRC(false, buffer[6]);
+	ACK_CRC = Iterative_CRC(false, buffer[7]);
+
+	// store CRC
+	buffer[8] = ACK_CRC;
+
+	// send packet and set flags
+	tx_len = 9;
+
+	ESP_LOGI(TAG, "Debug packet function reached");
+	if (LoRaSend(buffer, tx_len, SX126x_TXMODE_SYNC) == false)
+	{
+		ESP_LOGE(TAG, "LoRaSend fail");
+	}
+
+	int lost = GetPacketLost();
+	if (lost != 0)
+	{
+		ESP_LOGW(pcTaskGetName(NULL), "%d packets lost", lost);
+	}
+
+	vTaskDelay(pdMS_TO_TICKS(1000));
+
+	return true;
 }
 
 void app_main()
@@ -85,65 +136,7 @@ void app_main()
 	LoRaConfig(spreadingFactor, bandwidth, codingRate, preambleLength, payloadLen, crcOn, invertIrq);
 
 	while(1) {
-uint8_t ACK_CRC;
-	uint8_t buffer[MAX_PACKET_LENGTH];
-	// convert packet to array of chars
-	buffer[0] = PLACEHOLDER_UNIQUEID;
-	buffer[1] = DEBUG;
-
-	TempTimestamp = 100;
-	// timestamp copy
-	memcpy(buffer + 2, &TempTimestamp, 4);
-
-	// convert length
-	buffer[6] = DEBUG_LEN;
-
-	buffer[7] = 8;
-
-	// Calculate CRC  	NOTE: value doesn't have to be calculated ... it's the same every time
-	Iterative_CRC(true, buffer[0]);
-	Iterative_CRC(false, buffer[1]);
-	Iterative_CRC(false, buffer[2]);
-	Iterative_CRC(false, buffer[3]);
-	Iterative_CRC(false, buffer[4]);
-	Iterative_CRC(false, buffer[5]);
-	Iterative_CRC(false, buffer[6]);
-	ACK_CRC = Iterative_CRC(false, buffer[7]);
-
-	// store CRC
-	buffer[8] = ACK_CRC;
-
-	// send packet and set flags
-	int tx_len = 9;
-
-	ESP_LOGI(TAG, "Debug packet function reached");
-	if (LoRaSend(buffer, tx_len, SX126x_TXMODE_SYNC) == false)
-	{
-		ESP_LOGE(TAG, "LoRaSend fail");
-	}
-
-	int lost = GetPacketLost();
-	if (lost != 0)
-	{
-		ESP_LOGW(pcTaskGetName(NULL), "%d packets lost", lost);
-	}
-
-	vTaskDelay(pdMS_TO_TICKS(1000));
-		
-		// this works
-		// uint8_t buf[256];
-		// int txLen = sprintf((char *)buf, "I hope this works");
-
-		// if (LoRaSend(buf, txLen, SX126x_TXMODE_SYNC) == false) {
-		// 	ESP_LOGE(TAG, "LoRa send fail");
-		// }
-
-		// int lost = GetPacketLost();
-		// if (lost != 0) {
-		// 	ESP_LOGW(TAG, "%d packets lost", lost);
-		// }
-
-		// vTaskDelay(pdMS_TO_TICKS(1000));
+		SendDebugPacket();
 	}
 
 }
