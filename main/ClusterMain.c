@@ -44,7 +44,7 @@
 #define I2C_PORT 0
 // Datatypes
 /******************************************************************************/
-type struct {
+typedef struct {
 	uint8_t *Buffer;
 	bool *Receiving;
 	bool *BufferReady;
@@ -73,10 +73,10 @@ static bool RX_Flag, Buf_Flag, TX_Flag;
 // bool TX_Buf_Empty, RX_Buf_Empty;
 
 static LoRaTaskParams TaskFlags = {
-	.buffer = Raw_Buf,
-	.Receiving = *RX_Flag,
-	.BufferReady = *Buf_Flag,
-	.Sending = *TX_Flag,
+	.Buffer = Raw_Buf,
+	.Receiving = &RX_Flag,
+	.BufferReady = &Buf_Flag,
+	.Sending = &TX_Flag,
 };
 
 union
@@ -91,16 +91,18 @@ union
 void task_rx(void *pvParameters) {
 	// Initialize passed parameters
 	LoRaTaskParams *params = (LoRaTaskParams *)pvParameters;
-	uint8_t *buf = params->buffer;
+	uint8_t *buf = params->Buffer;
 	bool *RX = params->Receiving;
 	bool *buf_ready = params->BufferReady;
-	bool *TX = params->TX_Flag;
+	bool *TX = params->Sending;
 
 	// log start
 	ESP_LOGI(pcTaskGetName(NULL), "Start");
 	
 	// Main loop
 	while(1) {
+		vTaskDelay(1); // avoiding watchdog
+
 		// Check if the lora module is in TX use
 		if(*TX == true) {
 			continue;
@@ -121,7 +123,6 @@ void task_rx(void *pvParameters) {
 #endif
 		}
 		*RX = false; // unflag RX use
-		vTaskDelay(1);
 	}
 }
 
@@ -149,7 +150,7 @@ bool GetPacket()
 
 	// reset flag
 	TX_Flag = false;
-	
+
 	return true;
 }
 
@@ -635,25 +636,24 @@ void app_main(void)
 
 	// esp_timer_init() // apparently this is already initialized
 
-	int IterationCount = 0;
+	// Start RX
+	xTaskCreate(&task_rx, "RX", 1024*4, &TaskFlags, 5, NULL);
 
 	// main program
+	int IterationCount = 0;
 	while (1)
-	{
+	{	
+#ifdef CONFIG_DEBUG_STUFF
+		// One iteration takes about 250 us
+		// int start;
+		// start = esp_timer_get_time();
+#endif
+		IterationCount ++;
 		int IterationTime;
 		float BusVoltage;
 
-		// Check rx
-		// rx_len = LoRaReceive(RX_Buff, sizeof(RX_Buff));
-		if (rx_len > 0)
-		{
-			ESP_LOGI(TAG, "%d byte packet received:[%.*s]", rx_len, rx_len, RX_Buff);
-
-			int8_t rssi, snr;
-			GetPacketStatus(&rssi, &snr);
-			ESP_LOGI(TAG, "rssi=%d[dBm] snr=%d[dB]", rssi, snr);
-
-			GetPacket();
+		// Check for packets
+		if (GetPacket()) {
 			ParsePacket();
 		}
 
@@ -683,9 +683,13 @@ void app_main(void)
 		}
 
 #ifdef CONFIG_DEBUG_STUFF
-		// should just be replaced with a parallel tx task probably...
+		// int end = esp_timer_get_time();
+		// ESP_LOGI(TAG, "One loop took %d us", end - start);
+		if(IterationCount > 2000) {
+			// should just be replaced with a parallel tx task probably...
 		// would definitley be hard to cordinate the timing and hardware constraints tho
 		SendDebugPacket();
+		}
 #endif
 	}
 }
