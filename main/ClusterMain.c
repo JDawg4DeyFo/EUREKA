@@ -44,6 +44,13 @@
 #define I2C_PORT 0
 // Datatypes
 /******************************************************************************/
+type struct {
+	uint8_t *Buffer;
+	bool *Receiving;
+	bool *BufferReady;
+	bool *Sending;
+} LoRaTaskParams;
+
 
 // Variables
 /******************************************************************************/
@@ -59,7 +66,18 @@ uint8_t Unique_NodeID;
 uint8_t TX_Buf[MAX_BUFF];
 uint8_t RX_Buff[MAX_BUFF];
 uint8_t rx_len, tx_len;
+
+static uint8_t Raw_Buf[MAX_BUFF];
+static bool RX_Flag, Buf_Flag, TX_Flag;
+
 // bool TX_Buf_Empty, RX_Buf_Empty;
+
+static LoRaTaskParams TaskFlags = {
+	.buffer = Raw_Buf,
+	.Receiving = *RX_Flag,
+	.BufferReady = *Buf_Flag,
+	.Sending = *TX_Flag,
+};
 
 union
 {
@@ -69,25 +87,69 @@ union
 
 // Functions
 /******************************************************************************/
-// LORA ISR
+// LORA RX task
+void task_rx(void *pvParameters) {
+	// Initialize passed parameters
+	LoRaTaskParams *params = (LoRaTaskParams *)pvParameters;
+	uint8_t *buf = params->buffer;
+	bool *RX = params->Receiving;
+	bool *buf_ready = params->BufferReady;
+	bool *TX = params->TX_Flag;
+
+	// log start
+	ESP_LOGI(pcTaskGetName(NULL), "Start");
+	
+	// Main loop
+	while(1) {
+		// Check if the lora module is in TX use
+		if(*TX == true) {
+			continue;
+		}
+
+		// otherwise, continue on
+		*RX = true;	// flag RX use
+		uint8_t rxLen = LoRaReceive(buf, sizeof(buf));
+		if (rxLen > 0) {
+			*buf_ready = true;
+
+#ifdef CONFIG_DEBUG_STUFF
+			ESP_LOGI(pcTaskGetName(NULL), "%d byte packet received:[%.*s]", rxLen, rxLen, buf);
+
+			int8_t rssi, snr;
+			GetPacketStatus(&rssi, &snr);
+			ESP_LOGI(pcTaskGetName(NULL), "rssi=%d[dBm] snr=%d[dB]", rssi, snr);
+#endif
+		}
+		*RX = false; // unflag RX use
+		vTaskDelay(1);
+	}
+}
 
 // Get packet from RX buffer and store into main packet
 bool GetPacket()
 {
 	// Return false if there's no packet
-	if (rx_len <= 0)
+	if (!Buf_Flag)
 	{
 		return false;
 	}
 
-	// Transfer bytes from lora buffer into main packet structure
-	MainPacket.NodeID = RX_Buff[0];
-	MainPacket.Pkt_Type = RX_Buff[1];
-	memcpy(MainPacket.Timestamp, RX_Buff + 2, TIMESTAMP_LENGTH);
-	MainPacket.Length = RX_Buff[6];
-	memcpy(MainPacket.Payload, RX_Buff + 7, MainPacket.Length);
-	MainPacket.CRC = *(RX_Buff + MainPacket.Length + 7);
+	// Set TX flag high to ensure buffer isn't written to by RX task
+	TX_Flag = true;
+	Buf_Flag = false;
 
+
+	// Transfer bytes from lora buffer into main packet structure
+	MainPacket.NodeID = Raw_Buf[0];
+	MainPacket.Pkt_Type = Raw_Buf[1];
+	memcpy(MainPacket.Timestamp, Raw_Buf + 2, TIMESTAMP_LENGTH);
+	MainPacket.Length = Raw_Buf[6];
+	memcpy(MainPacket.Payload, Raw_Buf + 7, MainPacket.Length);
+	MainPacket.CRC = *(Raw_Buf + MainPacket.Length + 7);
+
+	// reset flag
+	TX_Flag = false;
+	
 	return true;
 }
 
@@ -170,19 +232,28 @@ bool SendAck()
 
 	// store CRC
 	buffer[7] = ACK_CRC;
-
-	// send packet and set flags
 	tx_len = 8;
+	
+	// wait for lora module to be available
+	while(RX_Flag);
+	
+	// Set TX flag and send
+	TX_Flag = true;
 	if (LoRaSend(buffer, tx_len, SX126x_TXMODE_SYNC) == false)
 	{
 		ESP_LOGE(TAG, "LoRaSend fail");
 	}
+
+	// reset flag
+	TX_Flag = false;
 
 	return true;
 }
 
 bool SendDebugPacket()
 {
+	ESP_LOGI(TAG, "Debug packet send reached");
+
 	uint8_t ACK_CRC;
 	uint8_t buffer[MAX_PACKET_LENGTH];
 	// convert packet to array of chars
@@ -214,19 +285,18 @@ bool SendDebugPacket()
 	// send packet and set flags
 	tx_len = 9;
 
-	ESP_LOGI(TAG, "Debug packet function reached");
+	// wait for lora module to be available
+	while(RX_Flag);
+	
+	// Set TX flag and send
+	TX_Flag = true;
 	if (LoRaSend(buffer, tx_len, SX126x_TXMODE_SYNC) == false)
 	{
 		ESP_LOGE(TAG, "LoRaSend fail");
 	}
 
-	int lost = GetPacketLost();
-	if (lost != 0)
-	{
-		ESP_LOGW(pcTaskGetName(NULL), "%d packets lost", lost);
-	}
-
-	vTaskDelay(pdMS_TO_TICKS(1000));
+	// reset flag
+	TX_Flag = false;
 
 	return true;
 }
@@ -255,10 +325,19 @@ bool SendPacket()
 
 	// send packet and set flags
 	tx_len = 8 + MainPacket.Length;
+	
+	// wait for lora module to be available
+	while(RX_Flag);
+	
+	// Set TX flag and send
+	TX_Flag = true;
 	if (LoRaSend(buffer, tx_len, SX126x_TXMODE_SYNC) == false)
 	{
 		ESP_LOGE(TAG, "LoRaSend fail");
 	}
+
+	// reset flag
+	TX_Flag = false;
 
 	// Init response logic
 	Send_StartTime = esp_timer_get_time();
@@ -564,8 +643,8 @@ void app_main(void)
 		int IterationTime;
 		float BusVoltage;
 
-		// Poll for RX
-		rx_len = LoRaReceive(RX_Buff, sizeof(RX_Buff));
+		// Check rx
+		// rx_len = LoRaReceive(RX_Buff, sizeof(RX_Buff));
 		if (rx_len > 0)
 		{
 			ESP_LOGI(TAG, "%d byte packet received:[%.*s]", rx_len, rx_len, RX_Buff);
