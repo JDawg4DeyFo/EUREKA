@@ -200,47 +200,115 @@ void Calculate_CRC(LORA_Packet_t *Packet) {
 	Packet->CRC = Iterative_CRC(false, *(Packet->Payload + Packet->Length - 1));
 }
 
+bool SendAck()
+{
+	uint8_t ACK_CRC;
+	uint8_t buffer[MAX_PACKET_LENGTH];
+	// convert packet to array of chars
+	buffer[0] = PLACEHOLDER_UNIQUEID;
+	buffer[1] = TX_ACK;
+
+	TempTimestamp = 100;
+	// timestamp copy
+	memcpy(buffer + 2, &TempTimestamp, 4);
+
+	// convert length
+	buffer[6] = TX_ACK_LEN;
+
+	// Calculate CRC  	NOTE: value doesn't have to be calculated ... it's the same every time
+	Iterative_CRC(true, buffer[0]);
+	Iterative_CRC(false, buffer[1]);
+	Iterative_CRC(false, buffer[2]);
+	Iterative_CRC(false, buffer[3]);
+	Iterative_CRC(false, buffer[4]);
+	Iterative_CRC(false, buffer[5]);
+	ACK_CRC = Iterative_CRC(false, buffer[6]);
+
+	// store CRC
+	buffer[7] = ACK_CRC;
+	tx_len = 8;
+	
+	// wait for lora module to be available
+	while(RX_Flag);
+	
+	// Set TX flag and send
+	TX_Flag = true;
+	if (LoRaSend(buffer, tx_len, SX126x_TXMODE_SYNC) == false)
+	{
+		ESP_LOGE(TAG, "LoRaSend fail");
+	}
+
+	// reset flag
+	TX_Flag = false;
+
+	return true;
+}
+
 bool SendMainPacket() {
 	uint8_t buffer[MAX_PACKET_LENGTH];
-	uint8_t len;
-	
+
+	memset(buffer, 0, sizeof(buffer));
+
 	// convert packet to array of chars
 	buffer[0] = MainPacket.NodeID;
 	buffer[1] = MainPacket.Pkt_Type;
-	
+
 	// timestamp copy
-	memcpy(buffer[2], MainPacket.Timestamp, 4);
+	memcpy(buffer + 2, MainPacket.Timestamp, 4);
 
 	// convert length
 	buffer[6] = MainPacket.Length;
 
 	// convert length
-	memcpy(buffer[7], MainPacket.Payload, MainPacket.Length);
+	memcpy(buffer + 7, MainPacket.Payload, MainPacket.Length);
 
-	*(buffer + 7 + MainPacket.Legnth) = MainPacket.CRC;
-	
+	*(buffer + 7 + MainPacket.Length) = MainPacket.CRC;
+
 	// send packet and set flags
-	sx1262_lora_send(&LORA_Handle, buffer, len);
-	Sending = true;
-	Sending_StartTime = esp_timer_get_time();
+	tx_len = 8 + MainPacket.Length;
+	
+	// wait for lora module to be available
+	while(RX_Flag);
+	
+	// Set TX flag and send
+	TX_Flag = true;
+	if (LoRaSend(buffer, tx_len, SX126x_TXMODE_SYNC) == false)
+	{
+		ESP_LOGE(TAG, "LoRaSend fail");
+	}
+
+	// reset flag
+	TX_Flag = false;
+
+	// Init response logic
+	Send_StartTime = esp_timer_get_time();
+	AwaitingResponse = true;
 
 	return true;
 }
 
 // Get packet from RX buffer and store into main packet
 bool GetPacket() {
-	// return false if handle isn't initialized
-	if (LORA_Handle == NULL) {
+	// Return false if there's no packet
+	if (!Buf_Flag)
+	{
 		return false;
 	}
 
+	// Set TX flag high to ensure buffer isn't written to by RX task
+	TX_Flag = true;
+	Buf_Flag = false;
+
 	// Transfer bytes from lora buffer into main packet structure
-	MainPacket.NodeID = LORA_Handle.receive_buf[0];
-	MainPacket.Pkt_Type = LORA_Handle.receive_buf[1];
-	memcpy(MainPacket.Timestamp, LORA_Handle.receive_buf + 2, TIMESTAMP_LENGTH);
-	MainPacket.Length = LORA_Handle.receive_buf[6];
-	memcpy(MainPacket.Payload, LORA_Handle.receive_buf + 7, MainPacket.Length);
-	MainPacket.CRC = *(LORA_Handle.receive_buf + MainPacket.Length + 7);
+	MainPacket.NodeID = Raw_Buf[0];
+	MainPacket.Pkt_Type = Raw_Buf[1];
+	memcpy(MainPacket.Timestamp, Raw_Buf + 2, TIMESTAMP_LENGTH);
+	MainPacket.Length = Raw_Buf[6];
+	memcpy(MainPacket.Payload, Raw_Buf + 7, MainPacket.Length);
+	MainPacket.CRC = *(Raw_Buf + MainPacket.Length + 7);
+
+	// reset flag
+	TX_Flag = false;
 
 	return true;
 }
@@ -253,6 +321,10 @@ bool ParsePacket() {
 			//update period
 			Period = MainPacket.Payload[0] << BYTE_SHIFT;
 			Period += MainPacket.Payload[1];
+
+			// Acknowledge Packet
+			SendAck();
+
 			break;
 
 		case REQUEST_SENSOR_DATA:
@@ -294,6 +366,9 @@ bool ParsePacket() {
 
 			// Calculate and store CRC
 			Calculate_CRC(&MainPacket);
+
+			// Acknowledge Packet
+			SendAck();
 
 			return Send_MainPacket();
 
@@ -394,15 +469,23 @@ void app_main(void)
 	// Start RX
 	xTaskCreate(&task_rx, "RX", 1024*4, &TaskFlags, 5, NULL);
 	
+	int IterationCount = 0;
 	while(1) {
+		// Avoid watchdog
+		vTaskDelay(1);
+
 		// check incoming packets
 		if (MainPacket_Ready) {
 			GetPacket();
 			ParsePacket();
 		}
 
-		// if some time has passed: 
+		// Stay awake for some time before sleep
+		if (IterationCount++ < 20000) {
+			continue;
+		}
 
+		// if some time has passed: 
 		// Go to sleep for period
 		esp_sleep_enable_timer_wakeup(Period * MICROSECOND_TO_SECOND);
 		esp_deep_sleep_start();
