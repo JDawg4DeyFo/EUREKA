@@ -620,6 +620,7 @@ void app_main(void)
 		}
 	}
 
+	// NOTE: These variables could and maybe should be configured in the menuconfig
 	uint8_t spreadingFactor = 12;
 	uint8_t bandwidth = 4;
 	uint8_t codingRate = 1;

@@ -44,6 +44,13 @@ union {
 	uint8_t b[4];
 } float_converter;
 
+typedef struct {
+	uint8_t *Buffer;
+	bool *Receiving;
+	bool *BufferReady;
+	bool *Sending;
+} LoRaTaskParams;
+
 // Variables
 /******************************************************************************/
 static uint16_t Period;
@@ -56,8 +63,60 @@ static uint8_t Unique_NodeID;
 static uint32_t TempTimestamp;
 
 
+static uint8_t Raw_Buf[MAX_BUFF];
+static bool RX_Flag, Buf_Flag, TX_Flag;
+
+// bool TX_Buf_Empty, RX_Buf_Empty;
+
+static LoRaTaskParams TaskFlags = {
+	.Buffer = Raw_Buf,
+	.Receiving = &RX_Flag,
+	.BufferReady = &Buf_Flag,
+	.Sending = &TX_Flag,
+};
+
 // Functions
 /******************************************************************************/
+// LORA RX task
+void task_rx(void *pvParameters) {
+	// Initialize passed parameters
+	LoRaTaskParams *params = (LoRaTaskParams *)pvParameters;
+	uint8_t *buf = params->Buffer;
+	bool *RX = params->Receiving;
+	bool *buf_ready = params->BufferReady;
+	bool *TX = params->Sending;
+
+	// log start
+	ESP_LOGI(pcTaskGetName(NULL), "Start");
+	
+	// Main loop
+	while(1) {
+		vTaskDelay(1); // avoiding watchdog
+
+		// Check if the lora module is in TX use
+		if(*TX == true) {
+			continue;
+		}
+
+		// otherwise, continue on
+		*RX = true;	// flag RX use
+		uint8_t rxLen = LoRaReceive(buf, sizeof(buf));
+		if (rxLen > 0) {
+			*buf_ready = true;
+
+#ifdef CONFIG_DEBUG_STUFF
+			ESP_LOGI(pcTaskGetName(NULL), "%d byte packet received:[%.*s]", rxLen, rxLen, buf);
+
+			int8_t rssi, snr;
+			GetPacketStatus(&rssi, &snr);
+			ESP_LOGI(pcTaskGetName(NULL), "rssi=%d[dBm] snr=%d[dB]", rssi, snr);
+#endif
+		}
+		*RX = false; // unflag RX use
+	}
+}
+
+
 // Return: true for sucess
 // 		   false for fail
 bool SenseData() {
@@ -70,6 +129,7 @@ bool SenseData() {
 	if(Read_SoilMoisture(&TempShort) != ESP_OK) {
 		ret = false;
 	}
+	// store reading
 	SensorData.Soil_Moisture = TempShort;
 
 	// Read wind speed and direction. No fail condition for these functions
@@ -80,6 +140,12 @@ bool SenseData() {
 	if(!Read_SHT30_HumidityTemperature(&TempFloat1, &TempFloat2)) {
 		ret = false;
 	}
+	// Store readings
+	SensorData.Temperature = TempFloat1;
+	SensorData.Humidity = TempFloat2;
+
+	// read particle data
+	// ReadParticle()
 
 	return ret;
 }
@@ -249,9 +315,13 @@ void app_main(void)
 {
 	// Initialization and configuration
 	Sensors_Init(ALL_SENSORS);
+	
 	// Power_init();
-	sx1262_lora_begin(&LORA_Handle);
-	sx1262_lora_set_continuous_receive_mode(&LORA_Handle);
+	ina219_init_desc(&MonitorHandle, INA219_ADDR_GND_GND, I2C_PORT, I2C_SDA, I2C_SCL);
+	ina219_init(&MonitorHandle);
+	ina219_configure(&MonitorHandle, INA219_BUS_RANGE_32V, INA219_GAIN_0_125, INA219_RES_12BIT_1S, INA219_RES_12BIT_1S, INA219_MODE_CONT_SHUNT_BUS);
+	ina219_calibrate(&MonitorHandle, SHUNT_RESISTANCE);
+
 	//init timer
 	esp_timer_init();
 
@@ -262,6 +332,67 @@ void app_main(void)
 	Sending = false;
 	Response = false;
 	Period = DEFAULT_PERIOD;
+
+	// Lora init
+	LoRaInit();
+	int8_t txPowerInDbm = 22;
+
+	// set frequency
+	uint32_t frequencyInHz = 0;
+#if CONFIG_433MHZ
+	frequencyInHz = 433000000;
+	ESP_LOGI(TAG, "Frequency is 433MHz");
+#elif CONFIG_866MHZ
+	frequencyInHz = 866000000;
+	ESP_LOGI(TAG, "Frequency is 866MHz");
+#elif CONFIG_915MHZ
+	frequencyInHz = 915000000;
+	ESP_LOGI(TAG, "Frequency is 915MHz");
+#elif CONFIG_OTHER
+	ESP_LOGI(TAG, "Frequency is %dMHz", CONFIG_OTHER_FREQUENCY);
+	frequencyInHz = CONFIG_OTHER_FREQUENCY * 1000000;
+#endif
+
+	// txco power configurations for LORA
+#if CONFIG_USE_TCXO
+	ESP_LOGW(TAG, "Enable TCXO");
+	float tcxoVoltage = 3.3;	 // use TCXO
+	bool useRegulatorLDO = true; // use DCDC + LDO
+#else
+	ESP_LOGW(TAG, "Disable TCXO");
+	float tcxoVoltage = 0.0;	  // don't use TCXO
+	bool useRegulatorLDO = false; // use only LDO in all modes
+#endif
+
+	// begin the lora module
+	if (LoRaBegin(frequencyInHz, txPowerInDbm, tcxoVoltage, useRegulatorLDO) != 0)
+	{
+		ESP_LOGE(TAG, "Does not recognize the module");
+		while (1)
+		{
+			vTaskDelay(1);
+		}
+	}
+
+	// NOTE: These variables could and maybe should be configured in the menuconfig
+	uint8_t spreadingFactor = 12;
+	uint8_t bandwidth = 4;
+	uint8_t codingRate = 1;
+	uint16_t preambleLength = 8;
+	uint8_t payloadLen = 0;
+	bool crcOn = true;
+	bool invertIrq = false;
+#if CONFIG_ADVANCED
+	spreadingFactor = CONFIG_SF_RATE;
+	bandwidth = CONFIG_BANDWIDTH;
+	codingRate = CONFIG_CODING_RATE;
+#endif
+	LoRaConfig(spreadingFactor, bandwidth, codingRate, preambleLength, payloadLen, crcOn, invertIrq);
+
+	// esp_timer_init() // apparently this is already initialized
+
+	// Start RX
+	xTaskCreate(&task_rx, "RX", 1024*4, &TaskFlags, 5, NULL);
 	
 	while(1) {
 		// check incoming packets
@@ -270,23 +401,7 @@ void app_main(void)
 			ParsePacket();
 		}
 
-		// If transmitting, transmit untill timeout or TX ack
-		while(Sending) {
-			// timeout condition
-			if ((esp_timer_get_time() - Sending_StartTime) > (TIMEOUT_PERIOD * MICROSECOND_TO_SECOND)) {
-				// Stop sending
-				sx1262_lora_set_continuous_receive_mode(&LORA_Handle);
-				Sending = false;
-			}
-
-			// Response condition
-			if (Response) {
-				// Stop sending
-				sx1262_lora_set_continuous_receive_mode(&LORA_Handle);
-				Sending = false;
-				Response = false;
-			}
-		}
+		// if some time has passed: 
 
 		// Go to sleep for period
 		esp_sleep_enable_timer_wakeup(Period * MICROSECOND_TO_SECOND);
