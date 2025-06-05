@@ -17,8 +17,9 @@
 #include "esp_timer.h"
 
 #include "../include/Sensors.h"
-#include "../include/LoRa_main.h"
+#include "../include/LoRa.h"
 #include "../include/Protocol.h"
+#include <ina219.h>
 
 // #defines
 /******************************************************************************/
@@ -464,6 +465,8 @@ void app_main(void)
 #endif
 	LoRaConfig(spreadingFactor, bandwidth, codingRate, preambleLength, payloadLen, crcOn, invertIrq);
 
+	ClearIrqStatus(SX126X_IRQ_ALL);
+
 	// esp_timer_init() // apparently this is already initialized
 
 	// Start RX
@@ -484,8 +487,16 @@ void app_main(void)
 		if (IterationCount++ < 20000) {
 			continue;
 		}
-
 		// if some time has passed: 
+
+		// Enable wakeup from LoRa activity
+		// Enable channel activity interrupt on DIO1
+		SetDioIrqParams(SX126X_IRQ_CAD_DETECTED, SX126X_IRQ_CAD_DETECTED, SX126X_IRQ_NONE, SX126X_IRQ_NONE);
+
+		// NOTE: Pin 18 has to be wired to pin 33
+		esp_sleep_enable_ext1_wakeup(GPIO_NUM_18, ESP_EXT1_WAKEUP_ANY_HIGH);
+
+
 		// Go to sleep for period
 		esp_sleep_enable_timer_wakeup(Period * MICROSECOND_TO_SECOND);
 		esp_deep_sleep_start();
