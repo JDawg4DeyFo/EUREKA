@@ -16,6 +16,7 @@
 
 #include "esp_log.h"
 #include "esp_timer.h"
+#include "esp_sleep.h"
 
 #include "../include/Sensors.h"
 #include "../include/LoRa.h"
@@ -29,6 +30,12 @@
 #define BYTE_SHIFT 8						
 #define BYTE_MASK 0xFF
 #define PLACEHOLDER_UNIQUEID 102;
+
+#define I2C_SCL 42
+#define I2C_SDA 41
+#define I2C_PORT 0
+
+#define SHUNT_RESISTANCE 0.24
 
 // Data types
 /******************************************************************************/
@@ -59,6 +66,7 @@ static bool AwaitingResponse;
 static uint16_t Period;
 static LORA_Packet_t MainPacket;
 static bool Sending, Response, MainPacket_Ready;
+static ina219_t MonitorHandle;
 static int Send_StartTime;
 SensorData_t SensorData;
 static uint8_t Unique_NodeID;
@@ -378,7 +386,7 @@ bool ParsePacket() {
 			// Acknowledge Packet
 			SendAck();
 
-			return Send_MainPacket();
+			return SendMainPacket();
 
 		// for all other cases, break
 		default:
