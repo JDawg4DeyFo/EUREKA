@@ -12,6 +12,7 @@
 // #includes
 /******************************************************************************/
 #include <stddef.h>
+#include <string.h>
 
 #include "esp_log.h"
 #include "esp_timer.h"
@@ -23,11 +24,11 @@
 
 // #defines
 /******************************************************************************/
-#define DEFAULT_PERIOD 10					// Default period in seconds
 #define MICROSECOND_TO_SECOND 1000000
 #define TIMEOUT_PERIOD 30					// timeout period in seconds
 #define BYTE_SHIFT 8						
 #define BYTE_MASK 0xFF
+#define PLACEHOLDER_UNIQUEID 102;
 
 // Data types
 /******************************************************************************/
@@ -54,11 +55,11 @@ typedef struct {
 
 // Variables
 /******************************************************************************/
+static bool AwaitingResponse;
 static uint16_t Period;
-static sx1262_handle_t LORA_Handle;
 static LORA_Packet_t MainPacket;
 static bool Sending, Response, MainPacket_Ready;
-static int Sending_StartTime;
+static int Send_StartTime;
 SensorData_t SensorData;
 static uint8_t Unique_NodeID;
 static uint32_t TempTimestamp;
@@ -66,6 +67,7 @@ static uint32_t TempTimestamp;
 
 static uint8_t Raw_Buf[MAX_BUFF];
 static bool RX_Flag, Buf_Flag, TX_Flag;
+static uint8_t tx_len;
 
 // bool TX_Buf_Empty, RX_Buf_Empty;
 
@@ -75,6 +77,8 @@ static LoRaTaskParams TaskFlags = {
 	.BufferReady = &Buf_Flag,
 	.Sending = &TX_Flag,
 };
+
+static const char *TAG = "SensorMain.c";
 
 // Functions
 /******************************************************************************/
@@ -171,29 +175,32 @@ uint8_t Iterative_CRC(bool Reset, uint8_t char_in){
 }
 
 // Calculate CRC for TX packet
-void Calculate_CRC(LORA_Packet_t *Packet) {
+// Calculate CRC for TX packet
+void Calculate_CRC(LORA_Packet_t *Packet)
+{
 	int i;
 	uint8_t TempChar;
-	
+
 	// Simple char calculations
 	Iterative_CRC(true, Packet->NodeID);
 	Iterative_CRC(false, (uint8_t)Packet->Pkt_Type);
 
 	// 32 bit timestamp requires some finesse
-	TempChar = (uint8_t)((Packet->Timestamp>>24) & 0xFF);
+	TempChar = (uint8_t)(Packet->Timestamp)[0];
 	Iterative_CRC(false, TempChar);
-	TempChar = (uint8_t)((Packet->Timestamp>>16) & 0xFF);
+	TempChar = (uint8_t)(Packet->Timestamp)[1];
 	Iterative_CRC(false, TempChar);
-	TempChar = (uint8_t)((Packet->Timestamp>>8) & 0xFF);
+	TempChar = (uint8_t)(Packet->Timestamp)[2];
 	Iterative_CRC(false, TempChar);
-	TempChar = (uint8_t)(Packet->Timestamp & 0xFF);
+	TempChar = (uint8_t)(Packet->Timestamp)[3];
 	Iterative_CRC(false, TempChar);
 
 	// Length
 	Iterative_CRC(false, Packet->Length);
 
 	// Payload
-	for (i = 0; i < (Packet->Length - 1); i++) {
+	for (i = 0; i < (Packet->Length - 1); i++)
+	{
 		Iterative_CRC(false, *(Packet->Payload + i));
 	}
 
@@ -337,7 +344,7 @@ bool ParsePacket() {
 			MainPacket.Pkt_Type = RAW_SENSOR_DATA;
 
 			TempTimestamp = 100;		// replace with actual stamp later
-			memcpy(MainPacket.Timestamp, TempTimestamp, 4);
+			memcpy(&MainPacket.Timestamp, &TempTimestamp, 4);
 			MainPacket.Length = RAW_SENSOR_DATA_LEN;
 
 			// Store payload
@@ -347,23 +354,23 @@ bool ParsePacket() {
 			
 			// float conversion for soil temperature
 			float_converter.f = SensorData.Soil_Temperature;
-			memcpy(MainPacket.Payload[2], float_converter.b, 4);
+			memcpy(MainPacket.Payload + 2, &float_converter.b, 4);
 
 			// float conversion for humidity
 			float_converter.f = SensorData.Humidity;
-			memcpy(MainPacket.Payload[6], float_converter.b, 4);
+			memcpy(MainPacket.Payload + 6, &float_converter.b, 4);
 
 			// float conversion for temperature
 			float_converter.f = SensorData.Temperature;
-			memcpy(MainPacket.Payload[10], float_converter.b, 4);
+			memcpy(MainPacket.Payload + 10, &float_converter.b, 4);
 
 			// float conversion of wind speed
 			float_converter.f = SensorData.WindSpeed;
-			memcpy(MainPacket.Payload[14], float_converter.b, 4);
+			memcpy(MainPacket.Payload + 14, &float_converter.b, 4);
 
 			// float conversion of wind direction
 			float_converter.f = SensorData.WindSpeed;
-			memcpy(MainPacket.Payload[18], float_converter.b, 4);
+			memcpy(MainPacket.Payload + 18, &float_converter.b, 4);
 
 			// Calculate and store CRC
 			Calculate_CRC(&MainPacket);
