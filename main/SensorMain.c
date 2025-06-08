@@ -36,6 +36,7 @@
 #define I2C_PORT 0
 
 #define SHUNT_RESISTANCE 0.24
+#define CRITICAL_VOLTAGE 11.0 // ACCURATE VALUE NEEDED ... minimum voltage is 10V for battery
 
 // Data types
 /******************************************************************************/
@@ -489,6 +490,8 @@ void app_main(void)
 	
 	int IterationCount = 0;
 	while(1) {
+		float BusVoltage;
+
 		// Avoid watchdog
 		vTaskDelay(1);
 
@@ -498,11 +501,37 @@ void app_main(void)
 			ParsePacket();
 		}
 
+		// Check power
+		ina219_get_bus_voltage(&MonitorHandle, &BusVoltage);
+		if (BusVoltage < CRITICAL_VOLTAGE)
+		{
+			// ESP_LOGE(TAG, "Below critical voltage!");
+			// update network that cluster head is shutting off?
+
+			// shut off
+			uint64_t wakeup_time = EMERGENCY_SLEEP_TIME_SEC * MICROSECOND_CONVERSION;
+			esp_sleep_enable_timer_wakeup(wakeup_time);
+			// ESP_LOGI(TAG, "Entering deep sleep for %d seconds...", EMERGENCY_SLEEP_TIME_SEC);
+
+			// Light sleep start
+			// esp_deep_sleep_start(); // deep sleep mode but LoRa wakeup is enabled
+		}
+
+		// testing system stuff
+		#ifdef CONFIG_DEBUG_STUFF
+		if (IterationCount == 10) {
+			SenseData();
+			ESP_LOGI(TAG, "Measured bus voltage: %f", BusVoltage);
+			ESP_LOGI(TAG, "Humidity: %f Moisture: %d Soil Temp: %f Wind Direction: %f Wind Speed: %f", SensorData.Humidity, SensorData.Soil_Moisture, SensorData.Soil_Temperature, SensorData.Temperature, SensorData.WindDirection, SensorData.WindSpeed);
+		}
+		#endif
+
 		// Stay awake for some time before sleep
 		if (IterationCount++ < 20000) {
 			continue;
 		}
 		// if some time has passed: 
+		IterationCount = 0;
 
 		// Enable wakeup from LoRa activity
 		// Enable channel activity interrupt on DIO1
@@ -514,6 +543,10 @@ void app_main(void)
 
 		// Go to sleep for period
 		esp_sleep_enable_timer_wakeup(Period * MICROSECOND_TO_SECOND);
+		
+		// Don't want system to sleep when debugging
+		#ifndef CONFIG_DEBUG_STUFF
 		esp_deep_sleep_start();
+		#endif
 	}
 }

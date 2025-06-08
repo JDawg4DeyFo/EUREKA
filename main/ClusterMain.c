@@ -375,7 +375,23 @@ bool SendNewPeriod()
 // send data request
 bool SendSensorDataRequest()
 {
+	// Node ID and packet ID chars
+	MainPacket.NodeID = PLACEHOLDER_UNIQUEID;
+	MainPacket.Pkt_Type = REQUEST_SENSOR_DATA;
 
+	// Copy in 4 byte timestamp
+	TempTimestamp = 100;
+	memcpy(MainPacket.Timestamp, &TempTimestamp, 4);
+
+	// No payload
+	MainPacket.Length = 0;
+
+	Calculate_CRC(&MainPacket);
+
+	// Store packet win case it needs to get stored
+	StoragePacket = MainPacket;
+	SendPacket();
+	
 	return true;
 }
 
@@ -686,10 +702,11 @@ void app_main(void)
 #ifdef CONFIG_DEBUG_STUFF
 		// int end = esp_timer_get_time();
 		// ESP_LOGI(TAG, "One loop took %d us", end - start);
-		if(IterationCount > 2000) {
+		if(IterationCount > 20000) {
 			// should just be replaced with a parallel tx task probably...
 		// would definitley be hard to cordinate the timing and hardware constraints tho
-		SendDebugPacket();
+		// SendDebugPacket();
+		SendSensorDataRequest();
 		}
 #endif
 	}
