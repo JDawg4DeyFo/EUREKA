@@ -38,6 +38,10 @@
 #define SHUNT_RESISTANCE 0.24
 #define CRITICAL_VOLTAGE 11.0 // ACCURATE VALUE NEEDED ... minimum voltage is 10V for battery
 
+#define EMERGENCY_SLEEP_TIME_SEC 600 // NOTE: Should probably changed and refined
+#define MICROSECOND_CONVERSION 1000000
+
+
 // Data types
 /******************************************************************************/
 typedef struct {
@@ -522,7 +526,7 @@ void app_main(void)
 		if (IterationCount == 10) {
 			SenseData();
 			ESP_LOGI(TAG, "Measured bus voltage: %f", BusVoltage);
-			ESP_LOGI(TAG, "Humidity: %f Moisture: %d Soil Temp: %f Wind Direction: %f Wind Speed: %f", SensorData.Humidity, SensorData.Soil_Moisture, SensorData.Soil_Temperature, SensorData.Temperature, SensorData.WindDirection, SensorData.WindSpeed);
+			ESP_LOGI(TAG, "Humidity: %f Soil Moisture: %d Soil Temp: %f Temp: %f Wind Direction: %f Wind Speed: %f", SensorData.Humidity, SensorData.Soil_Moisture, SensorData.Soil_Temperature, SensorData.Temperature, SensorData.WindDirection, SensorData.WindSpeed);
 		}
 		#endif
 
